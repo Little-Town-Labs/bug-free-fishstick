@@ -1,0 +1,151 @@
+{
+  "project": {
+    "name": "rfp-automator",
+    "description": "Multi-tenant SaaS platform that automates RFP completion using AI agents and intelligent document processing",
+    "primary_language": "python",
+    "version": "1.0.0"
+  },
+  "tech_stack": {
+    "backend": [
+      "fastapi",
+      "langchain",
+      "langgraph",
+      "postgresql",
+      "pgvector",
+      "redis",
+      "celery",
+      "pydantic",
+      "sqlalchemy"
+    ],
+    "frontend": [
+      "react",
+      "typescript",
+      "vite",
+      "tailwindcss"
+    ],
+    "infrastructure": [
+      "docker",
+      "docker-compose",
+      "kubernetes",
+      "aws-s3",
+      "nginx"
+    ],
+    "document_processing": [
+      "pymupdf",
+      "pdfplumber",
+      "python-docx"
+    ],
+    "llm_providers": [
+      "anthropic-claude",
+      "openai",
+      "azure-openai"
+    ],
+    "testing": [
+      "pytest",
+      "pytest-asyncio",
+      "pytest-cov",
+      "jest",
+      "playwright"
+    ]
+  },
+  "recommended_agents": {
+    "backend": [
+      "fastapi-expert",
+      "python-expert"
+    ],
+    "frontend": [
+      "react-component-architect"
+    ],
+    "database": [
+      "python-expert"
+    ],
+    "ai_ml": [
+      "ml-data-expert"
+    ],
+    "review": [
+      "code-reviewer",
+      "Python Security Expert"
+    ],
+    "testing": [
+      "Python Testing Expert"
+    ],
+    "orchestration": [
+      "tech-lead-orchestrator"
+    ],
+    "performance": [
+      "performance-optimizer",
+      "Python Performance Expert"
+    ]
+  },
+  "commands": {
+    "test": {
+      "backend": "pytest tests/",
+      "backend_coverage": "pytest --cov --cov-report=html",
+      "frontend": "npm run test",
+      "frontend_coverage": "npm run test:coverage",
+      "e2e": "npm run test:e2e",
+      "all": "make test"
+    },
+    "build": {
+      "backend": "docker build -f docker/backend/Dockerfile -t rfp-automator-backend .",
+      "frontend": "npm run build",
+      "all": "docker-compose build"
+    },
+    "dev": {
+      "backend": "uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000",
+      "frontend": "npm run dev",
+      "all": "docker-compose up"
+    },
+    "lint": {
+      "backend": "black backend/ && ruff check backend/ && mypy backend/",
+      "frontend": "npm run lint && npm run type-check",
+      "all": "make lint"
+    },
+    "migrations": {
+      "create": "alembic revision --autogenerate -m",
+      "upgrade": "alembic upgrade head",
+      "downgrade": "alembic downgrade -1",
+      "history": "alembic history"
+    }
+  },
+  "testing": {
+    "framework": "pytest",
+    "coverage_minimum": 80,
+    "run_before_commit": true,
+    "test_directory": "tests/",
+    "async_support": true
+  },
+  "conventions": {
+    "code_style": "black + ruff for Python, Prettier for TypeScript",
+    "branch_naming": "feature/*, bugfix/*, hotfix/*",
+    "commit_format": "conventional commits",
+    "pre_commit_hooks": true
+  },
+  "ai_agent_architecture": {
+    "orchestrator": "RFP Orchestrator Agent - coordinates entire workflow",
+    "sub_agents": [
+      "Document Analyzer Agent - parses RFP structure and fields",
+      "Response Generator Agent - generates answers using LLM and KB",
+      "Quality Checker Agent - validates responses and scores confidence",
+      "Customer Agent - learns from past RFPs per end-customer"
+    ],
+    "frameworks": [
+      "LangChain for agent orchestration",
+      "LangGraph for workflow state management"
+    ]
+  },
+  "multi_tenancy": {
+    "isolation_strategy": "schema-per-tenant",
+    "enforcement": "middleware with JWT tenant context",
+    "file_storage": "tenant-prefixed paths in S3"
+  },
+  "key_features": [
+    "Multi-tenant SaaS with role-based access control",
+    "AI-powered RFP auto-completion (60-80% automation)",
+    "Customer-specific knowledge bases with semantic search",
+    "Document format preservation (PDF/Word)",
+    "Human-in-the-loop workflow with approval process",
+    "Multi-LLM provider support (Claude, GPT, Azure)",
+    "Learning system that improves from user corrections"
+  ]
+}
