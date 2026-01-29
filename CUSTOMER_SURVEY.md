@@ -2,7 +2,7 @@
 
 **Purpose:** Understand the government RFP response process, identify pain points, and validate product-market fit before building.
 
-**Target Audience:** Organizations that regularly respond to government RFPs (federal, state, local)
+**Target Audience:** Organizations that regularly respond to RFPs (corporate, private, federal, state, local)
 
 **Estimated Time:** 10-15 minutes
 
@@ -10,7 +10,7 @@
 
 ## Introduction
 
-Thank you for taking the time to help us understand the challenges of responding to government RFPs!
+Thank you for taking the time to help us understand the challenges of responding to RFPs!
 
 We're exploring building an AI-powered platform to automate parts of the proposal creation process. Your honest feedback will help us build something truly valuable - or save us from building something nobody needs.
 
@@ -32,10 +32,10 @@ We're exploring building an AI-powered platform to automate parts of the proposa
 ### 2. What is your company size?
 
 - [ ] Solo / Freelancer (1 person)
-- [ ] Small (2-10 employees)
-- [ ] Medium (11-50 employees)
-- [ ] Large (51-250 employees)
-- [ ] Enterprise (250+ employees)
+- [ ] Small (2-50 employees)
+- [ ] Medium (51-200 employees)
+- [ ] Large (201-500 employees)
+- [ ] Enterprise (501+ employees)
 
 ### 3. What industries/sectors do you primarily serve?
 
@@ -63,14 +63,14 @@ Select all that apply:
 
 ## Section 2: Current RFP Process & Volume
 
-### 5. How many government RFPs does your organization typically respond to per year?
+### 5. How many RFPs does your organization typically respond to per month?
 
-- [ ] 1-5 per year
-- [ ] 6-12 per year
-- [ ] 13-25 per year
-- [ ] 26-50 per year
-- [ ] 51-100 per year
-- [ ] 100+ per year
+- [ ] 1-5 
+- [ ] 6-12 
+- [ ] 13-25
+- [ ] 26-50
+- [ ] 51-100
+- [ ] 100+ 
 
 ### 6. Of the RFPs you review, approximately what percentage do you actually respond to?
 
@@ -150,8 +150,8 @@ Select top 3:
 
 Select all that apply:
 
-- [ ] Word documents on shared drive
-- [ ] Google Docs / Dropbox
+- [ ] Documents/files in cloud storage
+- [ ] Documents/files on-prem storage
 - [ ] Dedicated proposal software (e.g., Loopio, RFPIO)
 - [ ] CRM system (e.g., Salesforce, HubSpot)
 - [ ] Company wiki or knowledge base
@@ -160,7 +160,7 @@ Select all that apply:
 - [ ] Mostly in people's heads / memory
 - [ ] Other: _______________
 
-### 14. What's the most frustrating aspect of responding to government RFPs?
+### 14. What's the most frustrating aspect of responding to RFPs?
 
 (Open-ended text response)
 
@@ -180,14 +180,14 @@ Select all that apply:
 - [ ] Email with questions
 - [ ] Other: _______________
 
-### 16. How consistent are RFP formats within the same government agency?
+### 16. How consistent are RFP formats within the prospective customer?
 
-- [ ] Very consistent (same agency uses same template every time)
+- [ ] Very consistent (same customer uses same template every time)
 - [ ] Somewhat consistent (similar but with variations)
 - [ ] Inconsistent (different every time)
 - [ ] Not sure / Haven't noticed a pattern
 
-### 17. How much does the format/structure of RFPs vary between different agencies?
+### 17. How much does the format/structure of RFPs vary between different prospects/customers?
 
 - [ ] Extremely variable (every agency is completely different)
 - [ ] Moderately variable (some common patterns, but lots of differences)
@@ -310,8 +310,8 @@ Examples: Loopio, RFPIO, Proposify, PandaDoc, Qvidian, etc.
 
 ### 25. What pricing model would you prefer?
 
-- [ ] Per user per month (e.g., $50/user/month)
-- [ ] Per RFP (e.g., $50 per RFP processed)
+- [ ] Per user per month 
+- [ ] Per RFP 
 - [ ] Flat monthly fee for unlimited use
 - [ ] Annual subscription with discount
 - [ ] One-time perpetual license
@@ -351,58 +351,15 @@ Select all that apply:
 
 ### 29. Would you need data to be stored on-premise or in a private cloud?
 
-- [ ] Yes, must be on-premise or private cloud (government/security requirements)
+- [ ] Yes, must be on-premise or private cloud 
 - [ ] Prefer on-premise but could use secure cloud
 - [ ] Cloud-based SaaS is fine as long as it's secure
 - [ ] No preference
 
 ---
 
-## Section 8: Feedback & Interest
+## Section 8: Contact Information 
 
-### 30. What concerns or questions would you have about using AI to help draft proposals?
-
-Select all that apply:
-
-- [ ] Accuracy - will the AI understand the requirements correctly?
-- [ ] Quality - will responses be good enough to submit?
-- [ ] Customization - can I still customize for each client?
-- [ ] Security - is my company data safe?
-- [ ] Ethics - does using AI feel like "cheating"?
-- [ ] Detection - will reviewers know AI was used?
-- [ ] Cost - will AI usage costs be too high?
-- [ ] Learning curve - will it be too complicated to use?
-- [ ] Other: _______________
-- [ ] No major concerns
-
-### 31. If we built RFP Automator, how likely would you be to try it?
-
-- [ ] Extremely likely - would sign up immediately
-- [ ] Very likely - would seriously consider it
-- [ ] Somewhat likely - would evaluate against alternatives
-- [ ] Neutral - might try if recommended
-- [ ] Unlikely - probably wouldn't try
-- [ ] Very unlikely - definitely would not use
-
-### 32. Would you be interested in being a beta tester (free early access in exchange for feedback)?
-
-- [ ] Yes - very interested, sign me up!
-- [ ] Maybe - tell me more first
-- [ ] No - not interested
-
-### 33. What would make you choose RFP Automator over existing proposal software?
-
-(Open-ended text response)
-
-### 34. Any other thoughts, suggestions, or feedback?
-
-(Open-ended text response)
-
----
-
-## Section 9: Contact Information (Optional)
-
-If you'd like to be contacted about beta testing, product updates, or to discuss your RFP process further:
 
 **Name:** _______________
 
@@ -410,32 +367,12 @@ If you'd like to be contacted about beta testing, product updates, or to discuss
 
 **Email:** _______________
 
-**Phone:** _______________ (optional)
-
-**Best way to contact you:**
-- [ ] Email
-- [ ] Phone call
-- [ ] LinkedIn
-- [ ] Don't contact me
-
-**Best time for a 30-minute follow-up interview:**
-- [ ] Not interested in interview
-- [ ] Weekday mornings
-- [ ] Weekday afternoons
-- [ ] Weekday evenings
-- [ ] Weekends
-- [ ] Flexible - email me to schedule
-
+**Phone:** _______________ 
 ---
 
 ## Thank You!
 
-Thank you for taking the time to complete this survey. Your insights are invaluable in helping us build a product that truly solves real problems.
-
-If you indicated interest in beta testing, we'll be in touch soon with early access!
-
-**Questions about this survey?**
-Contact: [your email]
+Thank you for taking the time to complete this survey! 
 
 ---
 
@@ -462,30 +399,6 @@ Contact: [your email]
 - If extraction (feature a) rates 5/5 but drafting (feature d) rates 2/5 → focus on Loop 1 only
 - If enterprise respondents want on-premise → need different architecture
 
-### Follow-Up Interview Questions
-
-For respondents who rated high value + willing to pay + interested in beta:
-
-1. **Process Deep Dive**
-   - "Walk me through your last RFP response from receipt to submission."
-   - "What was most frustrating about that specific RFP?"
-
-2. **Willingness to Pay Validation**
-   - "You indicated $X/month - what would you expect for that price?"
-   - "How do you justify software purchases at your company?"
-
-3. **Feature Prioritization**
-   - "If we could only build one feature in the first version, what should it be?"
-   - "What would make this a 'must-have' vs. 'nice-to-have'?"
-
-4. **Competitive Landscape**
-   - "What have you tried already? What didn't work?"
-   - "Why didn't existing tools solve this problem?"
-
-5. **Beta Testing Commitment**
-   - "Would you commit to processing 5 RFPs through our beta?"
-   - "Can you introduce us to others in your organization?"
-
 ---
 
 ## Distribution Channels for Survey
@@ -493,9 +406,8 @@ For respondents who rated high value + willing to pay + interested in beta:
 ### Where to Share This Survey:
 
 **LinkedIn:**
-- Post in government contracting groups
-- Target: #GovCon, #GovernmentContracting, #RFP communities
-- Reach out to proposal managers directly
+- Posts
+- Groups
 
 **Industry Associations:**
 - Association of Proposal Management Professionals (APMP)
@@ -508,31 +420,19 @@ For respondents who rated high value + willing to pay + interested in beta:
 - r/entrepreneur
 
 **Direct Outreach:**
-- Identify companies that bid on government contracts (SAM.gov search)
-- LinkedIn Sales Navigator: "Proposal Manager" + "Government"
+- Through trusted network
 - Warm introductions through network
-
-**Incentive Ideas:**
-- Enter to win $100 Amazon gift card
-- Free 1-hour consulting call on proposal strategy
-- Early beta access
-- Detailed industry report with aggregated findings
+- Cold outreach
 
 ---
 
 ## Expected Response Analysis
 
-### Sample Size Goals
-
-- **Minimum viable:** 30 responses
-- **Good confidence:** 50-100 responses
-- **High confidence:** 100+ responses
-
 ### Segmentation Analysis
 
 Analyze by:
 - Company size (solo vs. small vs. medium vs. large)
-- RFP volume (low <12/year vs. high >12/year)
+- RFP volume (low <5/month vs. high >20/month)
 - Industry sector
 - Win rate
 
@@ -541,24 +441,3 @@ Look for patterns:
 - Does pain differ by RFP volume?
 - Are there industry-specific needs?
 
-### Decision Framework
-
-**GO Decision (Proceed with Build):**
-- 50+ responses
-- 60%+ rate core features 4-5/5
-- 40%+ willing to pay $200+/month
-- 20+ beta sign-ups
-- Clear feature prioritization emerges
-
-**NO-GO Decision (Don't Build):**
-- <30 responses despite promotion
-- Low value ratings across features
-- Willingness to pay <$100/month
-- Existing solutions meet needs
-- No beta interest
-
-**PIVOT Decision (Change Direction):**
-- Clear signal that ONE loop is much more valuable than the other
-- Enterprise vs. SMB needs diverge significantly
-- Integration needs dominate feature requests
-- Different market segment emerges (e.g., proposal consultants vs. companies)
