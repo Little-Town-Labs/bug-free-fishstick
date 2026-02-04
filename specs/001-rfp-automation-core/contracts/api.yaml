@@ -1,0 +1,1183 @@
+openapi: 3.1.0
+info:
+  title: RFP Automator API
+  description: API for RFP automation platform
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: API routes (relative to app)
+
+security:
+  - ClerkAuth: []
+
+paths:
+  # ============================================
+  # RFPs
+  # ============================================
+  /rfps:
+    get:
+      operationId: listRfps
+      summary: List RFPs
+      description: List RFPs for the current organization. Users see only assigned RFPs, Admins see all.
+      tags: [RFPs]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, processing, submitted, approved, finalized]
+        - name: customerId
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of RFPs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rfps:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Rfp'
+                  nextCursor:
+                    type: string
+                    nullable: true
+
+    post:
+      operationId: createRfp
+      summary: Create new RFP
+      tags: [RFPs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRfpInput'
+      responses:
+        '201':
+          description: RFP created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rfp'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /rfps/{rfpId}:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+
+    get:
+      operationId: getRfp
+      summary: Get RFP details
+      tags: [RFPs]
+      responses:
+        '200':
+          description: RFP details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RfpWithResponses'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      operationId: updateRfp
+      summary: Update RFP
+      tags: [RFPs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRfpInput'
+      responses:
+        '200':
+          description: RFP updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rfp'
+
+    delete:
+      operationId: deleteRfp
+      summary: Delete RFP
+      tags: [RFPs]
+      responses:
+        '204':
+          description: RFP deleted
+
+  /rfps/{rfpId}/upload:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+    post:
+      operationId: uploadRfpDocument
+      summary: Upload RFP document
+      tags: [RFPs]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        '200':
+          description: Document uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fileUrl:
+                    type: string
+                  fileType:
+                    type: string
+                    enum: [pdf, docx]
+
+  /rfps/{rfpId}/process:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+    post:
+      operationId: processRfp
+      summary: Trigger AI processing
+      description: Starts the AI processing workflow via Inngest
+      tags: [RFPs]
+      responses:
+        '202':
+          description: Processing started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  status:
+                    type: string
+                    enum: [queued]
+
+  /rfps/{rfpId}/status:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+    get:
+      operationId: getRfpProcessingStatus
+      summary: Get processing status
+      tags: [RFPs]
+      responses:
+        '200':
+          description: Processing status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingStatus'
+
+  /rfps/{rfpId}/responses:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+    get:
+      operationId: listRfpResponses
+      summary: List all responses for RFP
+      tags: [RFPs]
+      responses:
+        '200':
+          description: List of responses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RfpResponse'
+
+  /rfps/{rfpId}/responses/{fieldId}:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+      - name: fieldId
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      operationId: updateRfpResponse
+      summary: Update a response
+      tags: [RFPs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResponseInput'
+      responses:
+        '200':
+          description: Response updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RfpResponse'
+
+  /rfps/{rfpId}/submit:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+    post:
+      operationId: submitRfpForReview
+      summary: Submit RFP for review
+      tags: [RFPs, Workflow]
+      responses:
+        '200':
+          description: RFP submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rfp'
+
+  /rfps/{rfpId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+    post:
+      operationId: approveRfp
+      summary: Approve RFP (Admin only)
+      tags: [RFPs, Workflow]
+      responses:
+        '200':
+          description: RFP approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rfp'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /rfps/{rfpId}/return:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+    post:
+      operationId: returnRfp
+      summary: Return RFP for revision (Admin only)
+      tags: [RFPs, Workflow]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+      responses:
+        '200':
+          description: RFP returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rfp'
+
+  /rfps/{rfpId}/finalize:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+    post:
+      operationId: finalizeRfp
+      summary: Finalize RFP (Admin only)
+      tags: [RFPs, Workflow]
+      responses:
+        '200':
+          description: RFP finalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rfp'
+
+  /rfps/{rfpId}/download:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+    get:
+      operationId: downloadRfp
+      summary: Download completed RFP
+      tags: [RFPs]
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [pdf, docx, json]
+            default: pdf
+      responses:
+        '200':
+          description: File download
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RfpExport'
+
+  /rfps/{rfpId}/versions:
+    parameters:
+      - $ref: '#/components/parameters/rfpId'
+    get:
+      operationId: listRfpVersions
+      summary: List RFP versions
+      tags: [RFPs]
+      responses:
+        '200':
+          description: Version list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  versions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RfpVersion'
+
+  # ============================================
+  # Customers
+  # ============================================
+  /customers:
+    get:
+      operationId: listCustomers
+      summary: List end-customers
+      tags: [Customers]
+      responses:
+        '200':
+          description: Customer list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customer'
+
+    post:
+      operationId: createCustomer
+      summary: Create end-customer (Admin only)
+      tags: [Customers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerInput'
+      responses:
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+
+  /customers/{customerId}:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+
+    get:
+      operationId: getCustomer
+      summary: Get customer details
+      tags: [Customers]
+      responses:
+        '200':
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerWithStats'
+
+    patch:
+      operationId: updateCustomer
+      summary: Update customer (Admin only)
+      tags: [Customers]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerInput'
+      responses:
+        '200':
+          description: Customer updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+
+    delete:
+      operationId: deleteCustomer
+      summary: Archive customer (Admin only)
+      tags: [Customers]
+      responses:
+        '204':
+          description: Customer archived
+
+  # ============================================
+  # Knowledge Base
+  # ============================================
+  /customers/{customerId}/knowledge:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+
+    get:
+      operationId: listKnowledgeEntries
+      summary: List knowledge base entries
+      tags: [Knowledge]
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [past_rfp, case_study, certification, company_doc, manual_entry]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Knowledge entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/KnowledgeEntry'
+
+    post:
+      operationId: createKnowledgeEntry
+      summary: Add knowledge entry (Admin only)
+      tags: [Knowledge]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateKnowledgeEntryInput'
+      responses:
+        '201':
+          description: Entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeEntry'
+
+  /customers/{customerId}/knowledge/upload:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+    post:
+      operationId: uploadKnowledgeDocument
+      summary: Upload document to knowledge base (Admin only)
+      tags: [Knowledge]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                type:
+                  type: string
+                  enum: [past_rfp, case_study, certification, company_doc]
+                title:
+                  type: string
+              required: [file, type, title]
+      responses:
+        '201':
+          description: Document uploaded and processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeEntry'
+
+  /customers/{customerId}/knowledge/search:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+    post:
+      operationId: searchKnowledge
+      summary: Semantic search in knowledge base
+      tags: [Knowledge]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                limit:
+                  type: integer
+                  default: 10
+              required: [query]
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/KnowledgeEntry'
+                        - type: object
+                          properties:
+                            similarity:
+                              type: number
+
+  /customers/{customerId}/knowledge/{entryId}:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+      - name: entryId
+        in: path
+        required: true
+        schema:
+          type: string
+
+    get:
+      operationId: getKnowledgeEntry
+      summary: Get knowledge entry
+      tags: [Knowledge]
+      responses:
+        '200':
+          description: Knowledge entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeEntry'
+
+    delete:
+      operationId: deleteKnowledgeEntry
+      summary: Delete knowledge entry (Admin only)
+      tags: [Knowledge]
+      responses:
+        '204':
+          description: Entry deleted
+
+  # ============================================
+  # Settings
+  # ============================================
+  /settings:
+    get:
+      operationId: getTenantSettings
+      summary: Get tenant settings (Admin only)
+      tags: [Settings]
+      responses:
+        '200':
+          description: Tenant settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantSettings'
+
+    patch:
+      operationId: updateTenantSettings
+      summary: Update tenant settings (Admin only)
+      tags: [Settings]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTenantSettingsInput'
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantSettings'
+
+  # ============================================
+  # Learnings
+  # ============================================
+  /learnings:
+    get:
+      operationId: listLearnings
+      summary: List learnings
+      tags: [Learnings]
+      parameters:
+        - name: customerId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Learnings list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  learnings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Learning'
+
+    post:
+      operationId: createLearning
+      summary: Add manual learning
+      tags: [Learnings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLearningInput'
+      responses:
+        '201':
+          description: Learning created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Learning'
+
+components:
+  securitySchemes:
+    ClerkAuth:
+      type: http
+      scheme: bearer
+      description: Clerk JWT token
+
+  parameters:
+    rfpId:
+      name: rfpId
+      in: path
+      required: true
+      schema:
+        type: string
+
+    customerId:
+      name: customerId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    message:
+                      type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Resource not found"
+
+    Forbidden:
+      description: Permission denied
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Permission denied"
+
+  schemas:
+    # ============================================
+    # RFP Schemas
+    # ============================================
+    Rfp:
+      type: object
+      properties:
+        id:
+          type: string
+        organizationId:
+          type: string
+        customerId:
+          type: string
+        assignedUserId:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [draft, processing, submitted, approved, finalized]
+        customerCompanyName:
+          type: string
+          nullable: true
+        customerContactName:
+          type: string
+          nullable: true
+        customerContactInfo:
+          type: object
+          nullable: true
+          properties:
+            email:
+              type: string
+            phone:
+              type: string
+            address:
+              type: string
+        receiveDate:
+          type: string
+          format: date
+          nullable: true
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        completionDate:
+          type: string
+          format: date
+          nullable: true
+        originalFileUrl:
+          type: string
+          nullable: true
+        originalFileType:
+          type: string
+          enum: [pdf, docx]
+          nullable: true
+        completedFileUrl:
+          type: string
+          nullable: true
+        automationPercentage:
+          type: number
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RfpWithResponses:
+      allOf:
+        - $ref: '#/components/schemas/Rfp'
+        - type: object
+          properties:
+            responses:
+              type: array
+              items:
+                $ref: '#/components/schemas/RfpResponse'
+            customer:
+              $ref: '#/components/schemas/Customer'
+
+    CreateRfpInput:
+      type: object
+      required: [name, customerId]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        customerId:
+          type: string
+        customerCompanyName:
+          type: string
+        customerContactName:
+          type: string
+        customerContactInfo:
+          type: object
+          properties:
+            email:
+              type: string
+              format: email
+            phone:
+              type: string
+            address:
+              type: string
+        receiveDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+
+    UpdateRfpInput:
+      type: object
+      properties:
+        name:
+          type: string
+        customerCompanyName:
+          type: string
+        customerContactName:
+          type: string
+        customerContactInfo:
+          type: object
+        dueDate:
+          type: string
+          format: date
+        assignedUserId:
+          type: string
+
+    RfpResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        rfpId:
+          type: string
+        fieldId:
+          type: string
+        fieldType:
+          type: string
+          enum: [text, paragraph, checkbox, table, date, number]
+        question:
+          type: string
+        responseText:
+          type: string
+          nullable: true
+        confidenceScore:
+          type: number
+          nullable: true
+        status:
+          type: string
+          enum: [auto_filled, needs_input, manually_filled, approved]
+        position:
+          type: object
+          nullable: true
+          properties:
+            page:
+              type: integer
+            x:
+              type: number
+            y:
+              type: number
+            width:
+              type: number
+            height:
+              type: number
+            fontSize:
+              type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateResponseInput:
+      type: object
+      required: [responseText]
+      properties:
+        responseText:
+          type: string
+          maxLength: 50000
+        status:
+          type: string
+          enum: [manually_filled, approved]
+
+    ProcessingStatus:
+      type: object
+      properties:
+        rfpId:
+          type: string
+        status:
+          type: string
+          enum: [queued, parsing, extracting, generating, checking, complete, error]
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        currentStep:
+          type: string
+        error:
+          type: string
+          nullable: true
+
+    RfpVersion:
+      type: object
+      properties:
+        id:
+          type: string
+        rfpId:
+          type: string
+        versionNumber:
+          type: integer
+        createdBy:
+          type: string
+        changeSummary:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    RfpExport:
+      type: object
+      properties:
+        rfp:
+          $ref: '#/components/schemas/Rfp'
+        responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/RfpResponse'
+
+    # ============================================
+    # Customer Schemas
+    # ============================================
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+        organizationId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        settings:
+          type: object
+          nullable: true
+          properties:
+            preferredTone:
+              type: string
+              enum: [formal, casual, technical]
+            industryContext:
+              type: string
+            customInstructions:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CustomerWithStats:
+      allOf:
+        - $ref: '#/components/schemas/Customer'
+        - type: object
+          properties:
+            stats:
+              type: object
+              properties:
+                totalRfps:
+                  type: integer
+                completedRfps:
+                  type: integer
+                knowledgeEntries:
+                  type: integer
+                averageAutomation:
+                  type: number
+
+    CreateCustomerInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+        settings:
+          type: object
+          properties:
+            preferredTone:
+              type: string
+              enum: [formal, casual, technical]
+            industryContext:
+              type: string
+            customInstructions:
+              type: string
+
+    UpdateCustomerInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        settings:
+          type: object
+
+    # ============================================
+    # Knowledge Schemas
+    # ============================================
+    KnowledgeEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        organizationId:
+          type: string
+        customerId:
+          type: string
+        type:
+          type: string
+          enum: [past_rfp, case_study, certification, company_doc, manual_entry]
+        title:
+          type: string
+        content:
+          type: string
+        metadata:
+          type: object
+          nullable: true
+          properties:
+            sourceFile:
+              type: string
+            tags:
+              type: array
+              items:
+                type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateKnowledgeEntryInput:
+      type: object
+      required: [type, title, content]
+      properties:
+        type:
+          type: string
+          enum: [past_rfp, case_study, certification, company_doc, manual_entry]
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        content:
+          type: string
+          minLength: 1
+          maxLength: 500000
+        metadata:
+          type: object
+          properties:
+            tags:
+              type: array
+              items:
+                type: string
+              maxItems: 20
+
+    # ============================================
+    # Settings Schemas
+    # ============================================
+    TenantSettings:
+      type: object
+      properties:
+        organizationId:
+          type: string
+        llmProvider:
+          type: string
+          enum: [claude, openai, azure]
+        llmApiKeyConfigured:
+          type: boolean
+        confidenceThreshold:
+          type: number
+          minimum: 0
+          maximum: 1
+        autoLearnEnabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateTenantSettingsInput:
+      type: object
+      properties:
+        llmProvider:
+          type: string
+          enum: [claude, openai, azure]
+        llmApiKey:
+          type: string
+          description: Will be encrypted before storage
+        confidenceThreshold:
+          type: number
+          minimum: 0
+          maximum: 1
+        autoLearnEnabled:
+          type: boolean
+
+    # ============================================
+    # Learning Schemas
+    # ============================================
+    Learning:
+      type: object
+      properties:
+        id:
+          type: string
+        organizationId:
+          type: string
+        customerId:
+          type: string
+          nullable: true
+        content:
+          type: string
+        sourceType:
+          type: string
+          enum: [rfp_approval, user_correction, manual_entry]
+        createdBy:
+          type: string
+        sourceMetadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateLearningInput:
+      type: object
+      required: [content]
+      properties:
+        customerId:
+          type: string
+          nullable: true
+        content:
+          type: string
+          minLength: 1
+          maxLength: 10000

@@ -293,3 +293,10 @@ See the `templates/` directory in the [LTLClaude repository](https://github.com/
 - **Security**: Watch for common vulnerabilities (XSS, SQL injection, command injection, etc.)
 - **Simplicity**: The right amount of complexity is the minimum needed for the current task
 - **No time estimates**: Never provide time estimates or predictions for how long work will take
+
+## Active Technologies
+- TypeScript 5.0+ (strict mode), Node.js 20+ (001-rfp-automation-core)
+- Neon PostgreSQL + pgvector (data), Vercel Blob (files), Vercel KV (cache) (001-rfp-automation-core)
+
+## Recent Changes
+- 001-rfp-automation-core: Added TypeScript 5.0+ (strict mode), Node.js 20+
