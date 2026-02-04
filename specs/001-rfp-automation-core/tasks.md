@@ -3,6 +3,12 @@
 **Input**: Design documents from `/specs/001-rfp-automation-core/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
+**Methodology**: Test-Driven Development (TDD)
+- Write tests FIRST - they must FAIL before implementation
+- Implement minimal code to make tests pass
+- Refactor while keeping tests green
+- Target: 80%+ code coverage
+
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -14,12 +20,16 @@
 ## Path Conventions
 
 Based on plan.md: Next.js monorepo with `src/` at repository root
+- Source: `src/`
+- Unit tests: `tests/unit/`
+- Integration tests: `tests/integration/`
+- E2E tests: `tests/e2e/`
 
 ---
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Project initialization and basic structure
+**Purpose**: Project initialization, testing infrastructure, and basic structure
 
 - [ ] T001 Initialize Next.js 15 project with TypeScript strict mode in package.json
 - [ ] T002 [P] Configure Tailwind CSS in tailwind.config.ts
@@ -30,6 +40,14 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 - [ ] T007 [P] Create src/app/globals.css with Tailwind imports
 - [ ] T008 [P] Install shadcn/ui and initialize components in src/components/ui/
 
+### Testing Infrastructure
+
+- [ ] T009 [P] Install Vitest and configure vitest.config.ts with coverage thresholds (80%)
+- [ ] T010 [P] Install Playwright and configure playwright.config.ts for E2E tests
+- [ ] T011 [P] Install MSW (Mock Service Worker) for API mocking in tests/mocks/
+- [ ] T012 [P] Create test utilities and helpers in tests/utils/test-helpers.ts
+- [ ] T013 [P] Create mock factories for test data in tests/factories/
+
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
@@ -38,46 +56,54 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-### Database & ORM
+### Database & ORM - Tests First
 
-- [ ] T009 Install Drizzle ORM and configure drizzle.config.ts for Neon PostgreSQL
-- [ ] T010 Create database client in src/lib/db/index.ts with Neon connection
-- [ ] T011 [P] Create tenant_settings schema in src/lib/db/schema/tenant-settings.ts
-- [ ] T012 [P] Create customers schema in src/lib/db/schema/customers.ts
-- [ ] T013 [P] Create knowledge_entries schema with pgvector in src/lib/db/schema/knowledge-entries.ts
-- [ ] T014 [P] Create rfps schema in src/lib/db/schema/rfps.ts
-- [ ] T015 [P] Create rfp_responses schema in src/lib/db/schema/rfp-responses.ts
-- [ ] T016 [P] Create rfp_versions schema in src/lib/db/schema/rfp-versions.ts
-- [ ] T017 [P] Create learnings schema in src/lib/db/schema/learnings.ts
-- [ ] T018 Create schema index file exporting all tables in src/lib/db/schema/index.ts
-- [ ] T019 Generate initial database migration with Drizzle in src/lib/db/migrations/
+- [ ] T014 [P] Write unit tests for Drizzle schema validations in tests/unit/db/schema.test.ts
+- [ ] T015 Install Drizzle ORM and configure drizzle.config.ts for Neon PostgreSQL
+- [ ] T016 Create database client in src/lib/db/index.ts with Neon connection
+- [ ] T017 [P] Create tenant_settings schema in src/lib/db/schema/tenant-settings.ts
+- [ ] T018 [P] Create customers schema in src/lib/db/schema/customers.ts
+- [ ] T019 [P] Create knowledge_entries schema with pgvector in src/lib/db/schema/knowledge-entries.ts
+- [ ] T020 [P] Create rfps schema in src/lib/db/schema/rfps.ts
+- [ ] T021 [P] Create rfp_responses schema in src/lib/db/schema/rfp-responses.ts
+- [ ] T022 [P] Create rfp_versions schema in src/lib/db/schema/rfp-versions.ts
+- [ ] T023 [P] Create learnings schema in src/lib/db/schema/learnings.ts
+- [ ] T024 Create schema index file exporting all tables in src/lib/db/schema/index.ts
+- [ ] T025 Generate initial database migration with Drizzle in src/lib/db/migrations/
 
-### Authentication & Multi-tenancy
+### Authentication & Multi-tenancy - Tests First
 
-- [ ] T020 Install and configure Clerk in src/middleware.ts
-- [ ] T021 [P] Create Clerk provider wrapper in src/app/layout.tsx
-- [ ] T022 [P] Create auth utilities with tenant context extraction in src/lib/utils/auth.ts
-- [ ] T023 Create Clerk webhook handler for organization sync in src/app/api/webhooks/clerk/route.ts
-- [ ] T024 [P] Create sign-in page in src/app/(public)/sign-in/[[...sign-in]]/page.tsx
+- [ ] T026 [P] Write unit tests for auth utilities in tests/unit/utils/auth.test.ts
+- [ ] T027 Install and configure Clerk in src/middleware.ts
+- [ ] T028 [P] Create Clerk provider wrapper in src/app/layout.tsx
+- [ ] T029 [P] Create auth utilities with tenant context extraction in src/lib/utils/auth.ts
+- [ ] T030 [P] Write integration test for Clerk webhook in tests/integration/webhooks/clerk.test.ts
+- [ ] T031 Create Clerk webhook handler for organization sync in src/app/api/webhooks/clerk/route.ts
+- [ ] T032 [P] Create sign-in page in src/app/(public)/sign-in/[[...sign-in]]/page.tsx
 
-### Validation & Types
+### Validation & Types - Tests First
 
-- [ ] T025 [P] Create Zod validation schemas in src/lib/utils/validation.ts
-- [ ] T026 [P] Create RFP TypeScript types in src/types/rfp.ts
-- [ ] T027 [P] Create Knowledge TypeScript types in src/types/knowledge.ts
-- [ ] T028 [P] Create API response types in src/types/api.ts
+- [ ] T033 [P] Write unit tests for Zod validation schemas in tests/unit/utils/validation.test.ts
+- [ ] T034 [P] Create Zod validation schemas in src/lib/utils/validation.ts
+- [ ] T035 [P] Create RFP TypeScript types in src/types/rfp.ts
+- [ ] T036 [P] Create Knowledge TypeScript types in src/types/knowledge.ts
+- [ ] T037 [P] Create API response types in src/types/api.ts
 
-### Storage & Background Jobs
+### Storage & Background Jobs - Tests First
 
-- [ ] T029 [P] Configure Vercel Blob wrapper in src/lib/storage/blob.ts
-- [ ] T030 [P] Configure Vercel KV client in src/lib/storage/kv.ts
-- [ ] T031 Install and configure Inngest client in src/lib/inngest/client.ts
-- [ ] T032 Create Inngest webhook handler in src/app/api/inngest/route.ts
+- [ ] T038 [P] Write unit tests for Vercel Blob wrapper in tests/unit/storage/blob.test.ts
+- [ ] T039 [P] Write unit tests for Vercel KV client in tests/unit/storage/kv.test.ts
+- [ ] T040 [P] Configure Vercel Blob wrapper in src/lib/storage/blob.ts
+- [ ] T041 [P] Configure Vercel KV client in src/lib/storage/kv.ts
+- [ ] T042 Install and configure Inngest client in src/lib/inngest/client.ts
+- [ ] T043 Create Inngest webhook handler in src/app/api/inngest/route.ts
 
-### AI Infrastructure
+### AI Infrastructure - Tests First
 
-- [ ] T033 [P] Create LLM provider abstraction with Vercel AI SDK in src/lib/ai/providers.ts
-- [ ] T034 [P] Create embedding generation utility in src/lib/ai/embeddings.ts
+- [ ] T044 [P] Write unit tests for LLM provider abstraction in tests/unit/ai/providers.test.ts
+- [ ] T045 [P] Write unit tests for embedding generation in tests/unit/ai/embeddings.test.ts
+- [ ] T046 [P] Create LLM provider abstraction with Vercel AI SDK in src/lib/ai/providers.ts
+- [ ] T047 [P] Create embedding generation utility in src/lib/ai/embeddings.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -89,54 +115,70 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 **Independent Test**: Upload a sample PDF RFP, trigger AI processing, verify fields are populated with responses and confidence scores, export completed document
 
-### Document Processing (US1)
+### Tests for US1 - Write FIRST, Must FAIL
 
-- [ ] T035 [P] [US1] Create PDF parser using pdf-parse in src/lib/documents/pdf-parser.ts
-- [ ] T036 [P] [US1] Create Word parser using mammoth in src/lib/documents/word-parser.ts
-- [ ] T037 [P] [US1] Create PDF output generator with overlay using pdf-lib in src/lib/documents/pdf-output.ts
-- [ ] T038 [P] [US1] Create Word output generator using docx in src/lib/documents/word-output.ts
+- [ ] T048 [P] [US1] Write unit tests for PDF parser in tests/unit/documents/pdf-parser.test.ts
+- [ ] T049 [P] [US1] Write unit tests for Word parser in tests/unit/documents/word-parser.test.ts
+- [ ] T050 [P] [US1] Write unit tests for PDF output generator in tests/unit/documents/pdf-output.test.ts
+- [ ] T051 [P] [US1] Write unit tests for Word output generator in tests/unit/documents/word-output.test.ts
+- [ ] T052 [P] [US1] Write unit tests for document analyzer agent in tests/unit/ai/agents/document-analyzer.test.ts
+- [ ] T053 [P] [US1] Write unit tests for response generator agent in tests/unit/ai/agents/response-generator.test.ts
+- [ ] T054 [P] [US1] Write unit tests for quality checker agent in tests/unit/ai/agents/quality-checker.test.ts
+- [ ] T055 [P] [US1] Write contract tests for RFP API routes in tests/integration/api/rfps.test.ts
+- [ ] T056 [P] [US1] Write integration test for process-rfp workflow in tests/integration/inngest/process-rfp.test.ts
+- [ ] T057 [US1] Write E2E test for RFP upload and processing flow in tests/e2e/rfp-workflow.spec.ts
 
-### AI Agents (US1)
+### Document Processing Implementation (US1)
 
-- [ ] T039 [P] [US1] Create document analyzer agent in src/lib/ai/agents/document-analyzer.ts
-- [ ] T040 [P] [US1] Create response generator agent in src/lib/ai/agents/response-generator.ts
-- [ ] T041 [P] [US1] Create quality checker agent in src/lib/ai/agents/quality-checker.ts
+- [ ] T058 [P] [US1] Create PDF parser using pdf-parse in src/lib/documents/pdf-parser.ts
+- [ ] T059 [P] [US1] Create Word parser using mammoth in src/lib/documents/word-parser.ts
+- [ ] T060 [P] [US1] Create PDF output generator with overlay using pdf-lib in src/lib/documents/pdf-output.ts
+- [ ] T061 [P] [US1] Create Word output generator using docx in src/lib/documents/word-output.ts
 
-### Inngest Functions (US1)
+### AI Agents Implementation (US1)
 
-- [ ] T042 [US1] Create process-rfp Inngest function with multi-step workflow in src/lib/inngest/functions/process-rfp.ts
-- [ ] T043 [P] [US1] Create export-document Inngest function in src/lib/inngest/functions/export-document.ts
+- [ ] T062 [P] [US1] Create document analyzer agent in src/lib/ai/agents/document-analyzer.ts
+- [ ] T063 [P] [US1] Create response generator agent in src/lib/ai/agents/response-generator.ts
+- [ ] T064 [P] [US1] Create quality checker agent in src/lib/ai/agents/quality-checker.ts
 
-### API Routes (US1)
+### Inngest Functions Implementation (US1)
 
-- [ ] T044 [P] [US1] Create RFP list/create API route in src/app/api/rfps/route.ts
-- [ ] T045 [P] [US1] Create RFP get/update/delete API route in src/app/api/rfps/[rfpId]/route.ts
-- [ ] T046 [P] [US1] Create RFP document upload API route in src/app/api/rfps/[rfpId]/upload/route.ts
-- [ ] T047 [P] [US1] Create RFP process trigger API route in src/app/api/rfps/[rfpId]/process/route.ts
-- [ ] T048 [P] [US1] Create RFP processing status API route in src/app/api/rfps/[rfpId]/status/route.ts
-- [ ] T049 [P] [US1] Create RFP responses list API route in src/app/api/rfps/[rfpId]/responses/route.ts
-- [ ] T050 [P] [US1] Create RFP response update API route in src/app/api/rfps/[rfpId]/responses/[fieldId]/route.ts
-- [ ] T051 [P] [US1] Create RFP download API route in src/app/api/rfps/[rfpId]/download/route.ts
+- [ ] T065 [US1] Create process-rfp Inngest function with multi-step workflow in src/lib/inngest/functions/process-rfp.ts
+- [ ] T066 [P] [US1] Create export-document Inngest function in src/lib/inngest/functions/export-document.ts
 
-### UI Components (US1)
+### API Routes Implementation (US1)
 
-- [ ] T052 [P] [US1] Create DocumentPreview component in src/components/rfp/DocumentPreview.tsx
-- [ ] T053 [P] [US1] Create ResponseCard component with confidence indicator in src/components/rfp/ResponseCard.tsx
-- [ ] T054 [P] [US1] Create ProgressTracker component in src/components/rfp/ProgressTracker.tsx
-- [ ] T055 [US1] Create RfpEditor side-by-side editing interface in src/components/rfp/RfpEditor.tsx
+- [ ] T067 [P] [US1] Create RFP list/create API route in src/app/api/rfps/route.ts
+- [ ] T068 [P] [US1] Create RFP get/update/delete API route in src/app/api/rfps/[rfpId]/route.ts
+- [ ] T069 [P] [US1] Create RFP document upload API route in src/app/api/rfps/[rfpId]/upload/route.ts
+- [ ] T070 [P] [US1] Create RFP process trigger API route in src/app/api/rfps/[rfpId]/process/route.ts
+- [ ] T071 [P] [US1] Create RFP processing status API route in src/app/api/rfps/[rfpId]/status/route.ts
+- [ ] T072 [P] [US1] Create RFP responses list API route in src/app/api/rfps/[rfpId]/responses/route.ts
+- [ ] T073 [P] [US1] Create RFP response update API route in src/app/api/rfps/[rfpId]/responses/[fieldId]/route.ts
+- [ ] T074 [P] [US1] Create RFP download API route in src/app/api/rfps/[rfpId]/download/route.ts
 
-### Pages (US1)
+### UI Components Implementation (US1)
 
-- [ ] T056 [P] [US1] Create dashboard page in src/app/(auth)/dashboard/page.tsx
-- [ ] T057 [P] [US1] Create new RFP wizard page in src/app/(auth)/rfps/new/page.tsx
-- [ ] T058 [US1] Create RFP detail/edit page in src/app/(auth)/rfps/[id]/page.tsx
+- [ ] T075 [P] [US1] Write component tests for DocumentPreview in tests/unit/components/rfp/DocumentPreview.test.tsx
+- [ ] T076 [P] [US1] Write component tests for ResponseCard in tests/unit/components/rfp/ResponseCard.test.tsx
+- [ ] T077 [P] [US1] Create DocumentPreview component in src/components/rfp/DocumentPreview.tsx
+- [ ] T078 [P] [US1] Create ResponseCard component with confidence indicator in src/components/rfp/ResponseCard.tsx
+- [ ] T079 [P] [US1] Create ProgressTracker component in src/components/rfp/ProgressTracker.tsx
+- [ ] T080 [US1] Create RfpEditor side-by-side editing interface in src/components/rfp/RfpEditor.tsx
 
-### Hooks (US1)
+### Pages Implementation (US1)
 
-- [ ] T059 [P] [US1] Create useRfp hook for RFP data fetching in src/hooks/use-rfp.ts
-- [ ] T060 [P] [US1] Create useProcessingStatus hook for polling in src/hooks/use-processing-status.ts
+- [ ] T081 [P] [US1] Create dashboard page in src/app/(auth)/dashboard/page.tsx
+- [ ] T082 [P] [US1] Create new RFP wizard page in src/app/(auth)/rfps/new/page.tsx
+- [ ] T083 [US1] Create RFP detail/edit page in src/app/(auth)/rfps/[id]/page.tsx
 
-**Checkpoint**: User Story 1 complete - users can upload RFPs, trigger AI completion, review responses, and export documents
+### Hooks Implementation (US1)
+
+- [ ] T084 [P] [US1] Write unit tests for useRfp hook in tests/unit/hooks/use-rfp.test.ts
+- [ ] T085 [P] [US1] Create useRfp hook for RFP data fetching in src/hooks/use-rfp.ts
+- [ ] T086 [P] [US1] Create useProcessingStatus hook for polling in src/hooks/use-processing-status.ts
+
+**Checkpoint**: User Story 1 complete - verify all tests pass, run E2E test
 
 ---
 
@@ -146,37 +188,51 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 **Independent Test**: Upload documents to knowledge base, verify content is extracted and indexed, perform semantic search and verify relevant results
 
-### Inngest Functions (US2)
+### Tests for US2 - Write FIRST, Must FAIL
 
-- [ ] T061 [US2] Create generate-embeddings Inngest function in src/lib/inngest/functions/generate-embeddings.ts
+- [ ] T087 [P] [US2] Write unit tests for vector search service in tests/unit/services/vector-search.test.ts
+- [ ] T088 [P] [US2] Write contract tests for customer API routes in tests/integration/api/customers.test.ts
+- [ ] T089 [P] [US2] Write contract tests for knowledge API routes in tests/integration/api/knowledge.test.ts
+- [ ] T090 [P] [US2] Write integration test for generate-embeddings workflow in tests/integration/inngest/generate-embeddings.test.ts
+- [ ] T091 [US2] Write E2E test for knowledge base management in tests/e2e/knowledge-base.spec.ts
 
-### API Routes (US2)
+### Inngest Functions Implementation (US2)
 
-- [ ] T062 [P] [US2] Create customer list/create API route in src/app/api/customers/route.ts
-- [ ] T063 [P] [US2] Create customer get/update/delete API route in src/app/api/customers/[customerId]/route.ts
-- [ ] T064 [P] [US2] Create knowledge entries list/create API route in src/app/api/customers/[customerId]/knowledge/route.ts
-- [ ] T065 [P] [US2] Create knowledge document upload API route in src/app/api/customers/[customerId]/knowledge/upload/route.ts
-- [ ] T066 [P] [US2] Create knowledge semantic search API route in src/app/api/customers/[customerId]/knowledge/search/route.ts
-- [ ] T067 [P] [US2] Create knowledge entry get/delete API route in src/app/api/customers/[customerId]/knowledge/[entryId]/route.ts
+- [ ] T092 [US2] Create generate-embeddings Inngest function in src/lib/inngest/functions/generate-embeddings.ts
 
-### UI Components (US2)
+### Services Implementation (US2)
 
-- [ ] T068 [P] [US2] Create KnowledgeEntryCard component in src/components/knowledge/KnowledgeEntryCard.tsx
-- [ ] T069 [P] [US2] Create KnowledgeUploader component in src/components/knowledge/KnowledgeUploader.tsx
-- [ ] T070 [P] [US2] Create KnowledgeSearch component in src/components/knowledge/KnowledgeSearch.tsx
-- [ ] T071 [P] [US2] Create CustomerSelector component in src/components/shared/CustomerSelector.tsx
+- [ ] T093 [US2] Create vector search service in src/lib/services/vector-search.ts
 
-### Pages (US2)
+### API Routes Implementation (US2)
 
-- [ ] T072 [P] [US2] Create customers list page in src/app/(auth)/customers/page.tsx
-- [ ] T073 [P] [US2] Create customer detail page in src/app/(auth)/customers/[id]/page.tsx
-- [ ] T074 [US2] Create knowledge base management page in src/app/(auth)/knowledge/page.tsx
+- [ ] T094 [P] [US2] Create customer list/create API route in src/app/api/customers/route.ts
+- [ ] T095 [P] [US2] Create customer get/update/delete API route in src/app/api/customers/[customerId]/route.ts
+- [ ] T096 [P] [US2] Create knowledge entries list/create API route in src/app/api/customers/[customerId]/knowledge/route.ts
+- [ ] T097 [P] [US2] Create knowledge document upload API route in src/app/api/customers/[customerId]/knowledge/upload/route.ts
+- [ ] T098 [P] [US2] Create knowledge semantic search API route in src/app/api/customers/[customerId]/knowledge/search/route.ts
+- [ ] T099 [P] [US2] Create knowledge entry get/delete API route in src/app/api/customers/[customerId]/knowledge/[entryId]/route.ts
 
-### Hooks (US2)
+### UI Components Implementation (US2)
 
-- [ ] T075 [US2] Create useKnowledgeSearch hook for semantic search in src/hooks/use-knowledge-search.ts
+- [ ] T100 [P] [US2] Write component tests for KnowledgeUploader in tests/unit/components/knowledge/KnowledgeUploader.test.tsx
+- [ ] T101 [P] [US2] Create KnowledgeEntryCard component in src/components/knowledge/KnowledgeEntryCard.tsx
+- [ ] T102 [P] [US2] Create KnowledgeUploader component in src/components/knowledge/KnowledgeUploader.tsx
+- [ ] T103 [P] [US2] Create KnowledgeSearch component in src/components/knowledge/KnowledgeSearch.tsx
+- [ ] T104 [P] [US2] Create CustomerSelector component in src/components/shared/CustomerSelector.tsx
 
-**Checkpoint**: User Story 2 complete - admins can build and search knowledge bases per customer
+### Pages Implementation (US2)
+
+- [ ] T105 [P] [US2] Create customers list page in src/app/(auth)/customers/page.tsx
+- [ ] T106 [P] [US2] Create customer detail page in src/app/(auth)/customers/[id]/page.tsx
+- [ ] T107 [US2] Create knowledge base management page in src/app/(auth)/knowledge/page.tsx
+
+### Hooks Implementation (US2)
+
+- [ ] T108 [US2] Write unit tests for useKnowledgeSearch in tests/unit/hooks/use-knowledge-search.test.ts
+- [ ] T109 [US2] Create useKnowledgeSearch hook for semantic search in src/hooks/use-knowledge-search.ts
+
+**Checkpoint**: User Story 2 complete - verify all tests pass, run E2E test
 
 ---
 
@@ -186,19 +242,26 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 **Independent Test**: Load a partially completed RFP, make edits to responses, verify changes auto-save and completion percentage updates
 
-### UI Enhancements (US3)
+### Tests for US3 - Write FIRST, Must FAIL
 
-- [ ] T076 [P] [US3] Create ConfidenceIndicator component in src/components/rfp/ConfidenceIndicator.tsx
-- [ ] T077 [P] [US3] Create ResponseActions component (accept/edit/reject) in src/components/rfp/ResponseActions.tsx
-- [ ] T078 [P] [US3] Create CompletionProgress component in src/components/rfp/CompletionProgress.tsx
-- [ ] T079 [US3] Enhance RfpEditor with auto-save and optimistic updates in src/components/rfp/RfpEditor.tsx
+- [ ] T110 [P] [US3] Write component tests for ConfidenceIndicator in tests/unit/components/rfp/ConfidenceIndicator.test.tsx
+- [ ] T111 [P] [US3] Write component tests for ResponseActions in tests/unit/components/rfp/ResponseActions.test.tsx
+- [ ] T112 [P] [US3] Write integration tests for auto-save behavior in tests/integration/api/response-autosave.test.ts
+- [ ] T113 [US3] Write E2E test for response editing workflow in tests/e2e/response-editing.spec.ts
 
-### API Enhancements (US3)
+### UI Components Implementation (US3)
 
-- [ ] T080 [US3] Add auto-save debouncing to response update API in src/app/api/rfps/[rfpId]/responses/[fieldId]/route.ts
-- [ ] T081 [US3] Add completion percentage calculation to RFP status endpoint in src/app/api/rfps/[rfpId]/status/route.ts
+- [ ] T114 [P] [US3] Create ConfidenceIndicator component in src/components/rfp/ConfidenceIndicator.tsx
+- [ ] T115 [P] [US3] Create ResponseActions component (accept/edit/reject) in src/components/rfp/ResponseActions.tsx
+- [ ] T116 [P] [US3] Create CompletionProgress component in src/components/rfp/CompletionProgress.tsx
+- [ ] T117 [US3] Enhance RfpEditor with auto-save and optimistic updates in src/components/rfp/RfpEditor.tsx
 
-**Checkpoint**: User Story 3 complete - users have full editing control with real-time feedback
+### API Enhancements Implementation (US3)
+
+- [ ] T118 [US3] Add auto-save debouncing to response update API in src/app/api/rfps/[rfpId]/responses/[fieldId]/route.ts
+- [ ] T119 [US3] Add completion percentage calculation to RFP status endpoint in src/app/api/rfps/[rfpId]/status/route.ts
+
+**Checkpoint**: User Story 3 complete - verify all tests pass, run E2E test
 
 ---
 
@@ -208,27 +271,35 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 **Independent Test**: Submit a completed RFP, have admin approve it, verify document is locked when finalized
 
-### API Routes (US4)
+### Tests for US4 - Write FIRST, Must FAIL
 
-- [ ] T082 [P] [US4] Create RFP submit for review API route in src/app/api/rfps/[rfpId]/submit/route.ts
-- [ ] T083 [P] [US4] Create RFP approve API route (admin only) in src/app/api/rfps/[rfpId]/approve/route.ts
-- [ ] T084 [P] [US4] Create RFP return API route (admin only) in src/app/api/rfps/[rfpId]/return/route.ts
-- [ ] T085 [P] [US4] Create RFP finalize API route (admin only) in src/app/api/rfps/[rfpId]/finalize/route.ts
-- [ ] T086 [P] [US4] Create RFP versions list API route in src/app/api/rfps/[rfpId]/versions/route.ts
+- [ ] T120 [P] [US4] Write unit tests for workflow state transitions in tests/unit/services/rfp-workflow.test.ts
+- [ ] T121 [P] [US4] Write unit tests for version snapshot creation in tests/unit/services/rfp-versions.test.ts
+- [ ] T122 [P] [US4] Write contract tests for workflow API routes in tests/integration/api/rfp-workflow.test.ts
+- [ ] T123 [US4] Write E2E test for approval workflow in tests/e2e/approval-workflow.spec.ts
 
-### UI Components (US4)
+### Service Logic Implementation (US4)
 
-- [ ] T087 [P] [US4] Create WorkflowStatusBadge component in src/components/rfp/WorkflowStatusBadge.tsx
-- [ ] T088 [P] [US4] Create ApprovalActions component in src/components/rfp/ApprovalActions.tsx
-- [ ] T089 [P] [US4] Create VersionHistory component in src/components/rfp/VersionHistory.tsx
-- [ ] T090 [US4] Create ReturnComments dialog component in src/components/rfp/ReturnComments.tsx
+- [ ] T124 [US4] Implement RFP state transition validation in src/lib/services/rfp-workflow.ts
+- [ ] T125 [US4] Implement version snapshot creation on finalize in src/lib/services/rfp-versions.ts
 
-### Service Logic (US4)
+### API Routes Implementation (US4)
 
-- [ ] T091 [US4] Implement RFP state transition validation in src/lib/services/rfp-workflow.ts
-- [ ] T092 [US4] Implement version snapshot creation on finalize in src/lib/services/rfp-versions.ts
+- [ ] T126 [P] [US4] Create RFP submit for review API route in src/app/api/rfps/[rfpId]/submit/route.ts
+- [ ] T127 [P] [US4] Create RFP approve API route (admin only) in src/app/api/rfps/[rfpId]/approve/route.ts
+- [ ] T128 [P] [US4] Create RFP return API route (admin only) in src/app/api/rfps/[rfpId]/return/route.ts
+- [ ] T129 [P] [US4] Create RFP finalize API route (admin only) in src/app/api/rfps/[rfpId]/finalize/route.ts
+- [ ] T130 [P] [US4] Create RFP versions list API route in src/app/api/rfps/[rfpId]/versions/route.ts
 
-**Checkpoint**: User Story 4 complete - full approval workflow functional
+### UI Components Implementation (US4)
+
+- [ ] T131 [P] [US4] Write component tests for WorkflowStatusBadge in tests/unit/components/rfp/WorkflowStatusBadge.test.tsx
+- [ ] T132 [P] [US4] Create WorkflowStatusBadge component in src/components/rfp/WorkflowStatusBadge.tsx
+- [ ] T133 [P] [US4] Create ApprovalActions component in src/components/rfp/ApprovalActions.tsx
+- [ ] T134 [P] [US4] Create VersionHistory component in src/components/rfp/VersionHistory.tsx
+- [ ] T135 [US4] Create ReturnComments dialog component in src/components/rfp/ReturnComments.tsx
+
+**Checkpoint**: User Story 4 complete - verify all tests pass, run E2E test
 
 ---
 
@@ -238,24 +309,29 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 **Independent Test**: Invite a user, assign them an RFP, verify they only see their assigned work
 
-### UI Components (US5)
+### Tests for US5 - Write FIRST, Must FAIL
 
-- [ ] T093 [P] [US5] Create UserInviteForm component in src/components/settings/UserInviteForm.tsx
-- [ ] T094 [P] [US5] Create UserList component in src/components/settings/UserList.tsx
-- [ ] T095 [P] [US5] Create RoleSelector component in src/components/settings/RoleSelector.tsx
-- [ ] T096 [P] [US5] Create RfpAssignment component in src/components/rfp/RfpAssignment.tsx
+- [ ] T136 [P] [US5] Write integration tests for role-based RFP filtering in tests/integration/api/rfp-permissions.test.ts
+- [ ] T137 [US5] Write E2E test for user management workflow in tests/e2e/user-management.spec.ts
 
-### Pages (US5)
+### UI Components Implementation (US5)
 
-- [ ] T097 [US5] Create settings page with user management in src/app/(auth)/settings/page.tsx
-- [ ] T098 [US5] Create users management tab in src/app/(auth)/settings/users/page.tsx
+- [ ] T138 [P] [US5] Create UserInviteForm component in src/components/settings/UserInviteForm.tsx
+- [ ] T139 [P] [US5] Create UserList component in src/components/settings/UserList.tsx
+- [ ] T140 [P] [US5] Create RoleSelector component in src/components/settings/RoleSelector.tsx
+- [ ] T141 [P] [US5] Create RfpAssignment component in src/components/rfp/RfpAssignment.tsx
 
-### API Enhancements (US5)
+### Pages Implementation (US5)
 
-- [ ] T099 [US5] Add role-based filtering to RFP list API (users see only assigned) in src/app/api/rfps/route.ts
-- [ ] T100 [US5] Add RFP assignment update endpoint in src/app/api/rfps/[rfpId]/route.ts
+- [ ] T142 [US5] Create settings page with user management in src/app/(auth)/settings/page.tsx
+- [ ] T143 [US5] Create users management tab in src/app/(auth)/settings/users/page.tsx
 
-**Checkpoint**: User Story 5 complete - multi-user collaboration with role-based access
+### API Enhancements Implementation (US5)
+
+- [ ] T144 [US5] Add role-based filtering to RFP list API (users see only assigned) in src/app/api/rfps/route.ts
+- [ ] T145 [US5] Add RFP assignment update endpoint in src/app/api/rfps/[rfpId]/route.ts
+
+**Checkpoint**: User Story 5 complete - verify all tests pass, run E2E test
 
 ---
 
@@ -265,23 +341,29 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 **Independent Test**: Configure API credentials, trigger an AI operation, verify correct provider is used
 
-### API Routes (US6)
+### Tests for US6 - Write FIRST, Must FAIL
 
-- [ ] T101 [P] [US6] Create tenant settings get API route in src/app/api/settings/route.ts
-- [ ] T102 [US6] Create tenant settings update API route with key encryption in src/app/api/settings/route.ts
+- [ ] T146 [P] [US6] Write unit tests for API key encryption in tests/unit/services/encryption.test.ts
+- [ ] T147 [P] [US6] Write contract tests for settings API in tests/integration/api/settings.test.ts
+- [ ] T148 [US6] Write E2E test for LLM configuration in tests/e2e/llm-configuration.spec.ts
 
-### UI Components (US6)
+### Service Logic Implementation (US6)
 
-- [ ] T103 [P] [US6] Create LlmProviderSelector component in src/components/settings/LlmProviderSelector.tsx
-- [ ] T104 [P] [US6] Create ApiKeyInput component with masking in src/components/settings/ApiKeyInput.tsx
-- [ ] T105 [US6] Create SettingsForm component in src/components/settings/SettingsForm.tsx
+- [ ] T149 [US6] Implement API key encryption/decryption in src/lib/services/encryption.ts
+- [ ] T150 [US6] Update LLM provider abstraction to read tenant settings in src/lib/ai/providers.ts
 
-### Service Logic (US6)
+### API Routes Implementation (US6)
 
-- [ ] T106 [US6] Implement API key encryption/decryption in src/lib/services/encryption.ts
-- [ ] T107 [US6] Update LLM provider abstraction to read tenant settings in src/lib/ai/providers.ts
+- [ ] T151 [P] [US6] Create tenant settings get API route in src/app/api/settings/route.ts
+- [ ] T152 [US6] Create tenant settings update API route with key encryption in src/app/api/settings/route.ts
 
-**Checkpoint**: User Story 6 complete - tenants can choose their LLM provider
+### UI Components Implementation (US6)
+
+- [ ] T153 [P] [US6] Create LlmProviderSelector component in src/components/settings/LlmProviderSelector.tsx
+- [ ] T154 [P] [US6] Create ApiKeyInput component with masking in src/components/settings/ApiKeyInput.tsx
+- [ ] T155 [US6] Create SettingsForm component in src/components/settings/SettingsForm.tsx
+
+**Checkpoint**: User Story 6 complete - verify all tests pass, run E2E test
 
 ---
 
@@ -291,68 +373,89 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 **Independent Test**: Approve an RFP, process a similar new RFP, verify improved response accuracy
 
-### API Routes (US7)
+### Tests for US7 - Write FIRST, Must FAIL
 
-- [ ] T108 [P] [US7] Create learnings list/create API route in src/app/api/learnings/route.ts
+- [ ] T156 [P] [US7] Write unit tests for learning capture service in tests/unit/services/learning-capture.test.ts
+- [ ] T157 [P] [US7] Write integration test for extract-learnings workflow in tests/integration/inngest/extract-learnings.test.ts
+- [ ] T158 [P] [US7] Write contract tests for learnings API in tests/integration/api/learnings.test.ts
+- [ ] T159 [US7] Write E2E test for learning system in tests/e2e/learning-system.spec.ts
 
-### Inngest Functions (US7)
+### Service Logic Implementation (US7)
 
-- [ ] T109 [US7] Create extract-learnings Inngest function triggered on RFP approval in src/lib/inngest/functions/extract-learnings.ts
+- [ ] T160 [US7] Implement correction capture on response edit in src/lib/services/learning-capture.ts
+- [ ] T161 [US7] Enhance response generator to incorporate learnings in src/lib/ai/agents/response-generator.ts
 
-### UI Components (US7)
+### Inngest Functions Implementation (US7)
 
-- [ ] T110 [P] [US7] Create LearningEntry component in src/components/knowledge/LearningEntry.tsx
-- [ ] T111 [P] [US7] Create ManualLearningForm component in src/components/knowledge/ManualLearningForm.tsx
-- [ ] T112 [US7] Create LearningsPanel component in src/components/knowledge/LearningsPanel.tsx
+- [ ] T162 [US7] Create extract-learnings Inngest function triggered on RFP approval in src/lib/inngest/functions/extract-learnings.ts
 
-### Service Logic (US7)
+### API Routes Implementation (US7)
 
-- [ ] T113 [US7] Implement correction capture on response edit in src/lib/services/learning-capture.ts
-- [ ] T114 [US7] Enhance response generator to incorporate learnings in src/lib/ai/agents/response-generator.ts
+- [ ] T163 [P] [US7] Create learnings list/create API route in src/app/api/learnings/route.ts
 
-**Checkpoint**: User Story 7 complete - continuous learning system active
+### UI Components Implementation (US7)
+
+- [ ] T164 [P] [US7] Create LearningEntry component in src/components/knowledge/LearningEntry.tsx
+- [ ] T165 [P] [US7] Create ManualLearningForm component in src/components/knowledge/ManualLearningForm.tsx
+- [ ] T166 [US7] Create LearningsPanel component in src/components/knowledge/LearningsPanel.tsx
+
+**Checkpoint**: User Story 7 complete - verify all tests pass, run E2E test
 
 ---
 
 ## Phase 10: Polish & Cross-Cutting Concerns
 
-**Purpose**: Improvements that affect multiple user stories
+**Purpose**: Final tests, coverage verification, and improvements that affect multiple user stories
+
+### Coverage Verification
+
+- [ ] T167 Run full test suite and verify 80%+ coverage across all modules
+- [ ] T168 [P] Add missing unit tests for any modules below 80% coverage
+- [ ] T169 [P] Add missing integration tests for any API routes below 80% coverage
 
 ### Error Handling & Loading States
 
-- [ ] T115 [P] Create error boundary component in src/components/shared/ErrorBoundary.tsx
-- [ ] T116 [P] Create loading skeleton components in src/components/shared/Skeletons.tsx
-- [ ] T117 [P] Create toast notification system in src/components/shared/Toaster.tsx
+- [ ] T170 [P] Create error boundary component in src/components/shared/ErrorBoundary.tsx
+- [ ] T171 [P] Create loading skeleton components in src/components/shared/Skeletons.tsx
+- [ ] T172 [P] Create toast notification system in src/components/shared/Toaster.tsx
 
 ### Performance & Optimization
 
-- [ ] T118 [P] Add React Suspense boundaries to pages
-- [ ] T119 [P] Implement response caching with Vercel KV for repeated queries
-- [ ] T120 Add database query optimization (ensure all tenant filters use indexes)
+- [ ] T173 [P] Add React Suspense boundaries to pages
+- [ ] T174 [P] Implement response caching with Vercel KV for repeated queries
+- [ ] T175 Add database query optimization (ensure all tenant filters use indexes)
 
 ### Accessibility
 
-- [ ] T121 [P] Add ARIA labels to all interactive components
-- [ ] T122 [P] Add keyboard navigation support to RfpEditor
-- [ ] T123 Verify WCAG 2.1 AA compliance across all pages
+- [ ] T176 [P] Add ARIA labels to all interactive components
+- [ ] T177 [P] Add keyboard navigation support to RfpEditor
+- [ ] T178 Verify WCAG 2.1 AA compliance across all pages
 
-### Configuration
+### Final Validation
 
-- [ ] T124 [P] Create next.config.ts with security headers
-- [ ] T125 [P] Create vitest.config.ts for unit testing
-- [ ] T126 [P] Create playwright.config.ts for E2E testing
-- [ ] T127 Validate setup using quickstart.md instructions
+- [ ] T179 [P] Create next.config.ts with security headers
+- [ ] T180 Run all E2E tests in CI mode and verify pass
+- [ ] T181 Validate setup using quickstart.md instructions
 
 ---
 
 ## Dependencies & Execution Order
+
+### TDD Workflow Per User Story
+
+```
+1. Write tests (unit, integration, E2E) → Tests FAIL (Red)
+2. Implement minimal code → Tests PASS (Green)
+3. Refactor while keeping tests green
+4. Move to next user story
+```
 
 ### Phase Dependencies
 
 - **Setup (Phase 1)**: No dependencies - can start immediately
 - **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
 - **User Stories (Phases 3-9)**: All depend on Foundational phase completion
-  - US1, US2, US3 are all P1 priority and can proceed in parallel
+  - US1, US2, US3 are all P1 priority
   - US4, US5 are P2 priority
   - US6, US7 are P3 priority
 - **Polish (Phase 10)**: Depends on core user stories being complete
@@ -371,17 +474,9 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 ### Parallel Opportunities
 
-**Within Phase 2 (Foundation)**:
-- T011-T017 (all schema files) can run in parallel
-- T025-T028 (all type files) can run in parallel
-- T029-T030 (storage clients) can run in parallel
-- T033-T034 (AI utilities) can run in parallel
-
-**Within Phase 3 (US1)**:
-- T035-T038 (document processing) can run in parallel
-- T039-T041 (AI agents) can run in parallel
-- T044-T051 (API routes) can run in parallel
-- T052-T054 (UI components) can run in parallel
+**Within Each User Story**:
+- All unit tests can run in parallel (different files)
+- After tests written, all implementations for different modules can run in parallel
 
 **Across User Stories**:
 - US1 and US2 can proceed in parallel (different features)
@@ -389,66 +484,62 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 ---
 
-## Parallel Example: Phase 3 (US1) Document Processing
+## Parallel Example: Phase 3 (US1) Tests First
 
 ```bash
-# Launch all document parsers together:
+# Launch all unit tests in parallel (they will FAIL initially):
+Task: "Write unit tests for PDF parser in tests/unit/documents/pdf-parser.test.ts"
+Task: "Write unit tests for Word parser in tests/unit/documents/word-parser.test.ts"
+Task: "Write unit tests for document analyzer agent in tests/unit/ai/agents/document-analyzer.test.ts"
+Task: "Write unit tests for response generator agent in tests/unit/ai/agents/response-generator.test.ts"
+
+# Then launch all implementations in parallel:
 Task: "Create PDF parser using pdf-parse in src/lib/documents/pdf-parser.ts"
 Task: "Create Word parser using mammoth in src/lib/documents/word-parser.ts"
-Task: "Create PDF output generator with overlay using pdf-lib in src/lib/documents/pdf-output.ts"
-Task: "Create Word output generator using docx in src/lib/documents/word-output.ts"
+Task: "Create document analyzer agent in src/lib/ai/agents/document-analyzer.ts"
+Task: "Create response generator agent in src/lib/ai/agents/response-generator.ts"
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (User Stories 1-3 Only)
+### MVP First with TDD (User Stories 1-3)
 
-1. Complete Phase 1: Setup
-2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
-3. Complete Phase 3: User Story 1 (Upload & Auto-Complete)
-4. Complete Phase 4: User Story 2 (Knowledge Base)
-5. Complete Phase 5: User Story 3 (Review & Edit)
-6. **STOP and VALIDATE**: Test full RFP workflow end-to-end
+1. Complete Phase 1: Setup + Testing Infrastructure
+2. Complete Phase 2: Foundational (tests first for each module)
+3. Complete Phase 3: User Story 1 (tests → implementation)
+4. Complete Phase 4: User Story 2 (tests → implementation)
+5. Complete Phase 5: User Story 3 (tests → implementation)
+6. **VERIFY**: All tests pass, coverage ≥ 80%
 7. Deploy MVP
 
-### Incremental Delivery
+### Test Categories
 
-| Increment | Stories | Value Delivered |
-|-----------|---------|-----------------|
-| MVP | US1, US2, US3 | Core RFP automation (60-80% time savings) |
-| +Workflow | +US4 | Enterprise approval process |
-| +Collaboration | +US5 | Multi-user team support |
-| +Enterprise | +US6 | LLM provider flexibility |
-| +Learning | +US7 | Continuous accuracy improvement |
-
-### Suggested MVP Scope
-
-**Phase 1 + Phase 2 + Phases 3-5** (User Stories 1-3)
-
-This delivers:
-- RFP upload and AI auto-completion
-- Knowledge base building
-- Human-in-the-loop editing
-- Document export with formatting preserved
+| Type | Location | Purpose | When to Run |
+|------|----------|---------|-------------|
+| Unit | tests/unit/ | Test individual functions/components | Every commit |
+| Integration | tests/integration/ | Test API routes with mocked services | Every PR |
+| E2E | tests/e2e/ | Test full user workflows | Before deploy |
 
 ---
 
 ## Summary
 
-| Phase | Task Count | Parallelizable |
-|-------|------------|----------------|
-| Phase 1: Setup | 8 | 6 |
-| Phase 2: Foundation | 26 | 18 |
-| Phase 3: US1 | 26 | 21 |
-| Phase 4: US2 | 15 | 12 |
-| Phase 5: US3 | 6 | 4 |
-| Phase 6: US4 | 11 | 8 |
-| Phase 7: US5 | 8 | 5 |
-| Phase 8: US6 | 7 | 4 |
-| Phase 9: US7 | 7 | 4 |
-| Phase 10: Polish | 13 | 10 |
-| **Total** | **127** | **92** |
+| Phase | Task Count | Test Tasks | Implementation Tasks | Parallelizable |
+|-------|------------|------------|---------------------|----------------|
+| Phase 1: Setup | 13 | 5 | 8 | 10 |
+| Phase 2: Foundation | 34 | 8 | 26 | 24 |
+| Phase 3: US1 | 39 | 12 | 27 | 31 |
+| Phase 4: US2 | 23 | 5 | 18 | 18 |
+| Phase 5: US3 | 10 | 4 | 6 | 6 |
+| Phase 6: US4 | 16 | 4 | 12 | 12 |
+| Phase 7: US5 | 10 | 2 | 8 | 6 |
+| Phase 8: US6 | 10 | 3 | 7 | 6 |
+| Phase 9: US7 | 11 | 4 | 7 | 6 |
+| Phase 10: Polish | 15 | 3 | 12 | 10 |
+| **Total** | **181** | **50** | **131** | **129** |
 
-**MVP Task Count**: 81 tasks (Phases 1-5)
+**MVP Task Count**: 119 tasks (Phases 1-5)
+**Total Test Tasks**: 50 (28% of all tasks)
+**Coverage Target**: 80%+
