@@ -25,37 +25,33 @@ The solution addresses a critical business need: teams currently spend significa
 
 ## Technology Stack
 
-### Backend
-- **Language**: Python 3.12+
-- **API Framework**: FastAPI 0.115+
-- **Agent Framework**: LangChain / LangGraph
-- **Database**: PostgreSQL 15+ with pgvector extension
-- **Vector Search**: pgvector for semantic knowledge retrieval
-- **Cache**: Redis 7.0
-- **Task Queue**: Celery with Redis broker
-- **Document Processing**: PyMuPDF (fitz), pdfplumber, python-docx
-- **LLM Support**: Claude API (Anthropic), OpenAI API, Azure OpenAI
-
 ### Frontend
-- **Language**: TypeScript 5.0+
-- **Framework**: React 18
-- **Build Tool**: Vite
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript 5.0+ (strict mode)
 - **Styling**: Tailwind CSS 3.0
-- **State Management**: Context API / Zustand
-- **UI Components**: shadcn/ui (optional)
+- **Components**: shadcn/ui
+- **Forms**: React Hook Form + Zod
+- **State**: Zustand
 
-### Infrastructure
-- **Containerization**: Docker & Docker Compose
-- **Cloud Storage**: AWS S3 (document storage)
-- **Web Server**: Nginx
-- **Cloud Platform**: AWS (primary) / Azure (alternative)
-- **Orchestration**: Kubernetes (EKS) for production
-- **CI/CD**: GitHub Actions
+### Backend & Infrastructure
+- **Hosting**: Vercel
+- **Authentication**: Clerk (Organizations for multi-tenancy)
+- **Database**: Neon PostgreSQL + pgvector
+- **ORM**: Drizzle ORM
+- **File Storage**: Vercel Blob
+- **Cache**: Vercel KV
+- **Background Jobs**: Inngest
+
+### AI & Document Processing
+- **LLM Integration**: Vercel AI SDK (multi-provider: Claude, GPT, Azure)
+- **Embeddings**: OpenAI text-embedding-3-small
+- **Vector Search**: pgvector on Neon
+- **PDF Processing**: pdf-parse + pdf-lib
+- **Word Processing**: mammoth + docx
 
 ### Testing
-- **Backend**: pytest, pytest-cov, pytest-asyncio, factory_boy
-- **Frontend**: Jest, React Testing Library
-- **E2E**: Playwright
+- **Unit Tests**: Vitest
+- **E2E Tests**: Playwright
 - **Coverage Target**: 80%
 
 ## Architecture
@@ -66,508 +62,276 @@ The solution addresses a critical business need: teams currently spend significa
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                              Client Layer                                │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    React/TypeScript Dashboard                    │   │
+│  │                  Next.js 15 App Router Dashboard                  │   │
 │  │  • RFP Management  • KB Management  • User Management           │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         FastAPI Backend                                  │
+│                         Next.js API Routes                               │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐ │
-│  │   REST API      │  │  Document       │  │    Agent Service        │ │
-│  │                 │  │  Processor      │  │                         │ │
-│  │ • Auth          │  │ • PDF Parser    │  │  • Orchestrator Agent   │ │
-│  │ • Validation    │  │ • Word Parser   │  │  • Document Analyzer    │ │
-│  │ • Multi-tenant  │  │ • OCR           │  │  • Response Generator   │ │
-│  │                 │  │ • Overlay Gen   │  │  • Quality Checker      │ │
-│  │                 │  │                 │  │  • Customer Agents      │ │
+│  │   REST API      │  │  Document       │  │    Inngest Functions    │ │
+│  │   (Route        │  │  Processor      │  │                         │ │
+│  │    Handlers)    │  │ • PDF Parser    │  │  • processRfp           │ │
+│  │ • Clerk Auth    │  │ • Word Parser   │  │  • generateEmbeddings   │ │
+│  │ • Zod Valid.    │  │ • Overlay Gen   │  │  • exportRfp            │ │
+│  │ • Multi-tenant  │  │                 │  │  • extractLearnings     │ │
 │  └─────────────────┘  └─────────────────┘  └─────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
             ┌───────────────────────┼───────────────────────┐
             ▼                       ▼                       ▼
 ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
-│    PostgreSQL       │  │   Vector Database   │  │    File Storage     │
-│                     │  │    (pgvector)       │  │       (S3)          │
-│ • Tenants           │  │                     │  │                     │
-│ • Users             │  │ • KB Embeddings     │  │ • Original RFPs     │
-│ • RFPs              │  │ • Semantic Search   │  │ • Completed RFPs    │
-│ • Responses         │  │                     │  │ • KB Documents      │
-│ • Versions          │  │                     │  │                     │
+│    Neon PostgreSQL  │  │    Vercel Blob      │  │    Vercel KV        │
+│    + pgvector       │  │                     │  │                     │
+│                     │  │ • Original RFPs     │  │ • Processing status │
+│ • Organizations     │  │ • Completed RFPs    │  │ • Session cache     │
+│ • Customers         │  │ • KB Documents      │  │ • Rate limiting     │
+│ • RFPs/Responses    │  │                     │  │                     │
+│ • Knowledge entries │  │                     │  │                     │
+│ • Vector embeddings │  │                     │  │                     │
 └─────────────────────┘  └─────────────────────┘  └─────────────────────┘
 ```
 
-### Agent System Architecture
+### AI Agent System
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   RFP Orchestrator Agent                    │
-│         (Oversees entire RFP completion process)            │
+│                   Inngest Workflow Orchestrator             │
+│            (Handles multi-step AI processing)               │
 └─────────────────────────────────────────────────────────────┘
                             │
             ┌───────────────┼───────────────┐
             ▼               ▼               ▼
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
 │  Document       │ │  Response       │ │  Quality        │
-│  Analyzer Agent │ │  Generator Agent│ │  Checker Agent  │
+│  Analyzer       │ │  Generator      │ │  Checker        │
 │                 │ │                 │ │                 │
 │ • Parse struct  │ │ • Query KB      │ │ • Validate      │
 │ • Identify flds │ │ • Draft answers │ │ • Score conf.   │
 │ • Map sections  │ │ • Format output │ │ • Flag review   │
 └─────────────────┘ └─────────────────┘ └─────────────────┘
-                            │
-                            ▼
-            ┌───────────────────────────────┐
-            │   Customer-Specific Agents    │
-            │   (One per end-customer)      │
-            │                               │
-            │ • CustomerA RFP Agent         │
-            │ • CustomerB RFP Agent         │
-            │ • Learns from past RFPs       │
-            └───────────────────────────────┘
 ```
 
 ### Directory Structure
 
 ```
-rfp-automator/
-├── backend/                # FastAPI backend
-│   ├── api/               # API routes and endpoints
-│   │   ├── v1/           # API version 1
-│   │   │   ├── auth.py  # Authentication endpoints
-│   │   │   ├── rfps.py  # RFP management
-│   │   │   ├── knowledge.py  # Knowledge base
-│   │   │   └── users.py # User management
-│   ├── agents/           # AI agent implementations
-│   │   ├── orchestrator.py
-│   │   ├── document_analyzer.py
-│   │   ├── response_generator.py
-│   │   ├── quality_checker.py
-│   │   └── customer_agent.py
-│   ├── core/             # Core business logic
-│   │   ├── config.py    # Settings and configuration
-│   │   ├── security.py  # Auth and security
-│   │   └── dependencies.py
-│   ├── models/           # Database models
-│   │   ├── tenant.py
-│   │   ├── user.py
-│   │   ├── rfp.py
-│   │   └── knowledge.py
-│   ├── services/         # Business logic services
-│   │   ├── document_processor.py
-│   │   ├── knowledge_service.py
-│   │   ├── rfp_service.py
-│   │   └── llm_provider.py
-│   ├── schemas/          # Pydantic schemas
-│   └── tests/           # Backend tests
-├── frontend/            # React frontend
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   │   ├── Dashboard/
-│   │   │   ├── RFPEditor/
-│   │   │   └── KnowledgeBase/
-│   │   ├── pages/       # Page components
-│   │   ├── hooks/       # Custom React hooks
-│   │   ├── services/    # API client services
-│   │   ├── types/       # TypeScript types
-│   │   └── utils/       # Utilities
-│   └── tests/          # Frontend tests
-├── docker/             # Docker configuration
-│   ├── backend/
-│   ├── frontend/
-│   └── nginx/
-├── docs/               # Documentation
-│   ├── api.md         # API documentation
-│   ├── deployment.md  # Deployment guide
-│   └── architecture.md
-└── .claude/           # Claude Code configuration
-    ├── rules.md       # Project-specific patterns
-    └── settings.json  # Permissions and hooks
+src/
+├── app/                    # Next.js App Router pages
+│   ├── (auth)/            # Auth-protected routes
+│   │   ├── dashboard/     # Main dashboard
+│   │   ├── rfps/          # RFP management
+│   │   ├── knowledge/     # Knowledge base
+│   │   └── settings/      # Organization settings
+│   ├── (public)/          # Public routes
+│   │   ├── sign-in/       # Clerk sign-in
+│   │   └── sign-up/       # Clerk sign-up
+│   └── api/               # API routes
+│       ├── rfps/          # RFP endpoints
+│       ├── customers/     # Customer endpoints
+│       ├── knowledge/     # Knowledge base endpoints
+│       ├── webhooks/      # Clerk webhooks
+│       └── inngest/       # Inngest webhook
+├── components/            # React components
+│   ├── ui/               # shadcn/ui primitives
+│   ├── rfp/              # RFP feature components
+│   ├── knowledge/        # Knowledge base components
+│   └── layout/           # Layout components
+├── lib/                   # Core libraries
+│   ├── db/               # Drizzle schema & client
+│   │   ├── schema/       # Table definitions
+│   │   └── index.ts      # Database client
+│   ├── inngest/          # Background job functions
+│   │   ├── client.ts     # Inngest client
+│   │   └── functions/    # Job definitions
+│   ├── ai/               # AI/LLM utilities
+│   │   ├── providers.ts  # Multi-provider setup
+│   │   └── embeddings.ts # Vector operations
+│   └── documents/        # PDF/Word processing
+├── hooks/                 # React hooks
+└── types/                 # TypeScript types
 ```
-
-### Key Design Patterns
-
-- **Backend**:
-  - Repository pattern for data access
-  - Service layer for business logic
-  - Agent-based architecture for RFP processing
-  - Multi-tenant schema isolation
-  - LLM provider abstraction layer
-- **Frontend**:
-  - Component composition
-  - Custom hooks for reusable logic
-  - Context API for global state
-- **API**:
-  - RESTful design following OpenAPI 3.0
-  - JWT-based authentication
-  - Tenant context enforcement
-- **Database**:
-  - Schema-per-tenant for isolation
-  - pgvector for semantic search
-  - Row-level security policies
 
 ## Getting Started
 
 ### Prerequisites
 
-- **Python**: 3.12 or higher
-- **Node.js**: 18 or higher
-- **Docker**: 20.10 or higher
-- **Docker Compose**: 2.0 or higher
-- **PostgreSQL**: 15+ with pgvector extension (if not using Docker)
-- **Redis**: 7.0 or higher (if not using Docker)
-- **AWS Account**: For S3 storage (development can use MinIO)
+- **Node.js**: 20.x or higher
+- **pnpm**: 8.x or higher (recommended) or npm 10.x
+- **Git**: 2.x or higher
+
+### Account Setup
+
+1. **Clerk** (clerk.com) - Create app, enable Organizations, create `org:super_admin` role
+2. **Neon** (neon.tech) - Create project, enable pgvector extension
+3. **Vercel** (vercel.com) - Link repo, create Blob and KV stores
+4. **Inngest** (inngest.com) - Create app for background jobs
+5. **OpenAI** (platform.openai.com) - Get API key for embeddings
+6. **Anthropic** (console.anthropic.com) - Optional default LLM key
 
 ### Installation
 
-#### Option 1: Docker (Recommended)
-
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/rfp-automator.git
-cd rfp-automator
+git clone https://github.com/Little-Town-Labs/bug-free-fishstick.git
+cd bug-free-fishstick
+
+# Install dependencies
+pnpm install
 
 # Copy environment variables
-cp .env.example .env
+cp .env.example .env.local
 
-# Edit .env with your configuration
-# - Add your LLM API keys (Claude, OpenAI, etc.)
-# - Configure AWS S3 credentials
-# - Set database passwords
+# Edit .env.local with your keys (see .env.example for all required variables)
 
-# Start all services
-docker-compose up -d
-
-# Run database migrations
-docker-compose exec backend alembic upgrade head
-
-# Create initial tenant and superuser
-docker-compose exec backend python scripts/create_initial_tenant.py
-
-# Access the application
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8000/api/v1
-# API Docs: http://localhost:8000/docs
-```
-
-#### Option 2: Local Development
-
-**Backend Setup:**
-```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements/local.txt
-
-# Set up PostgreSQL with pgvector
-createdb rfp_automator_dev
-psql rfp_automator_dev -c "CREATE EXTENSION vector;"
-
-# Run migrations
-alembic upgrade head
+# Setup database
+pnpm db:generate
+pnpm db:migrate
 
 # Start development server
-uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+pnpm dev
+
+# In separate terminal: Start Inngest dev server
+pnpm inngest:dev
 ```
 
-**Frontend Setup:**
+Application available at: http://localhost:3000
+Inngest dashboard at: http://localhost:8288
+
+### Project Scripts
+
 ```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-### Configuration
-
-**Environment Variables:**
-
-Create a `.env` file in the project root:
-
-```env
-# FastAPI
-DEBUG=True
-SECRET_KEY=your-secret-key-here-minimum-32-chars
-ENVIRONMENT=development
-ALLOWED_ORIGINS=http://localhost:3000
+# Development
+pnpm dev              # Start Next.js dev server
+pnpm inngest:dev      # Start Inngest dev server
 
 # Database
-DATABASE_URL=postgresql://user:pass@localhost/rfp_automator_dev
+pnpm db:generate      # Generate Drizzle migrations
+pnpm db:migrate       # Run migrations
+pnpm db:push          # Push schema directly (dev only)
+pnpm db:studio        # Open Drizzle Studio GUI
+pnpm db:seed          # Seed sample data
 
-# Redis
-REDIS_URL=redis://localhost:6379/0
+# Testing
+pnpm test             # Run unit tests
+pnpm test:watch       # Watch mode
+pnpm test:coverage    # With coverage report
+pnpm test:e2e         # Run Playwright E2E tests
 
-# AWS S3
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
-AWS_REGION=us-east-1
-S3_BUCKET=rfp-automator-dev
-
-# LLM Providers (tenant-specific keys stored encrypted in DB)
-DEFAULT_LLM_PROVIDER=claude
-# Optional: Set default API keys for development
-ANTHROPIC_API_KEY=sk-ant-...
-OPENAI_API_KEY=sk-...
-
-# Frontend
-VITE_API_URL=http://localhost:8000/api/v1
-
-# JWT
-JWT_SECRET=your-jwt-secret-key-minimum-32-chars
-JWT_ALGORITHM=HS256
-JWT_EXPIRATION_HOURS=24
+# Build & Deploy
+pnpm build            # Production build
+pnpm start            # Start production server
+pnpm lint             # ESLint + TypeScript check
 ```
 
-See `.env.example` for all available options.
+## Configuration
+
+### Environment Variables
+
+See `.env.example` for all required environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `CLERK_SECRET_KEY` | Clerk secret key |
+| `CLERK_WEBHOOK_SECRET` | Clerk webhook signing secret |
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token |
+| `KV_REST_API_URL` | Vercel KV REST URL |
+| `KV_REST_API_TOKEN` | Vercel KV REST token |
+| `INNGEST_EVENT_KEY` | Inngest event key |
+| `INNGEST_SIGNING_KEY` | Inngest signing key |
+| `OPENAI_API_KEY` | OpenAI API key (for embeddings) |
+| `ANTHROPIC_API_KEY` | Anthropic API key (optional) |
 
 ## Development
 
 ### Running Tests
 
 ```bash
-# Backend tests
-pytest                          # Run all backend tests
-pytest --cov                    # With coverage
-pytest --cov --cov-report=html  # With HTML coverage report
-pytest tests/unit              # Unit tests only
-pytest tests/integration       # Integration tests only
-pytest -k "test_name"          # Specific test
+# Unit tests with Vitest
+pnpm test                    # Run all tests
+pnpm test:watch              # Watch mode
+pnpm test:coverage           # With coverage
 
-# Frontend tests
-npm run test                    # Run all frontend tests
-npm run test:watch             # Watch mode
-npm run test:coverage          # With coverage
-
-# E2E tests
-npm run test:e2e               # Run E2E tests
-
-# All tests
-make test                       # Run all tests (backend + frontend)
-```
-
-### Code Quality
-
-```bash
-# Backend linting and formatting
-black backend/                  # Format Python code
-ruff check backend/            # Lint Python code
-mypy backend/                  # Type checking
-
-# Frontend linting
-npm run lint                    # Lint TypeScript/React
-npm run format                  # Format with Prettier
-npm run type-check             # TypeScript type checking
-
-# All linting
-make lint                       # Run all linters
-make format                    # Format all code
+# E2E tests with Playwright
+pnpm test:e2e                # Run E2E tests
+pnpm test:e2e --ui           # With UI mode
 ```
 
 ### Database Migrations
 
 ```bash
-# Create migration
-alembic revision --autogenerate -m "description"
+# Make schema changes in src/lib/db/schema/
+# Generate migration
+pnpm db:generate
 
-# Apply migrations
-alembic upgrade head
-
-# Rollback migration
-alembic downgrade -1
-
-# View migration history
-alembic history
-
-# With Docker
-docker-compose exec backend alembic upgrade head
+# Review generated SQL in drizzle/
+# Apply migration
+pnpm db:migrate
 ```
 
-### Common Tasks
+### Testing Inngest Functions
 
 ```bash
-# Start development servers
-make dev                        # Start all services
+# Start Inngest dev server
+pnpm inngest:dev
 
-# Build for production
-make build                      # Build backend and frontend
-
-# Clean build artifacts
-make clean                      # Remove build files and caches
-
-# Database operations
-make db-reset                   # Reset database
-make db-seed                    # Seed with sample data
-
-# View logs
-docker-compose logs -f          # All services
-docker-compose logs -f backend  # Backend only
-docker-compose logs -f frontend # Frontend only
-
-# Run agent workflow test
-python scripts/test_agent_workflow.py --rfp-path example_rfps/sample.pdf
+# Open dashboard at http://localhost:8288
+# Trigger test events manually or via API
 ```
-
-## API Documentation
-
-API documentation is available at:
-- **Development**: http://localhost:8000/docs (Swagger UI)
-- **ReDoc**: http://localhost:8000/redoc
-- **Production**: https://api.rfp-automator.com/docs
-
-### Key Endpoints
-
-**Authentication:**
-- `POST /api/v1/auth/login` - User login
-- `POST /api/v1/auth/refresh` - Refresh JWT token
-- `POST /api/v1/auth/logout` - User logout
-
-**RFPs:**
-- `GET /api/v1/rfps` - List RFPs (filtered by role)
-- `POST /api/v1/rfps` - Create new RFP
-- `GET /api/v1/rfps/{id}` - Get RFP details
-- `POST /api/v1/rfps/{id}/upload` - Upload RFP document
-- `POST /api/v1/rfps/{id}/process` - Trigger AI processing
-- `GET /api/v1/rfps/{id}/responses` - Get all responses
-- `PUT /api/v1/rfps/{id}/responses/{field_id}` - Update response
-- `POST /api/v1/rfps/{id}/submit` - Submit for review
-- `POST /api/v1/rfps/{id}/approve` - Approve RFP
-- `GET /api/v1/rfps/{id}/download` - Download completed RFP
-
-**Knowledge Base:**
-- `GET /api/v1/customers/{id}/knowledge` - List KB entries
-- `POST /api/v1/customers/{id}/knowledge/upload` - Upload document
-- `POST /api/v1/customers/{id}/knowledge/search` - Semantic search
-
-See `docs/api.md` for complete API reference.
 
 ## Deployment
 
-### Production Build
+### Vercel Deployment
+
+1. Push to main branch (auto-deploys)
+2. Or use Vercel CLI: `vercel --prod`
+
+### Environment Variables
+
+Set all variables from `.env.example` in Vercel dashboard under Project Settings > Environment Variables.
+
+### Database Migrations
 
 ```bash
-# Build Docker images
-docker-compose -f docker-compose.prod.yml build
-
-# Run migrations
-docker-compose -f docker-compose.prod.yml run backend alembic upgrade head
-
-# Start services
-docker-compose -f docker-compose.prod.yml up -d
+# Pull production env and run migrations
+vercel env pull .env.production.local
+pnpm db:migrate
 ```
-
-### Kubernetes Deployment
-
-```bash
-# Deploy to Kubernetes (EKS)
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secrets.yaml
-kubectl apply -f k8s/deployments/
-kubectl apply -f k8s/services/
-kubectl apply -f k8s/ingress.yaml
-```
-
-See `docs/deployment.md` for detailed deployment instructions.
 
 ## Security
 
-- **Authentication**: JWT with refresh tokens, optional 2FA
-- **Authorization**: Role-based access control (Super Admin, Admin, User)
-- **Data Encryption**: AES-256 at rest, TLS 1.3 in transit
-- **Tenant Isolation**: Schema-per-tenant with row-level security
-- **API Security**: Rate limiting, CORS, input validation
-- **Secrets Management**: Encrypted storage for API keys
-- **Audit Logging**: All data access logged with user context
+- **Authentication**: Clerk with Organizations for multi-tenancy
+- **Authorization**: Role-based (Super Admin, Admin, User)
+- **Data Isolation**: Clerk orgId enforced on all queries
+- **API Security**: Zod validation, rate limiting via Vercel KV
+- **Secrets**: Encrypted tenant LLM keys in database
+- **File Access**: Signed URLs with expiration
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
-- Code of conduct
-- Development workflow
-- Coding standards
-- Pull request process
-- Testing requirements
-
-### Quick Start for Contributors
-
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests and linting (`make test && make lint`)
-5. Commit your changes (following [Conventional Commits](https://www.conventionalcommits.org/))
-6. Push to your fork
-7. Open a Pull Request
+3. Make your changes with tests
+4. Run tests and linting (`pnpm test && pnpm lint`)
+5. Commit using [Conventional Commits](https://www.conventionalcommits.org/)
+6. Push and open a Pull Request
 
-## Troubleshooting
+## Documentation
 
-### Common Issues
-
-**Database connection errors:**
-```bash
-# Check PostgreSQL is running
-docker-compose ps db
-
-# Check pgvector extension
-docker-compose exec db psql -U postgres -d rfp_automator_dev -c "\dx"
-
-# Reset database
-make db-reset
-```
-
-**Port already in use:**
-```bash
-# Find process using port
-lsof -i :8000
-
-# Kill process
-kill -9 <PID>
-```
-
-**LLM API errors:**
-```bash
-# Verify API keys in .env
-grep API_KEY .env
-
-# Check tenant LLM configuration
-docker-compose exec backend python scripts/check_llm_config.py
-```
-
-**Agent workflow failures:**
-```bash
-# Check Redis connection
-docker-compose exec backend python -c "import redis; r = redis.from_url('redis://redis:6379'); print(r.ping())"
-
-# View agent logs
-docker-compose logs -f backend | grep "agent"
-```
-
-See `docs/troubleshooting.md` for more solutions.
+- **Specifications**: See `specs/001-rfp-automation-core/`
+- **API Contracts**: See `specs/001-rfp-automation-core/contracts/api.yaml`
+- **Data Model**: See `specs/001-rfp-automation-core/data-model.md`
+- **Quickstart**: See `specs/001-rfp-automation-core/quickstart.md`
 
 ## License
 
 This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
 
-## Support
-
-- **Documentation**: See `docs/` directory
-- **Issues**: [GitHub Issues](https://github.com/your-org/rfp-automator/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/rfp-automator/discussions)
-
-## Acknowledgments
-
-- Built with [FastAPI](https://fastapi.tiangolo.com/), [LangChain](https://langchain.com/), and [React](https://react.dev/)
-- Powered by [Claude API](https://www.anthropic.com/api) (Anthropic)
-- Document processing with [PyMuPDF](https://pymupdf.readthedocs.io/)
-
 ---
 
-**Last Updated**: 2026-01-21
+**Last Updated**: 2026-02-04
 **Version**: 1.0.0 (Development)
 **Status**: In Development
