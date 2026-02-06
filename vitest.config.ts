@@ -4,11 +4,15 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  css: {
+    postcss: {},
+  },
   test: {
     environment: 'jsdom',
     globals: true,
+    css: false,
     setupFiles: ['./src/test/setup.ts'],
-    include: ['**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/e2e/**'],
     coverage: {
       provider: 'v8',

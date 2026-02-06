@@ -31,22 +31,22 @@ Based on plan.md: Next.js monorepo with `src/` at repository root
 
 **Purpose**: Project initialization, testing infrastructure, and basic structure
 
-- [ ] T001 Initialize Next.js 15 project with TypeScript strict mode in package.json
-- [ ] T002 [P] Configure Tailwind CSS in tailwind.config.ts
-- [ ] T003 [P] Configure ESLint and Prettier in .eslintrc.js and .prettierrc
-- [ ] T004 [P] Create tsconfig.json with strict mode and path aliases
-- [ ] T005 Install core dependencies: React 18, shadcn/ui, React Hook Form, Zod, Zustand in package.json
-- [ ] T006 [P] Create src/app/layout.tsx with providers structure
-- [ ] T007 [P] Create src/app/globals.css with Tailwind imports
-- [ ] T008 [P] Install shadcn/ui and initialize components in src/components/ui/
+- [x] T001 Initialize Next.js 15 project with TypeScript strict mode in package.json
+- [x] T002 [P] Configure Tailwind CSS in tailwind.config.ts
+- [x] T003 [P] Configure ESLint and Prettier in .eslintrc.js and .prettierrc
+- [x] T004 [P] Create tsconfig.json with strict mode and path aliases
+- [x] T005 Install core dependencies: React 18, shadcn/ui, React Hook Form, Zod, Zustand in package.json
+- [x] T006 [P] Create src/app/layout.tsx with providers structure
+- [x] T007 [P] Create src/app/globals.css with Tailwind imports
+- [x] T008 [P] Install shadcn/ui and initialize components in src/components/ui/
 
 ### Testing Infrastructure
 
-- [ ] T009 [P] Install Vitest and configure vitest.config.ts with coverage thresholds (80%)
-- [ ] T010 [P] Install Playwright and configure playwright.config.ts for E2E tests
-- [ ] T011 [P] Install MSW (Mock Service Worker) for API mocking in tests/mocks/
-- [ ] T012 [P] Create test utilities and helpers in tests/utils/test-helpers.ts
-- [ ] T013 [P] Create mock factories for test data in tests/factories/
+- [x] T009 [P] Install Vitest and configure vitest.config.ts with coverage thresholds (80%)
+- [x] T010 [P] Install Playwright and configure playwright.config.ts for E2E tests
+- [x] T011 [P] Install MSW (Mock Service Worker) for API mocking in tests/mocks/
+- [x] T012 [P] Create test utilities and helpers in tests/utils/test-helpers.ts
+- [x] T013 [P] Create mock factories for test data in tests/factories/
 
 ---
 

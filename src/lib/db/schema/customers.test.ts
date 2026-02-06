@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
+import { getTableName } from 'drizzle-orm'
 import { customers } from './customers'
 
 describe('customers schema', () => {
   it('should have the correct table name', () => {
-    expect(customers._.name).toBe('customers')
+    expect(getTableName(customers)).toBe('customers')
   })
 
   it('should have required columns', () => {
