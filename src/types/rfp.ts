@@ -1,5 +1,5 @@
-import type { Rfp, NewRfp } from '@/lib/db/schema/rfps'
-import type { RfpResponse } from '@/lib/db/schema/rfp-responses'
+import type { Rfp, NewRfp, RfpStatus } from '@/lib/db/schema/rfps'
+import type { RfpResponse, ResponseStatus } from '@/lib/db/schema/rfp-responses'
 import type { RfpVersion } from '@/lib/db/schema/rfp-versions'
 
 // Re-export status types from schema

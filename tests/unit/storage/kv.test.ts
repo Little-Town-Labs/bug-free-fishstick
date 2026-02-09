@@ -56,7 +56,7 @@ describe('Vercel KV Storage', () => {
 
       await setProcessingStatus('rfp-456', status)
 
-      const calledValue = vi.mocked(kv.set).mock.calls[0][1]
+      const calledValue = vi.mocked(kv.set).mock.calls[0]![1]
       const parsed = JSON.parse(calledValue as string)
       expect(parsed.error).toBe('Failed to parse document')
     })
@@ -73,7 +73,7 @@ describe('Vercel KV Storage', () => {
 
       await setProcessingStatus('rfp-abc', status)
 
-      const calledKey = vi.mocked(kv.set).mock.calls[0][0]
+      const calledKey = vi.mocked(kv.set).mock.calls[0]![0]
       expect(calledKey).toBe('rfp:rfp-abc:status')
     })
   })
@@ -151,7 +151,7 @@ describe('Vercel KV Storage', () => {
 
       await deleteProcessingStatus('rfp-xyz')
 
-      const calledKey = vi.mocked(kv.del).mock.calls[0][0]
+      const calledKey = vi.mocked(kv.del).mock.calls[0]![0]
       expect(calledKey).toBe('rfp:rfp-xyz:status')
     })
   })

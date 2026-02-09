@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Auth } from '@clerk/nextjs/server'
 
 // Mock Clerk
 vi.mock('@clerk/nextjs/server', () => ({
@@ -12,7 +11,7 @@ describe('Auth Utilities', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     const { auth } = await import('@clerk/nextjs/server')
-    mockAuth = auth as ReturnType<typeof vi.fn>
+    mockAuth = auth as unknown as ReturnType<typeof vi.fn>
   })
 
   describe('getAuthContext', () => {

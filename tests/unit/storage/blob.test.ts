@@ -78,7 +78,7 @@ describe('Vercel Blob Storage', () => {
 
       await uploadRfpDocument(file, options)
 
-      const calledPath = vi.mocked(put).mock.calls[0][0]
+      const calledPath = vi.mocked(put).mock.calls[0]![0]
       expect(calledPath).toMatch(/^org-abc\//)
       expect(calledPath).toContain('rfp-xyz')
       expect(calledPath).toContain('test.pdf')

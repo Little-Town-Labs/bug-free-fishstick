@@ -140,7 +140,7 @@ describe('LLM Provider Abstraction', () => {
     it('should throw error for unknown provider', () => {
       const config = {
         provider: 'unknown-provider',
-      } as ProviderConfig
+      } as unknown as ProviderConfig
 
       expect(() => getLanguageModel(config)).toThrow('Unknown LLM provider: unknown-provider')
     })
