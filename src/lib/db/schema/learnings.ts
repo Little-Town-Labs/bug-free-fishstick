@@ -1,19 +1,43 @@
-import { pgTable, text, timestamp, uuid, real } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, jsonb, index } from 'drizzle-orm/pg-core'
 import { customers } from './customers'
-import { rfps } from './rfps'
 
-export const learnings = pgTable('learnings', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  organizationId: text('organization_id').notNull(),
-  customerId: uuid('customer_id').references(() => customers.id),
-  rfpId: uuid('rfp_id').references(() => rfps.id, { onDelete: 'set null' }),
-  questionPattern: text('question_pattern').notNull(),
-  approvedResponse: text('approved_response').notNull(),
-  confidenceBoost: real('confidence_boost').default(0.1),
-  usageCount: text('usage_count').default('0'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+export const learningSourceTypes = [
+  'rfp_approval',
+  'user_correction',
+  'manual_entry',
+] as const
+export type LearningSourceType = (typeof learningSourceTypes)[number]
+
+export const learnings = pgTable(
+  'learnings',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: text('organization_id').notNull(),
+    customerId: uuid('customer_id').references(() => customers.id, {
+      onDelete: 'set null',
+    }),
+
+    // Learning content
+    content: text('content').notNull(),
+    sourceType: text('source_type', { enum: learningSourceTypes }).notNull(),
+    createdBy: text('created_by').notNull(),
+
+    // Source reference
+    sourceMetadata: jsonb('source_metadata').$type<{
+      rfpId?: string
+      fieldId?: string
+      originalText?: string
+      correctedText?: string
+    }>(),
+
+    // Timestamps
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('learnings_org_idx').on(table.organizationId),
+    index('learnings_customer_idx').on(table.customerId),
+  ]
+)
 
 export type Learning = typeof learnings.$inferSelect
 export type NewLearning = typeof learnings.$inferInsert

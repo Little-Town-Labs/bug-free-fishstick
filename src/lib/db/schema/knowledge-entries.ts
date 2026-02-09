@@ -1,22 +1,48 @@
-import { pgTable, text, timestamp, uuid, vector, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, vector, jsonb, index } from 'drizzle-orm/pg-core'
 import { customers } from './customers'
+
+export const knowledgeEntryTypes = [
+  'past_rfp',
+  'case_study',
+  'certification',
+  'company_doc',
+  'manual_entry',
+] as const
+export type KnowledgeEntryType = (typeof knowledgeEntryTypes)[number]
 
 export const knowledgeEntries = pgTable(
   'knowledge_entries',
   {
     id: uuid('id').defaultRandom().primaryKey(),
     organizationId: text('organization_id').notNull(),
-    customerId: uuid('customer_id').references(() => customers.id),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+
+    // Content
+    type: text('type', { enum: knowledgeEntryTypes }).notNull(),
     title: text('title').notNull(),
     content: text('content').notNull(),
-    type: text('type').notNull(), // 'rfp_response', 'case_study', 'certification', 'document'
-    sourceUrl: text('source_url'),
+
+    // Vector embedding for semantic search (1536 dimensions)
     embedding: vector('embedding', { dimensions: 1536 }),
-    metadata: text('metadata'), // JSON string for additional data
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+
+    // Source metadata
+    metadata: jsonb('metadata').$type<{
+      sourceFile?: string
+      sourceUrl?: string
+      pageNumbers?: number[]
+      tags?: string[]
+    }>(),
+
+    // Timestamps
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (table) => [index('knowledge_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops'))]
+  (table) => [
+    index('knowledge_org_idx').on(table.organizationId),
+    index('knowledge_customer_idx').on(table.customerId),
+  ]
 )
 
 export type KnowledgeEntry = typeof knowledgeEntries.$inferSelect
