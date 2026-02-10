@@ -52,7 +52,7 @@ describe('DocumentPreview', () => {
         />
       )
 
-      expect(screen.getByText(/pdf/i)).toBeInTheDocument()
+      expect(screen.getByText('PDF')).toBeInTheDocument()
     })
 
     it('shows DOCX document type badge when type is docx', () => {
@@ -65,7 +65,7 @@ describe('DocumentPreview', () => {
         />
       )
 
-      expect(screen.getByText(/docx/i)).toBeInTheDocument()
+      expect(screen.getByText('DOCX')).toBeInTheDocument()
     })
 
     it('displays field count from parsedStructure', () => {
@@ -230,7 +230,7 @@ describe('DocumentPreview', () => {
         />
       )
 
-      expect(screen.getByText(/document/i)).toBeInTheDocument()
+      expect(screen.getByText('Untitled Document')).toBeInTheDocument()
     })
 
     it('handles null parsedStructure gracefully', () => {
