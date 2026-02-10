@@ -7,11 +7,11 @@ import { eq, and } from 'drizzle-orm'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { rfpId: string } }
+  { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
     const auth = await requireAuth(request)
-    const { rfpId } = params
+    const { rfpId } = await params
 
     // Fetch RFP to check status
     const [rfp] = await db

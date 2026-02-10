@@ -6,11 +6,11 @@ import { eq, and } from 'drizzle-orm'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { rfpId: string } }
+  { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
     const auth = await requireAuth(request)
-    const { rfpId } = params
+    const { rfpId } = await params
 
     const [rfp] = await db
       .select()
@@ -33,11 +33,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { rfpId: string } }
+  { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
     const auth = await requireAuth(request)
-    const { rfpId } = params
+    const { rfpId } = await params
     const body = await request.json()
 
     const [updatedRfp] = await db
@@ -61,11 +61,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { rfpId: string } }
+  { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
     const auth = await requireAuth(request)
-    const { rfpId } = params
+    const { rfpId } = await params
 
     const result = await db
       .delete(rfps)

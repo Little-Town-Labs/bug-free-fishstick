@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { PDFDocument, rgb, StandardFonts, PDFFont } from 'pdf-lib'
 
 export interface PdfOutputOptions {
   originalPdf: Buffer
@@ -112,7 +112,7 @@ export async function generatePdfOutput(
 function wrapText(
   text: string,
   maxWidth: number,
-  font: any,
+  font: PDFFont,
   fontSize: number
 ): string[] {
   const words = text.split(' ')

@@ -1,4 +1,5 @@
 import { inngest } from '@/lib/inngest/client'
+import type { GetFunctionInput } from 'inngest'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { rfpResponses } from '@/lib/db/schema/rfp-responses'
@@ -13,7 +14,7 @@ import { eq } from 'drizzle-orm'
 export const processRfp = inngest.createFunction(
   { id: 'process-rfp' },
   { event: 'rfp/process' },
-  async ({ event, step }: any) => {
+  async ({ event, step }: GetFunctionInput<typeof inngest, 'rfp/process'>) => {
     const { rfpId, organizationId } = event.data
 
     // Step 1: Fetch RFP and update status to processing
@@ -32,7 +33,7 @@ export const processRfp = inngest.createFunction(
         .update(rfps)
         .set({ status: 'processing' })
         .where(eq(rfps.id, rfpId))
-        .returning([{ status: 'processing' }] as any)
+        .returning()
 
       return results[0]
     })
@@ -99,7 +100,7 @@ export const processRfp = inngest.createFunction(
         .update(rfps)
         .set(updateData)
         .where(eq(rfps.id, rfpId))
-        .returning([updateData] as any)
+        .returning()
     })
   }
 )

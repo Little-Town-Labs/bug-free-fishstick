@@ -6,11 +6,11 @@ import { eq } from 'drizzle-orm'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { rfpId: string } }
+  { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
-    const { rfpId } = params
+    await requireAuth()
+    const { rfpId } = await params
 
     const responses = await db
       .select()

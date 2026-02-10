@@ -1,4 +1,4 @@
-import pdfParse from 'pdf-parse'
+import { PDFParse } from 'pdf-parse'
 
 export interface ParsedPdfResult {
   text: string
@@ -31,23 +31,27 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedPdfResult> {
   }
 
   // Parse the PDF using pdf-parse
-  const data = await pdfParse(buffer)
+  const parser = new PDFParse({ data: buffer })
+  const [textResult, infoResult] = await Promise.all([
+    parser.getText(),
+    parser.getInfo(),
+  ])
 
   // Extract metadata
   const metadata: { title?: string; author?: string } = {}
-  if (data.info?.Title) {
-    metadata.title = data.info.Title
+  if (infoResult.info?.Title) {
+    metadata.title = infoResult.info.Title
   }
-  if (data.info?.Author) {
-    metadata.author = data.info.Author
+  if (infoResult.info?.Author) {
+    metadata.author = infoResult.info.Author
   }
 
   // Extract structured fields from text
-  const fields = extractFields(data.text)
+  const fields = extractFields(textResult.text)
 
   return {
-    text: data.text,
-    pages: data.numpages,
+    text: textResult.text,
+    pages: textResult.total,
     metadata,
     fields,
   }

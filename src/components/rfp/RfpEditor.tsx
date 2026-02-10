@@ -7,7 +7,7 @@ interface RfpEditorProps {
   rfpId: string
   documentUrl: string | null
   documentType: 'pdf' | 'docx' | null
-  parsedStructure: any | null
+  parsedStructure: Record<string, unknown> | null
   fileName?: string
   responses: Array<{
     id: string
@@ -25,7 +25,6 @@ interface RfpEditorProps {
 }
 
 export function RfpEditor({
-  rfpId,
   documentUrl,
   documentType,
   parsedStructure,

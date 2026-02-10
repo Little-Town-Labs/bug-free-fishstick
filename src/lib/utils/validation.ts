@@ -72,6 +72,23 @@ export const createCustomerSchema = z.object({
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>
 
 /**
+ * Schema for updating an existing customer
+ */
+export const updateCustomerSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(1000).optional(),
+  settings: z
+    .object({
+      preferredTone: z.enum(['formal', 'casual', 'technical']).optional(),
+      industryContext: z.string().max(500).optional(),
+      customInstructions: z.string().max(2000).optional(),
+    })
+    .optional(),
+})
+
+export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>
+
+/**
  * Schema for creating a new knowledge entry
  */
 export const createKnowledgeEntrySchema = z.object({

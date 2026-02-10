@@ -73,12 +73,13 @@ ${input.text}`,
     // Validate and return the result
     const parsed = resultSchema.parse(result.object)
     return parsed
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     // Re-throw errors that are already wrapped
-    if (error.message?.includes('document analysis')) {
+    if (message.includes('document analysis')) {
       throw error
     }
     // Wrap all other errors with context
-    throw new Error(`Document analysis failed: ${error.message}`)
+    throw new Error(`Document analysis failed: ${message}`)
   }
 }

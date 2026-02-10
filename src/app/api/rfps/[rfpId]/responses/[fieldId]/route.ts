@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { rfpResponses } from '@/lib/db/schema/rfp-responses'
+import type { NewRfpResponse } from '@/lib/db/schema/rfp-responses'
 import { eq, and } from 'drizzle-orm'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { rfpId: string; fieldId: string } }
+  { params }: { params: Promise<{ rfpId: string; fieldId: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
-    const { rfpId, fieldId } = params
+    await requireAuth()
+    const { rfpId, fieldId } = await params
     const body = await request.json()
 
     // Validate required field
@@ -21,7 +22,7 @@ export async function PUT(
       )
     }
 
-    const updateData: any = {
+    const updateData: Partial<NewRfpResponse> = {
       updatedAt: new Date(),
     }
 
