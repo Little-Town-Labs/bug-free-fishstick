@@ -32,6 +32,19 @@ export async function uploadRfpDocument(
 }
 
 /**
+ * Downloads a file from a URL and returns it as a Buffer
+ * @param url - The URL of the file to download
+ */
+export async function downloadFile(url: string): Promise<Buffer> {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`Download failed: ${response.status} ${response.statusText}`)
+  }
+  const arrayBuffer = await response.arrayBuffer()
+  return Buffer.from(arrayBuffer)
+}
+
+/**
  * Deletes a file from Vercel Blob storage
  * @param url - The URL of the file to delete
  */

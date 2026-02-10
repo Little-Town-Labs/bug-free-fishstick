@@ -322,11 +322,9 @@ describe('process-rfp Inngest workflow', () => {
         status: 'uploaded',
       }
 
-      const selectMock = vi.fn().mockResolvedValue([mockRfp])
-
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnValue(selectMock),
+        where: vi.fn().mockResolvedValue([mockRfp]),
       } as any)
 
       vi.mocked(db.update).mockReturnValue({
@@ -347,7 +345,6 @@ describe('process-rfp Inngest workflow', () => {
       await processRfp({ event, step })
 
       expect(db.select).toHaveBeenCalled()
-      expect(selectMock).toHaveBeenCalled()
     })
 
     it('should download the document from Vercel Blob', async () => {
