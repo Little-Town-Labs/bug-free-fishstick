@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 
 export async function GET() {
   try {
     const auth = await requireAuth()
 
-    const rfpsList = await db
-      .select()
-      .from(rfps)
-      .where(eq(rfps.organizationId, auth.orgId))
+    const whereClause = isAdmin(auth.orgRole)
+      ? eq(rfps.organizationId, auth.orgId)
+      : and(eq(rfps.organizationId, auth.orgId), eq(rfps.assignedUserId, auth.userId))
+
+    const rfpsList = await db.select().from(rfps).where(whereClause)
 
     return NextResponse.json({ rfps: rfpsList }, { status: 200 })
   } catch (error) {

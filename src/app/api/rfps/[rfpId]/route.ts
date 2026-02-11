@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { eq, and } from 'drizzle-orm'
@@ -39,6 +39,10 @@ export async function PUT(
     const auth = await requireAuth()
     const { rfpId } = await params
     const body = await request.json()
+
+    if (body.assignedUserId !== undefined && !isAdmin(auth.orgRole)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
 
     const [updatedRfp] = await db
       .update(rfps)

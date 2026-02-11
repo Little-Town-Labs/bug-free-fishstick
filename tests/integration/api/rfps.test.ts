@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server'
 vi.mock('@/lib/utils/auth', () => ({
   requireAuth: vi.fn(),
   requireAdmin: vi.fn(),
+  isAdmin: vi.fn().mockReturnValue(true),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
       super(message)
