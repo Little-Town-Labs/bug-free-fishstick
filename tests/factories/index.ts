@@ -85,6 +85,7 @@ export function createMockRfp(overrides: Partial<Rfp> = {}): Rfp {
     completedFileUrl: null,
     automationPercentage: 0,
     version: 1,
+    returnComments: null,
     parsedStructure: null,
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date('2025-01-01T00:00:00Z'),

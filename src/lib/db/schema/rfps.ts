@@ -41,6 +41,9 @@ export const rfps = pgTable(
     automationPercentage: real('automation_percentage').default(0),
     version: integer('version').notNull().default(1),
 
+    // Approval workflow
+    returnComments: text('return_comments'),
+
     // Parsed document structure (cached)
     parsedStructure: jsonb('parsed_structure').$type<{
       pages: number
