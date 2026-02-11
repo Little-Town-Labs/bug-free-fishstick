@@ -1,6 +1,10 @@
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
 import type { LanguageModel } from 'ai'
+import { db } from '@/lib/db'
+import { tenantSettings } from '@/lib/db/schema'
+import { decrypt } from '@/lib/services/encryption'
+import { eq } from 'drizzle-orm'
 
 export type LlmProvider = 'claude' | 'openai' | 'azure'
 
@@ -33,4 +37,17 @@ export function getLanguageModel(config: ProviderConfig): LanguageModel {
     default:
       throw new Error(`Unknown LLM provider: ${config.provider}`)
   }
+}
+
+export async function getLanguageModelForOrg(orgId: string): Promise<LanguageModel> {
+  const [row] = await db
+    .select()
+    .from(tenantSettings)
+    .where(eq(tenantSettings.organizationId, orgId))
+    .limit(1)
+
+  const provider = (row?.llmProvider ?? 'claude') as LlmProvider
+  const apiKey = row?.llmApiKeyEncrypted ? decrypt(row.llmApiKeyEncrypted) : undefined
+
+  return getLanguageModel({ provider, apiKey })
 }
