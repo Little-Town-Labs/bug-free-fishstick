@@ -49,10 +49,10 @@ describe('response-generator', () => {
 
         // Assert
         expect(result.responses).toHaveLength(2)
-        expect(result.responses[0].fieldId).toBe('field-1')
-        expect(result.responses[0].responseText).toBe('Acme Corp')
-        expect(result.responses[1].fieldId).toBe('field-2')
-        expect(result.responses[1].responseText).toContain('SOC 2')
+        expect(result.responses[0]!.fieldId).toBe('field-1')
+        expect(result.responses[0]!.responseText).toBe('Acme Corp')
+        expect(result.responses[1]!.fieldId).toBe('field-2')
+        expect(result.responses[1]!.responseText).toContain('SOC 2')
       })
 
       it('should return confidence scores (0-1) for each response', async () => {
@@ -79,9 +79,9 @@ describe('response-generator', () => {
         const result = await generateResponses(input)
 
         // Assert
-        expect(result.responses[0].confidenceScore).toBe(0.92)
-        expect(result.responses[0].confidenceScore).toBeGreaterThanOrEqual(0)
-        expect(result.responses[0].confidenceScore).toBeLessThanOrEqual(1)
+        expect(result.responses[0]!.confidenceScore).toBe(0.92)
+        expect(result.responses[0]!.confidenceScore).toBeGreaterThanOrEqual(0)
+        expect(result.responses[0]!.confidenceScore).toBeLessThanOrEqual(1)
       })
 
       it('should mark high-confidence responses as auto_filled', async () => {
@@ -109,8 +109,8 @@ describe('response-generator', () => {
         const result = await generateResponses(input)
 
         // Assert
-        expect(result.responses[0].status).toBe('auto_filled')
-        expect(result.responses[0].confidenceScore).toBeGreaterThan(0.7)
+        expect(result.responses[0]!.status).toBe('auto_filled')
+        expect(result.responses[0]!.confidenceScore).toBeGreaterThan(0.7)
       })
 
       it('should mark low-confidence responses as needs_input with [NEEDS INPUT] placeholder', async () => {
@@ -138,9 +138,9 @@ describe('response-generator', () => {
         const result = await generateResponses(input)
 
         // Assert
-        expect(result.responses[0].status).toBe('needs_input')
-        expect(result.responses[0].responseText).toContain('[NEEDS INPUT')
-        expect(result.responses[0].confidenceScore).toBeLessThan(0.7)
+        expect(result.responses[0]!.status).toBe('needs_input')
+        expect(result.responses[0]!.responseText).toContain('[NEEDS INPUT')
+        expect(result.responses[0]!.confidenceScore).toBeLessThan(0.7)
       })
 
       it('should include source references for each response', async () => {
@@ -168,8 +168,8 @@ describe('response-generator', () => {
         const result = await generateResponses(input)
 
         // Assert
-        expect(result.responses[0].sources).toEqual(['doc1', 'doc2'])
-        expect(result.responses[0].sources.length).toBeGreaterThan(0)
+        expect(result.responses[0]!.sources).toEqual(['doc1', 'doc2'])
+        expect(result.responses[0]!.sources.length).toBeGreaterThan(0)
       })
 
       it('should call getLanguageModel with provided config', async () => {
@@ -230,13 +230,13 @@ describe('response-generator', () => {
 
         // Assert
         // Text field should be short
-        expect(result.responses[0].responseText.length).toBeLessThan(50)
+        expect(result.responses[0]!.responseText.length).toBeLessThan(50)
         // Number field should be numeric
-        expect(result.responses[1].responseText).toBe('500')
+        expect(result.responses[1]!.responseText).toBe('500')
         // Date field should be a date format
-        expect(result.responses[2].responseText).toMatch(/\d{4}-\d{2}-\d{2}/)
+        expect(result.responses[2]!.responseText).toMatch(/\d{4}-\d{2}-\d{2}/)
         // Paragraph field should be longer
-        expect(result.responses[3].responseText.length).toBeGreaterThan(50)
+        expect(result.responses[3]!.responseText.length).toBeGreaterThan(50)
       })
     })
 
@@ -295,9 +295,9 @@ describe('response-generator', () => {
         const result = await generateResponses(input)
 
         // Assert
-        expect(result.responses[0].status).toBe('needs_input')
-        expect(result.responses[0].confidenceScore).toBeLessThan(0.7)
-        expect(result.responses[0].responseText).toContain('[NEEDS INPUT')
+        expect(result.responses[0]!.status).toBe('needs_input')
+        expect(result.responses[0]!.confidenceScore).toBeLessThan(0.7)
+        expect(result.responses[0]!.responseText).toContain('[NEEDS INPUT')
       })
     })
 
@@ -328,7 +328,7 @@ describe('response-generator', () => {
 
         // Assert
         // 0.75 > 0.7 (default threshold), so should be auto_filled
-        expect(result.responses[0].status).toBe('auto_filled')
+        expect(result.responses[0]!.status).toBe('auto_filled')
       })
 
       it('should use custom confidence threshold when provided', async () => {
@@ -357,7 +357,7 @@ describe('response-generator', () => {
 
         // Assert
         // 0.75 < 0.8 (custom threshold), so should be needs_input
-        expect(result.responses[0].status).toBe('needs_input')
+        expect(result.responses[0]!.status).toBe('needs_input')
       })
 
       it('should handle fields with no matching knowledge (all needs_input)', async () => {

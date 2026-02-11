@@ -55,9 +55,9 @@ describe('Vector Search Service', () => {
       const results = await searchSimilar(mockQuery, customerId, organizationId)
 
       expect(results).toHaveLength(2)
-      expect(results[0].similarity).toBe(0.95)
-      expect(results[1].similarity).toBe(0.82)
-      expect(results[0].similarity).toBeGreaterThan(results[1].similarity)
+      expect(results[0]!.similarity).toBe(0.95)
+      expect(results[1]!.similarity).toBe(0.82)
+      expect(results[0]!.similarity).toBeGreaterThan(results[1]!.similarity)
     })
 
     it('should call generateEmbedding with the query text', async () => {

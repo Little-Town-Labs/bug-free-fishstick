@@ -95,7 +95,7 @@ function createMockRequest(
       init.headers = { ...init.headers, 'content-type': 'application/json' }
     }
   }
-  return new NextRequest(url, init)
+  return new NextRequest(url, init as any)
 }
 
 // Helper to create mock FormData request
@@ -108,7 +108,7 @@ function createMockFormDataRequest(
     method,
     body: formData,
   }
-  return new NextRequest(url, init)
+  return new NextRequest(url, init as any)
 }
 
 describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
@@ -144,13 +144,13 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       } as any)
 
       const request = createMockRequest('GET')
-      const response = await listRfps(request)
+      const response = await listRfps()
 
       expect(response.status).toBe(200)
       const data = await response.json()
       expect(data.rfps).toBeDefined()
       expect(Array.isArray(data.rfps)).toBe(true)
-      expect(requireAuth).toHaveBeenCalledWith(request)
+      expect(requireAuth).toHaveBeenCalled()
     })
 
     it('should return 401 when not authenticated', async () => {
@@ -159,7 +159,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       )
 
       const request = createMockRequest('GET')
-      const response = await listRfps(request)
+      const response = await listRfps()
 
       expect(response.status).toBe(401)
     })
@@ -261,7 +261,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       } as any)
 
       const request = createMockRequest('GET', 'http://localhost:3000/api/rfps/rfp_1')
-      const response = await getRfp(request, { params: { rfpId: 'rfp_1' } })
+      const response = await getRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(200)
       const data = await response.json()
@@ -280,7 +280,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       } as any)
 
       const request = createMockRequest('GET', 'http://localhost:3000/api/rfps/nonexistent')
-      const response = await getRfp(request, { params: { rfpId: 'nonexistent' } })
+      const response = await getRfp(request, { params: Promise.resolve({ rfpId: 'nonexistent' }) })
 
       expect(response.status).toBe(404)
       const data = await response.json()
@@ -293,7 +293,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       )
 
       const request = createMockRequest('GET', 'http://localhost:3000/api/rfps/rfp_1')
-      const response = await getRfp(request, { params: { rfpId: 'rfp_1' } })
+      const response = await getRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(401)
     })
@@ -325,7 +325,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/rfps/rfp_1',
         { name: 'Updated RFP' }
       )
-      const response = await updateRfp(request, { params: { rfpId: 'rfp_1' } })
+      const response = await updateRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(200)
       const data = await response.json()
@@ -348,7 +348,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/rfps/nonexistent',
         { name: 'Updated' }
       )
-      const response = await updateRfp(request, { params: { rfpId: 'nonexistent' } })
+      const response = await updateRfp(request, { params: Promise.resolve({ rfpId: 'nonexistent' }) })
 
       expect(response.status).toBe(404)
     })
@@ -362,7 +362,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       } as any)
 
       const request = createMockRequest('DELETE', 'http://localhost:3000/api/rfps/rfp_1')
-      const response = await deleteRfp(request, { params: { rfpId: 'rfp_1' } })
+      const response = await deleteRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(204)
     })
@@ -374,7 +374,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       } as any)
 
       const request = createMockRequest('DELETE', 'http://localhost:3000/api/rfps/nonexistent')
-      const response = await deleteRfp(request, { params: { rfpId: 'nonexistent' } })
+      const response = await deleteRfp(request, { params: Promise.resolve({ rfpId: 'nonexistent' }) })
 
       expect(response.status).toBe(404)
     })
@@ -389,6 +389,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         pathname: 'rfp_1/file.pdf',
         contentType: 'application/pdf',
         contentDisposition: 'attachment; filename="file.pdf"',
+        etag: 'mock-etag',
       })
 
       const formData = new FormData()
@@ -400,7 +401,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/rfps/rfp_1/upload',
         formData
       )
-      const response = await uploadFile(request, { params: { rfpId: 'rfp_1' } })
+      const response = await uploadFile(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(200)
       const data = await response.json()
@@ -419,7 +420,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/rfps/rfp_1/upload',
         formData
       )
-      const response = await uploadFile(request, { params: { rfpId: 'rfp_1' } })
+      const response = await uploadFile(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(400)
       const data = await response.json()
@@ -451,7 +452,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         'POST',
         'http://localhost:3000/api/rfps/rfp_1/process'
       )
-      const response = await processRfp(request, { params: { rfpId: 'rfp_1' } })
+      const response = await processRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(202)
       const data = await response.json()
@@ -487,7 +488,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         'POST',
         'http://localhost:3000/api/rfps/rfp_1/process'
       )
-      const response = await processRfp(request, { params: { rfpId: 'rfp_1' } })
+      const response = await processRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(409)
       const data = await response.json()
@@ -498,7 +499,8 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
   describe('GET /api/rfps/[rfpId]/status', () => {
     it('should return 200 with processing status and automation percentage', async () => {
       vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
-      vi.mocked(db.select).mockReturnValue({
+      // First call: fetch RFP record
+      vi.mocked(db.select).mockReturnValueOnce({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
             limit: vi.fn(() =>
@@ -513,17 +515,32 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
           })),
         })),
       } as any)
+      // Second call: fetch responses for completion percentage
+      vi.mocked(db.select).mockReturnValueOnce({
+        from: vi.fn(() => ({
+          where: vi.fn(() =>
+            Promise.resolve([
+              { status: 'approved' },
+              { status: 'auto_filled' },
+              { status: 'manually_filled' },
+            ])
+          ),
+        })),
+      } as any)
 
       const request = createMockRequest(
         'GET',
         'http://localhost:3000/api/rfps/rfp_1/status'
       )
-      const response = await getStatus(request, { params: { rfpId: 'rfp_1' } })
+      const response = await getStatus(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(200)
       const data = await response.json()
       expect(data.status).toBe('processing')
       expect(data.automationPercentage).toBe(75)
+      expect(data.completionPercentage).toBe(67)
+      expect(data.totalResponses).toBe(3)
+      expect(data.completedResponses).toBe(2)
     })
   })
 
@@ -556,7 +573,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         'GET',
         'http://localhost:3000/api/rfps/rfp_1/responses'
       )
-      const response = await getResponses(request, { params: { rfpId: 'rfp_1' } })
+      const response = await getResponses(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(200)
       const data = await response.json()
@@ -590,7 +607,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         { responseText: 'Updated response', status: 'manually_filled' }
       )
       const response = await updateResponse(request, {
-        params: { rfpId: 'rfp_1', fieldId: 'field_1' },
+        params: Promise.resolve({ rfpId: 'rfp_1', fieldId: 'field_1' }),
       })
 
       expect(response.status).toBe(200)
@@ -608,7 +625,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         { invalidField: 'value' }
       )
       const response = await updateResponse(request, {
-        params: { rfpId: 'rfp_1', fieldId: 'field_1' },
+        params: Promise.resolve({ rfpId: 'rfp_1', fieldId: 'field_1' }),
       })
 
       expect(response.status).toBe(400)
@@ -648,7 +665,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         'GET',
         'http://localhost:3000/api/rfps/rfp_1/download'
       )
-      const response = await downloadRfp(request, { params: { rfpId: 'rfp_1' } })
+      const response = await downloadRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBeTruthy()
@@ -676,7 +693,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         'GET',
         'http://localhost:3000/api/rfps/rfp_1/download'
       )
-      const response = await downloadRfp(request, { params: { rfpId: 'rfp_1' } })
+      const response = await downloadRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
       expect(response.status).toBe(404)
       const data = await response.json()

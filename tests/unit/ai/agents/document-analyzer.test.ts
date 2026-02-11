@@ -95,12 +95,12 @@ describe('Document Analyzer Agent', () => {
       const result = await analyzeDocument(input)
 
       expect(result.fields).toHaveLength(6)
-      expect(result.fields[0].type).toBe('text')
-      expect(result.fields[1].type).toBe('paragraph')
-      expect(result.fields[2].type).toBe('checkbox')
-      expect(result.fields[3].type).toBe('table')
-      expect(result.fields[4].type).toBe('date')
-      expect(result.fields[5].type).toBe('number')
+      expect(result.fields[0]!.type).toBe('text')
+      expect(result.fields[1]!.type).toBe('paragraph')
+      expect(result.fields[2]!.type).toBe('checkbox')
+      expect(result.fields[3]!.type).toBe('table')
+      expect(result.fields[4]!.type).toBe('date')
+      expect(result.fields[5]!.type).toBe('number')
     })
 
     it('should generate unique IDs for each field', async () => {
@@ -154,8 +154,8 @@ describe('Document Analyzer Agent', () => {
 
       const result = await analyzeDocument(input)
 
-      expect(result.fields[0].question).toBe('What is your company name?')
-      expect(result.fields[1].question).toBe('Describe your technical approach in detail.')
+      expect(result.fields[0]!.question).toBe('What is your company name?')
+      expect(result.fields[1]!.question).toBe('Describe your technical approach in detail.')
       result.fields.forEach(field => {
         expect(field.question).toBeTruthy()
         expect(typeof field.question).toBe('string')
@@ -228,7 +228,7 @@ describe('Document Analyzer Agent', () => {
       await analyzeDocument(input)
 
       expect(generateObject).toHaveBeenCalled()
-      const callArgs = vi.mocked(generateObject).mock.calls[0][0]
+      const callArgs = vi.mocked(generateObject).mock.calls[0]![0]
       expect(callArgs.prompt || callArgs.messages || JSON.stringify(callArgs)).toContain(documentText)
     })
   })
@@ -390,8 +390,8 @@ describe('Document Analyzer Agent', () => {
       const result = await analyzeDocument(input)
 
       expect(result.fields).toBeDefined()
-      expect(result.fields[0].question).toContain('français')
-      expect(result.fields[1].question).toContain('Japanese')
+      expect(result.fields[0]!.question).toContain('français')
+      expect(result.fields[1]!.question).toContain('Japanese')
     })
   })
 })

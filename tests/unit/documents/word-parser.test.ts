@@ -104,7 +104,7 @@ describe('Word Parser', () => {
       const uniqueIds = new Set(fieldIds)
 
       expect(fieldIds.length).toBe(uniqueIds.size)
-      expect(result.fields[0].id).toMatch(/^field_\d+_\w+$/)
+      expect(result.fields[0]!.id).toMatch(/^field_\d+_\w+$/)
     })
 
     it('should include field position information', async () => {
@@ -123,8 +123,8 @@ describe('Word Parser', () => {
 
       const result = await parseWord(mockBuffer)
 
-      expect(result.fields[0].position).toBeDefined()
-      expect(result.fields[0].position).toMatchObject({
+      expect(result.fields[0]!.position).toBeDefined()
+      expect(result.fields[0]!.position).toMatchObject({
         page: expect.any(Number),
         x: expect.any(Number),
         y: expect.any(Number),
@@ -150,9 +150,9 @@ describe('Word Parser', () => {
       const result = await parseWord(mockBuffer)
 
       expect(result.fields.length).toBeGreaterThan(0)
-      expect(result.fields[0].question).toBeTruthy()
-      expect(typeof result.fields[0].question).toBe('string')
-      expect(result.fields[0].question.length).toBeGreaterThan(0)
+      expect(result.fields[0]!.question).toBeTruthy()
+      expect(typeof result.fields[0]!.question).toBe('string')
+      expect(result.fields[0]!.question.length).toBeGreaterThan(0)
     })
 
     it('should return metadata (title, author) from document properties', async () => {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
+import { rfpResponses } from '@/lib/db/schema/rfp-responses'
 import { eq, and } from 'drizzle-orm'
 
 export async function GET(
@@ -22,10 +23,25 @@ export async function GET(
       return NextResponse.json({ error: 'RFP not found' }, { status: 404 })
     }
 
+    const allResponses = await db
+      .select()
+      .from(rfpResponses)
+      .where(eq(rfpResponses.rfpId, rfpId))
+
+    const totalResponses = allResponses.length
+    const completedResponses = allResponses.filter(
+      (r) => r.status === 'approved' || r.status === 'manually_filled'
+    ).length
+    const completionPercentage =
+      totalResponses === 0 ? 0 : Math.round((completedResponses / totalResponses) * 100)
+
     return NextResponse.json(
       {
         status: rfp.status,
         automationPercentage: rfp.automationPercentage,
+        completionPercentage,
+        totalResponses,
+        completedResponses,
       },
       { status: 200 }
     )

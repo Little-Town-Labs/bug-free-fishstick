@@ -74,7 +74,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await generateEmbeddings({ event, step })
+      await (generateEmbeddings as unknown as Function)({ event, step })
 
       expect(generateEmbedding).toHaveBeenCalledWith(content)
     })
@@ -96,7 +96,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await generateEmbeddings({ event, step })
+      await (generateEmbeddings as unknown as Function)({ event, step })
 
       expect(step.run).toHaveBeenCalledWith(
         'generate-embedding',
@@ -114,7 +114,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await generateEmbeddings({ event, step })
+      await (generateEmbeddings as unknown as Function)({ event, step })
 
       expect(db.update).toHaveBeenCalled()
     })
@@ -138,7 +138,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await generateEmbeddings({ event, step })
+      await (generateEmbeddings as unknown as Function)({ event, step })
 
       expect(setMock).toHaveBeenCalledWith(
         expect.objectContaining({ embedding: mockEmbedding })
@@ -153,7 +153,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await generateEmbeddings({ event, step })
+      await (generateEmbeddings as unknown as Function)({ event, step })
 
       expect(step.run).toHaveBeenCalledWith(
         'update-entry',
@@ -175,7 +175,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      const result = await generateEmbeddings({ event, step })
+      const result = await (generateEmbeddings as unknown as Function)({ event, step })
 
       expect(returningMock).toHaveBeenCalled()
       // The handler completes without error (Inngest functions don't need to return a value)
@@ -195,7 +195,7 @@ describe('generate-embeddings Inngest function', () => {
         content: 'Content that triggers an error',
       })
 
-      await expect(generateEmbeddings({ event, step })).rejects.toThrow(
+      await expect((generateEmbeddings as unknown as Function)({ event, step })).rejects.toThrow(
         'Embedding API unavailable'
       )
     })
@@ -212,7 +212,7 @@ describe('generate-embeddings Inngest function', () => {
         content: 'Content that causes db error',
       })
 
-      await expect(generateEmbeddings({ event, step })).rejects.toThrow(
+      await expect((generateEmbeddings as unknown as Function)({ event, step })).rejects.toThrow(
         'Database connection lost'
       )
     })
@@ -234,7 +234,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await generateEmbeddings({ event, step })
+      await (generateEmbeddings as unknown as Function)({ event, step })
 
       // The where clause must have been called - entry filtering is required
       expect(whereMock).toHaveBeenCalled()
@@ -249,7 +249,7 @@ describe('generate-embeddings Inngest function', () => {
         content: specificContent,
       })
 
-      await generateEmbeddings({ event, step })
+      await (generateEmbeddings as unknown as Function)({ event, step })
 
       expect(generateEmbedding).toHaveBeenCalledWith(specificContent)
       expect(generateEmbedding).not.toHaveBeenCalledWith(expect.not.stringContaining(specificContent))

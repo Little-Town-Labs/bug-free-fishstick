@@ -283,9 +283,9 @@ describe('PDF Output Generator', () => {
 
       await generatePdfOutput(options)
 
-      expect(pages[0].drawText).toHaveBeenCalledTimes(2)
-      expect(pages[1].drawText).toHaveBeenCalledTimes(1)
-      expect(pages[2].drawText).toHaveBeenCalledTimes(1)
+      expect(pages[0]!.drawText).toHaveBeenCalledTimes(2)
+      expect(pages[1]!.drawText).toHaveBeenCalledTimes(1)
+      expect(pages[2]!.drawText).toHaveBeenCalledTimes(1)
     })
   })
 

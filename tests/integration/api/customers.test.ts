@@ -69,7 +69,7 @@ function createMockRequest(
     init.body = JSON.stringify(body)
     init.headers = { 'content-type': 'application/json' }
   }
-  return new NextRequest(url, init)
+  return new NextRequest(url, init as any)
 }
 
 describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
@@ -95,7 +95,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
       } as any)
 
       const request = createMockRequest('GET')
-      const response = await listCustomers(request)
+      const response = await listCustomers()
 
       expect(response.status).toBe(200)
       const data = await response.json()
@@ -110,7 +110,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
       )
 
       const request = createMockRequest('GET')
-      const response = await listCustomers(request)
+      const response = await listCustomers()
 
       expect(response.status).toBe(401)
     })
@@ -211,7 +211,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         'GET',
         'http://localhost:3000/api/customers/cust_1'
       )
-      const response = await getCustomer(request, { params: { customerId: 'cust_1' } })
+      const response = await getCustomer(request, { params: Promise.resolve({ customerId: 'cust_1' }) })
 
       expect(response.status).toBe(200)
       const data = await response.json()
@@ -236,7 +236,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         'GET',
         'http://localhost:3000/api/customers/nonexistent'
       )
-      const response = await getCustomer(request, { params: { customerId: 'nonexistent' } })
+      const response = await getCustomer(request, { params: Promise.resolve({ customerId: 'nonexistent' }) })
 
       expect(response.status).toBe(404)
       const data = await response.json()
@@ -252,7 +252,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         'GET',
         'http://localhost:3000/api/customers/cust_1'
       )
-      const response = await getCustomer(request, { params: { customerId: 'cust_1' } })
+      const response = await getCustomer(request, { params: Promise.resolve({ customerId: 'cust_1' }) })
 
       expect(response.status).toBe(401)
     })
@@ -281,7 +281,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/cust_1',
         { name: 'Updated Customer Name' }
       )
-      const response = await updateCustomer(request, { params: { customerId: 'cust_1' } })
+      const response = await updateCustomer(request, { params: Promise.resolve({ customerId: 'cust_1' }) })
 
       expect(response.status).toBe(200)
       const data = await response.json()
@@ -300,7 +300,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/cust_1',
         { name: 'Updated Customer Name' }
       )
-      const response = await updateCustomer(request, { params: { customerId: 'cust_1' } })
+      const response = await updateCustomer(request, { params: Promise.resolve({ customerId: 'cust_1' }) })
 
       expect(response.status).toBe(403)
     })
@@ -321,7 +321,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/nonexistent',
         { name: 'Updated' }
       )
-      const response = await updateCustomer(request, { params: { customerId: 'nonexistent' } })
+      const response = await updateCustomer(request, { params: Promise.resolve({ customerId: 'nonexistent' }) })
 
       expect(response.status).toBe(404)
     })
@@ -339,7 +339,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         'DELETE',
         'http://localhost:3000/api/customers/cust_1'
       )
-      const response = await deleteCustomer(request, { params: { customerId: 'cust_1' } })
+      const response = await deleteCustomer(request, { params: Promise.resolve({ customerId: 'cust_1' }) })
 
       expect(response.status).toBe(204)
     })
@@ -354,7 +354,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         'DELETE',
         'http://localhost:3000/api/customers/cust_1'
       )
-      const response = await deleteCustomer(request, { params: { customerId: 'cust_1' } })
+      const response = await deleteCustomer(request, { params: Promise.resolve({ customerId: 'cust_1' }) })
 
       expect(response.status).toBe(403)
     })
@@ -370,7 +370,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         'DELETE',
         'http://localhost:3000/api/customers/nonexistent'
       )
-      const response = await deleteCustomer(request, { params: { customerId: 'nonexistent' } })
+      const response = await deleteCustomer(request, { params: Promise.resolve({ customerId: 'nonexistent' }) })
 
       expect(response.status).toBe(404)
     })

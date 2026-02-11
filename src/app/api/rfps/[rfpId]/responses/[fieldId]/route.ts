@@ -22,6 +22,29 @@ export async function PUT(
       )
     }
 
+    const autoSave: boolean = body.autoSave === true
+    const lastSaved: string | undefined = body.lastSaved
+
+    // Conflict detection: only when autoSave=true and lastSaved is provided
+    if (autoSave && lastSaved) {
+      const [existing] = await db
+        .select()
+        .from(rfpResponses)
+        .where(
+          and(
+            eq(rfpResponses.rfpId, rfpId),
+            eq(rfpResponses.fieldId, fieldId)
+          )
+        )
+
+      if (existing && existing.updatedAt > new Date(lastSaved)) {
+        return NextResponse.json(
+          { error: 'Conflict', savedAt: existing.updatedAt.toISOString() },
+          { status: 409 }
+        )
+      }
+    }
+
     const updateData: Partial<NewRfpResponse> = {
       updatedAt: new Date(),
     }
@@ -47,6 +70,15 @@ export async function PUT(
 
     if (!updatedResponse) {
       return NextResponse.json({ error: 'Response not found' }, { status: 404 })
+    }
+
+    const savedAt = new Date().toISOString()
+
+    if (autoSave) {
+      return NextResponse.json(
+        { response: updatedResponse, savedAt },
+        { status: 200 }
+      )
     }
 
     return NextResponse.json({ response: updatedResponse }, { status: 200 })

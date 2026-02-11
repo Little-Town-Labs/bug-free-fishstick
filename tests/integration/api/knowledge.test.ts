@@ -95,7 +95,7 @@ function createMockRequest(
       init.headers = { ...init.headers, 'content-type': 'application/json' }
     }
   }
-  return new NextRequest(url, init)
+  return new NextRequest(url, init as any)
 }
 
 // Helper to create mock FormData request
@@ -108,7 +108,7 @@ function createMockFormDataRequest(
     method,
     body: formData,
   }
-  return new NextRequest(url, init)
+  return new NextRequest(url, init as any)
 }
 
 describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
@@ -139,7 +139,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'GET',
         `http://localhost:3000/api/customers/${customerId}/knowledge`
       )
-      const response = await listEntries(request, { params: { customerId } })
+      const response = await listEntries(request, { params: Promise.resolve({ customerId }) })
 
       expect(response.status).toBe(200)
       const data = await response.json()
@@ -155,7 +155,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'GET',
         `http://localhost:3000/api/customers/${customerId}/knowledge`
       )
-      const response = await listEntries(request, { params: { customerId } })
+      const response = await listEntries(request, { params: Promise.resolve({ customerId }) })
 
       expect(response.status).toBe(401)
     })
@@ -185,7 +185,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         `http://localhost:3000/api/customers/${customerId}/knowledge`,
         { title: 'New Entry', content: 'Entry content', type: 'company_doc' }
       )
-      const response = await createEntry(request, { params: { customerId } })
+      const response = await createEntry(request, { params: Promise.resolve({ customerId }) })
 
       expect(response.status).toBe(201)
       const data = await response.json()
@@ -205,7 +205,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         `http://localhost:3000/api/customers/${customerId}/knowledge`,
         { title: 'New Entry', content: 'Entry content', type: 'company_doc' }
       )
-      const response = await createEntry(request, { params: { customerId } })
+      const response = await createEntry(request, { params: Promise.resolve({ customerId }) })
 
       expect(response.status).toBe(403)
     })
@@ -218,7 +218,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         `http://localhost:3000/api/customers/${customerId}/knowledge`,
         { type: 'company_doc' } // missing title and content
       )
-      const response = await createEntry(request, { params: { customerId } })
+      const response = await createEntry(request, { params: Promise.resolve({ customerId }) })
 
       expect(response.status).toBe(400)
       const data = await response.json()
@@ -242,6 +242,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         pathname: `${customerId}/doc.pdf`,
         contentType: 'application/pdf',
         contentDisposition: 'attachment; filename="test.pdf"',
+        etag: 'mock-etag',
       })
       vi.mocked(db.insert).mockReturnValue({
         values: vi.fn(() => ({
@@ -260,7 +261,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/${customerId}/knowledge/upload',
         formData
       )
-      const response = await uploadDocument(request, { params: { customerId } })
+      const response = await uploadDocument(request, { params: Promise.resolve({ customerId }) })
 
       expect(response.status).toBe(201)
       const data = await response.json()
@@ -280,7 +281,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/${customerId}/knowledge/upload',
         formData
       )
-      const response = await uploadDocument(request, { params: { customerId } })
+      const response = await uploadDocument(request, { params: Promise.resolve({ customerId }) })
 
       expect(response.status).toBe(400)
       const data = await response.json()
@@ -303,7 +304,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/${customerId}/knowledge/upload',
         formData
       )
-      const response = await uploadDocument(request, { params: { customerId } })
+      const response = await uploadDocument(request, { params: Promise.resolve({ customerId }) })
 
       expect(response.status).toBe(403)
     })
@@ -321,14 +322,14 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
       ]
 
       vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
-      vi.mocked(searchSimilar).mockResolvedValue(mockResults)
+      vi.mocked(searchSimilar).mockResolvedValue(mockResults as any)
 
       const request = createMockRequest(
         'POST',
         'http://localhost:3000/api/customers/${customerId}/knowledge/search',
         { query: 'enterprise solutions', limit: 5 }
       )
-      const response = await searchKnowledge(request, { params: { customerId } })
+      const response = await searchKnowledge(request, { params: Promise.resolve({ customerId }) })
 
       expect(response.status).toBe(200)
       const data = await response.json()
@@ -345,7 +346,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/${customerId}/knowledge/search',
         { query: '' }
       )
-      const response = await searchKnowledge(request, { params: { customerId } })
+      const response = await searchKnowledge(request, { params: Promise.resolve({ customerId }) })
 
       expect(response.status).toBe(400)
       const data = await response.json()
@@ -375,7 +376,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/${customerId}/knowledge/entry_1'
       )
       const response = await getEntry(request, {
-        params: { customerId, entryId: 'entry_1' },
+        params: Promise.resolve({ customerId, entryId: 'entry_1' }),
       })
 
       expect(response.status).toBe(200)
@@ -399,7 +400,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/${customerId}/knowledge/nonexistent'
       )
       const response = await getEntry(request, {
-        params: { customerId, entryId: 'nonexistent' },
+        params: Promise.resolve({ customerId, entryId: 'nonexistent' }),
       })
 
       expect(response.status).toBe(404)
@@ -420,7 +421,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/${customerId}/knowledge/entry_1'
       )
       const response = await deleteEntry(request, {
-        params: { customerId, entryId: 'entry_1' },
+        params: Promise.resolve({ customerId, entryId: 'entry_1' }),
       })
 
       expect(response.status).toBe(204)
@@ -436,7 +437,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/${customerId}/knowledge/entry_1'
       )
       const response = await deleteEntry(request, {
-        params: { customerId, entryId: 'entry_1' },
+        params: Promise.resolve({ customerId, entryId: 'entry_1' }),
       })
 
       expect(response.status).toBe(403)
@@ -453,7 +454,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         'http://localhost:3000/api/customers/${customerId}/knowledge/nonexistent'
       )
       const response = await deleteEntry(request, {
-        params: { customerId, entryId: 'nonexistent' },
+        params: Promise.resolve({ customerId, entryId: 'nonexistent' }),
       })
 
       expect(response.status).toBe(404)

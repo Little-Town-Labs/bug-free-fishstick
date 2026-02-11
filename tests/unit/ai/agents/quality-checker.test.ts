@@ -67,8 +67,8 @@ describe('quality-checker', () => {
         const result = await checkQuality(input)
 
         expect(result.results).toHaveLength(2)
-        expect(result.results[0].fieldId).toBe('field-1')
-        expect(result.results[1].fieldId).toBe('field-2')
+        expect(result.results[0]!.fieldId).toBe('field-1')
+        expect(result.results[1]!.fieldId).toBe('field-2')
         expect(generateObject).toHaveBeenCalledTimes(1)
       })
 
@@ -102,8 +102,8 @@ describe('quality-checker', () => {
 
         const result = await checkQuality(input)
 
-        expect(result.results[0].passed).toBe(true)
-        expect(result.results[0].issues).toEqual([])
+        expect(result.results[0]!.passed).toBe(true)
+        expect(result.results[0]!.issues).toEqual([])
       })
 
       it('should fail responses that don\'t match the field type', async () => {
@@ -136,8 +136,8 @@ describe('quality-checker', () => {
 
         const result = await checkQuality(input)
 
-        expect(result.results[0].passed).toBe(false)
-        expect(result.results[0].issues.length).toBeGreaterThan(0)
+        expect(result.results[0]!.passed).toBe(false)
+        expect(result.results[0]!.issues.length).toBeGreaterThan(0)
       })
 
       it('should return adjusted confidence scores after review', async () => {
@@ -170,8 +170,8 @@ describe('quality-checker', () => {
 
         const result = await checkQuality(input)
 
-        expect(result.results[0].adjustedConfidence).toBe(0.82)
-        expect(result.results[0].adjustedConfidence).not.toBe(0.75)
+        expect(result.results[0]!.adjustedConfidence).toBe(0.82)
+        expect(result.results[0]!.adjustedConfidence).not.toBe(0.75)
       })
 
       it('should provide issue descriptions for failed checks', async () => {
@@ -207,8 +207,8 @@ describe('quality-checker', () => {
 
         const result = await checkQuality(input)
 
-        expect(result.results[0].issues).toContain('Response is not in table format')
-        expect(result.results[0].issues).toContain('Missing structured data (columns/rows)')
+        expect(result.results[0]!.issues).toContain('Response is not in table format')
+        expect(result.results[0]!.issues).toContain('Missing structured data (columns/rows)')
       })
 
       it('should provide suggestions for improving failed responses', async () => {
@@ -241,8 +241,8 @@ describe('quality-checker', () => {
 
         const result = await checkQuality(input)
 
-        expect(result.results[0].suggestion).toBeDefined()
-        expect(result.results[0].suggestion).toContain('Expand with details')
+        expect(result.results[0]!.suggestion).toBeDefined()
+        expect(result.results[0]!.suggestion).toContain('Expand with details')
       })
 
       it('should call getLanguageModel with provided config', async () => {
@@ -341,8 +341,8 @@ describe('quality-checker', () => {
 
         const result = await checkQuality(input)
 
-        expect(result.results[0].passed).toBe(false)
-        expect(result.results[0].issues).toContain('Response text is empty')
+        expect(result.results[0]!.passed).toBe(false)
+        expect(result.results[0]!.issues).toContain('Response text is empty')
       })
     })
 
@@ -377,8 +377,8 @@ describe('quality-checker', () => {
 
         const result = await checkQuality(input)
 
-        expect(result.results[0].passed).toBe(true)
-        expect(result.results[0].responseText).toBeUndefined() // Should pass through without modification
+        expect(result.results[0]!.passed).toBe(true)
+        expect(result.results[0]!).not.toHaveProperty('responseText') // Should pass through without modification
       })
 
       it('should handle responses with very high confidence that still have issues', async () => {
@@ -411,8 +411,8 @@ describe('quality-checker', () => {
 
         const result = await checkQuality(input)
 
-        expect(result.results[0].passed).toBe(false)
-        expect(result.results[0].adjustedConfidence).toBeLessThan(0.95)
+        expect(result.results[0]!.passed).toBe(false)
+        expect(result.results[0]!.adjustedConfidence).toBeLessThan(0.95)
       })
 
       it('should return 100% pass rate when all responses are high quality', async () => {
