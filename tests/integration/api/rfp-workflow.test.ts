@@ -35,6 +35,12 @@ vi.mock('@/lib/services/rfp-versions', () => ({
   createVersionSnapshot: vi.fn(),
 }))
 
+vi.mock('@/lib/inngest/client', () => ({
+  inngest: {
+    send: vi.fn().mockResolvedValue(undefined),
+  },
+}))
+
 import { POST as submitRfp } from '@/app/api/rfps/[rfpId]/submit/route'
 import { POST as approveRfp } from '@/app/api/rfps/[rfpId]/approve/route'
 import { POST as returnRfp } from '@/app/api/rfps/[rfpId]/return/route'

@@ -46,6 +46,10 @@ vi.mock('@/lib/inngest/client', () => ({
   },
 }))
 
+vi.mock('@/lib/services/vector-search', () => ({
+  searchSimilar: vi.fn().mockResolvedValue([]),
+}))
+
 import { db } from '@/lib/db'
 import { downloadFile } from '@/lib/storage/blob'
 import { parsePdf } from '@/lib/documents/pdf-parser'
@@ -143,10 +147,17 @@ function createMockQualityResults(fieldIds: string[] = ['1', '2']) {
 
 // Standard mock DB setup
 function setupStandardDbMocks(mockRfp: Record<string, unknown>) {
-  vi.mocked(db.select).mockReturnValue({
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockResolvedValue([mockRfp]),
-  } as unknown as ReturnType<typeof db.select>)
+  // First select: RFP fetch -> [mockRfp]
+  // Second select: learnings fetch -> []
+  vi.mocked(db.select)
+    .mockReturnValueOnce({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([mockRfp]),
+    } as unknown as ReturnType<typeof db.select>)
+    .mockReturnValue({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([]),
+    } as unknown as ReturnType<typeof db.select>)
 
   vi.mocked(db.update).mockReturnValue({
     set: vi.fn().mockReturnThis(),
@@ -214,6 +225,7 @@ describe('process-rfp Inngest workflow', () => {
       expect(generateResponses).toHaveBeenCalledWith({
         fields: expect.any(Array),
         knowledgeContext: [],
+        learningsContext: expect.any(Array),
         providerConfig: { provider: 'claude' },
       })
       expect(checkQuality).toHaveBeenCalledWith({
@@ -477,6 +489,7 @@ describe('process-rfp Inngest workflow', () => {
           question: f.question,
         })),
         knowledgeContext: [],
+        learningsContext: expect.any(Array),
         providerConfig: { provider: 'claude' },
       })
     })

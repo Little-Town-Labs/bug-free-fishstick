@@ -3,12 +3,14 @@ import type { GetFunctionInput } from 'inngest'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { rfpResponses } from '@/lib/db/schema/rfp-responses'
+import { learnings } from '@/lib/db/schema'
 import { downloadFile } from '@/lib/storage/blob'
 import { parsePdf } from '@/lib/documents/pdf-parser'
 import { parseWord } from '@/lib/documents/word-parser'
 import { analyzeDocument } from '@/lib/ai/agents/document-analyzer'
 import { generateResponses } from '@/lib/ai/agents/response-generator'
 import { checkQuality } from '@/lib/ai/agents/quality-checker'
+import { searchSimilar } from '@/lib/services/vector-search'
 import { eq } from 'drizzle-orm'
 
 export const processRfp = inngest.createFunction(
@@ -71,13 +73,27 @@ export const processRfp = inngest.createFunction(
 
     // Step 5: Generate responses
     const generatedResponses = await step.run('generate-responses', async () => {
+      // Fetch relevant knowledge context via vector search (if RFP has a customer)
+      const knowledgeContext = rfp.customerId
+        ? (await searchSimilar(rfp.name, rfp.customerId, organizationId, 10)).map((r) => ({
+            content: r.content,
+            relevanceScore: r.similarity,
+            source: r.title,
+          }))
+        : []
+
+      // Fetch org-level learnings for context
+      const orgLearnings = await db.select().from(learnings).where(eq(learnings.organizationId, organizationId))
+      const learningsContext = orgLearnings.map((l) => l.content)
+
       return await generateResponses({
         fields: analyzed.fields.map(f => ({
           id: f.id,
           type: f.type,
           question: f.question,
         })),
-        knowledgeContext: [],
+        knowledgeContext,
+        learningsContext,
         providerConfig: { provider: 'claude' },
       })
     })

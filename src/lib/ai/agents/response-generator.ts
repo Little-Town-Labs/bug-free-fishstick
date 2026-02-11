@@ -16,6 +16,7 @@ export interface GenerateResponsesInput {
   }>
   providerConfig: ProviderConfig
   confidenceThreshold?: number  // default 0.7
+  learningsContext?: string[]  // insights from past approved RFPs
 }
 
 export interface GenerateResponsesResult {
@@ -45,10 +46,14 @@ export async function generateResponses(input: GenerateResponsesInput): Promise<
   const model = getLanguageModel(input.providerConfig)
   const threshold = input.confidenceThreshold ?? 0.7
 
+  const learningsSection = input.learningsContext?.length
+    ? `\n\nPrevious learnings from approved RFPs:\n${input.learningsContext.map((l) => `- ${l}`).join('\n')}`
+    : ''
+
   const result = await generateObject({
     model,
     schema: responseSchema,
-    prompt: `Generate responses for the following RFP fields based on the knowledge context provided.\n\nFields:\n${JSON.stringify(input.fields)}\n\nKnowledge Context:\n${JSON.stringify(input.knowledgeContext)}`,
+    prompt: `Generate responses for the following RFP fields based on the knowledge context provided.\n\nFields:\n${JSON.stringify(input.fields)}\n\nKnowledge Context:\n${JSON.stringify(input.knowledgeContext)}${learningsSection}`,
   })
 
   return {
