@@ -64,6 +64,9 @@ export async function generatePdfOutput(
 
     // Get the target page
     const targetPage = pages[page]
+    if (!targetPage) {
+      throw new Error(`Page ${page} not found in document`)
+    }
 
     // Handle text wrapping if needed
     const textWidth = font.widthOfTextAtSize(responseText, fontSize)

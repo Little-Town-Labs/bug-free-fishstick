@@ -16,7 +16,7 @@ interface Field {
   }
 }
 
-interface ParsedStructure {
+export interface ParsedStructure {
   pages: number
   fields: Field[]
 }

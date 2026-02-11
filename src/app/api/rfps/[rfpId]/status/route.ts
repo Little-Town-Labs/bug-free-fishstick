@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireAuth()
     const { rfpId } = await params
 
     const [rfp] = await db

@@ -1,5 +1,3 @@
-import { PDFParse } from 'pdf-parse'
-
 export interface ParsedPdfResult {
   text: string
   pages: number
@@ -30,7 +28,9 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedPdfResult> {
     throw new Error('File size exceeds 50MB limit')
   }
 
-  // Parse the PDF using pdf-parse
+  // Dynamic import to avoid DOMMatrix/canvas issues at build time
+  const { PDFParse } = await import('pdf-parse')
+
   const parser = new PDFParse({ data: buffer })
   const [textResult, infoResult] = await Promise.all([
     parser.getText(),
@@ -40,10 +40,10 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedPdfResult> {
   // Extract metadata
   const metadata: { title?: string; author?: string } = {}
   if (infoResult.info?.Title) {
-    metadata.title = infoResult.info.Title
+    metadata.title = infoResult.info.Title as string
   }
   if (infoResult.info?.Author) {
-    metadata.author = infoResult.info.Author
+    metadata.author = infoResult.info.Author as string
   }
 
   // Extract structured fields from text

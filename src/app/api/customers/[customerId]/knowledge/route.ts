@@ -83,6 +83,10 @@ export async function POST(
       })
       .returning()
 
+    if (!created) {
+      throw new Error('Failed to create knowledge entry')
+    }
+
     // Trigger embedding generation
     await inngest.send({
       name: 'rfp/generate-embeddings',

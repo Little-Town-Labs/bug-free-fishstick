@@ -16,18 +16,25 @@ export const exportDocument = inngest.createFunction(
     const rfp = await step.run('fetch-rfp', async () => {
       const results = await db.select().from(rfps).where(eq(rfps.id, rfpId))
       if (results.length === 0) throw new Error('RFP not found')
-      return results[0]
+      return results[0]!
     })
 
-    const originalBuffer = await step.run('download-document', async () => {
-      return await downloadFile(rfp.originalFileUrl!)
+    // Download and serialize as number array to survive Inngest step serialization
+    const originalBufferData = await step.run('download-document', async () => {
+      if (!rfp.originalFileUrl) {
+        throw new Error('RFP has no original file URL')
+      }
+      const buf = await downloadFile(rfp.originalFileUrl)
+      return { data: Array.from(buf) }
     })
 
     const responses = await step.run('fetch-responses', async () => {
       return await db.select().from(rfpResponses).where(eq(rfpResponses.rfpId, rfpId))
     })
 
-    const outputBuffer = await step.run('generate-output', async () => {
+    // Generate and serialize output buffer
+    const outputBufferData = await step.run('generate-output', async () => {
+      const originalBuffer = Buffer.from(originalBufferData.data)
       const responseData = responses.map(r => ({
         fieldId: r.fieldId,
         responseText: r.responseText || '',
@@ -36,14 +43,15 @@ export const exportDocument = inngest.createFunction(
 
       if (format === 'pdf') {
         const result = await generatePdfOutput({ originalPdf: originalBuffer, responses: responseData })
-        return result.buffer
+        return { data: Array.from(result.buffer) }
       } else {
         const result = await generateWordOutput({ originalDocx: originalBuffer, responses: responseData })
-        return result.buffer
+        return { data: Array.from(result.buffer) }
       }
     })
 
     const uploadResult = await step.run('upload-completed', async () => {
+      const outputBuffer = Buffer.from(outputBufferData.data)
       const fileName = `completed.${format}`
       return await uploadRfpDocument(outputBuffer, {
         organizationId,

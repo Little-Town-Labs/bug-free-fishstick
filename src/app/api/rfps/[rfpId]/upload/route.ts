@@ -10,7 +10,7 @@ export async function POST(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireAuth()
     const { rfpId } = await params
 
     const formData = await request.formData()

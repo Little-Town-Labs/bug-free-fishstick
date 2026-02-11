@@ -70,7 +70,7 @@ function extractFields(text: string): ParsedWordResult['fields'] {
   let yOffset = 0
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
+    const line = lines[i]!.trim()
 
     if (!line) {
       yOffset += 20
@@ -80,7 +80,7 @@ function extractFields(text: string): ParsedWordResult['fields'] {
     // Check for numbered form fields
     const numberMatch = line.match(/^(\d+)\.\s+(.+)/)
     if (numberMatch) {
-      const question = numberMatch[2].trim()
+      const question = numberMatch[2]!.trim()
       let type: 'text' | 'paragraph' | 'checkbox' | 'table' = 'paragraph'
 
       // Determine field type

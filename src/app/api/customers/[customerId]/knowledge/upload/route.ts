@@ -38,12 +38,14 @@ export async function POST(
     let content: string
 
     if (file.name.endsWith('.pdf') || file.type === 'application/pdf') {
-      content = await parsePdf(buffer)
+      const parsed = await parsePdf(buffer)
+      content = parsed.text
     } else if (
       file.name.endsWith('.docx') ||
       file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ) {
-      content = await parseWord(buffer)
+      const parsed = await parseWord(buffer)
+      content = parsed.text
     } else {
       // For plain text or other formats, read as text
       content = buffer.toString('utf-8')
@@ -64,6 +66,10 @@ export async function POST(
         },
       })
       .returning()
+
+    if (!created) {
+      throw new Error('Failed to create knowledge entry')
+    }
 
     // Trigger embedding generation
     await inngest.send({

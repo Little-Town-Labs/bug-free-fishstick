@@ -35,70 +35,119 @@ export const processRfp = inngest.createFunction(
         .where(eq(rfps.id, rfpId))
         .returning()
 
-      return results[0]
+      return results[0]!
     })
 
     // Step 2: Download document
-    const documentBuffer = await step.run('download-document', async () => {
-      return await downloadFile(rfp.documentUrl)
+    // Note: Inngest serializes Buffer as { type: "Buffer", data: number[] }
+    const documentBufferData = await step.run('download-document', async () => {
+      if (!rfp.originalFileUrl) {
+        throw new Error('RFP has no document URL')
+      }
+      const buf = await downloadFile(rfp.originalFileUrl)
+      return { data: Array.from(buf) }
     })
 
     // Step 3: Parse document
-    const parsedText = await step.run('parse-document', async () => {
-      if (rfp.documentType === 'pdf') {
-        return await parsePdf(documentBuffer)
-      } else if (rfp.documentType === 'docx') {
-        return await parseWord(documentBuffer)
+    const parsedDoc = await step.run('parse-document', async () => {
+      const buf = Buffer.from(documentBufferData.data)
+      if (rfp.originalFileType === 'pdf') {
+        return await parsePdf(buf)
+      } else if (rfp.originalFileType === 'docx') {
+        return await parseWord(buf)
       } else {
-        throw new Error(`Unsupported document type: ${rfp.documentType}`)
+        throw new Error(`Unsupported document type: ${rfp.originalFileType}`)
       }
     })
 
     // Step 4: Analyze document
     const analyzed = await step.run('analyze-document', async () => {
-      return await analyzeDocument(parsedText)
+      return await analyzeDocument({
+        text: parsedDoc.text,
+        pages: 'pages' in parsedDoc ? parsedDoc.pages : 1,
+        providerConfig: { provider: 'claude' },
+      })
     })
 
     // Step 5: Generate responses
     const generatedResponses = await step.run('generate-responses', async () => {
-      return await generateResponses(analyzed.fields, {
-        organizationId,
-        rfpId,
+      return await generateResponses({
+        fields: analyzed.fields.map(f => ({
+          id: f.id,
+          type: f.type,
+          question: f.question,
+        })),
+        knowledgeContext: [],
+        providerConfig: { provider: 'claude' },
       })
     })
 
     // Step 6: Check quality
     const qualityResults = await step.run('check-quality', async () => {
-      return await checkQuality(generatedResponses)
+      return await checkQuality({
+        responses: generatedResponses.responses.map(r => ({
+          fieldId: r.fieldId,
+          question: analyzed.fields.find(f => f.id === r.fieldId)?.question || '',
+          fieldType: analyzed.fields.find(f => f.id === r.fieldId)?.type || 'text',
+          responseText: r.responseText,
+          confidenceScore: r.confidenceScore,
+        })),
+        providerConfig: { provider: 'claude' },
+      })
     })
 
     // Step 7: Save responses
     await step.run('save-responses', async () => {
+      const responseValues = generatedResponses.responses.map(r => {
+        const field = analyzed.fields.find(f => f.id === r.fieldId)
+        const quality = qualityResults.results.find(q => q.fieldId === r.fieldId)
+        return {
+          rfpId,
+          fieldId: r.fieldId,
+          fieldType: (field?.type || 'text') as 'text' | 'paragraph' | 'checkbox' | 'table' | 'date' | 'number',
+          question: field?.question || '',
+          responseText: r.responseText,
+          confidenceScore: quality?.adjustedConfidence ?? r.confidenceScore,
+          status: r.status as 'auto_filled' | 'needs_input',
+          position: field?.position,
+          aiMetadata: {
+            sources: r.sources,
+            generatedAt: new Date().toISOString(),
+          },
+        }
+      })
       return await db
         .insert(rfpResponses)
-        .values(qualityResults)
+        .values(responseValues)
         .returning()
     })
 
     // Step 8: Update RFP with final status and metadata
     await step.run('update-rfp', async () => {
       const fields = analyzed.fields || []
+      const autoFilledCount = generatedResponses.responses.filter(
+        r => r.status === 'auto_filled'
+      ).length
       const automationPercentage =
         fields.length > 0
-          ? Math.round(
-              (generatedResponses.length / fields.length) * 100
-            )
+          ? Math.round((autoFilledCount / fields.length) * 100)
           : 0
-
-      const updateData = {
-        status: 'draft' as const,
-        parsedStructure: { fields },
-        automationPercentage,
-      }
 
       return await db
         .update(rfps)
-        .set(updateData)
+        .set({
+          status: 'draft' as const,
+          parsedStructure: {
+            pages: 'pages' in parsedDoc ? parsedDoc.pages : 1,
+            fields: fields.map(f => ({
+              id: f.id,
+              type: f.type as 'text' | 'paragraph' | 'checkbox' | 'table',
+              question: f.question,
+              position: f.position,
+            })),
+          },
+          automationPercentage,
+        })
         .where(eq(rfps.id, rfpId))
         .returning()
     })

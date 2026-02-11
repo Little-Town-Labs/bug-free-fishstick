@@ -4,9 +4,9 @@ import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { eq } from 'drizzle-orm'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireAuth()
 
     const rfpsList = await db
       .select()
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireAuth()
     const body = await request.json()
 
     // Validate required fields

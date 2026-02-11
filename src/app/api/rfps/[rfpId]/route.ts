@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireAuth()
     const { rfpId } = await params
 
     const [rfp] = await db
@@ -36,7 +36,7 @@ export async function PUT(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireAuth()
     const { rfpId } = await params
     const body = await request.json()
 
@@ -64,7 +64,7 @@ export async function DELETE(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth(request)
+    const auth = await requireAuth()
     const { rfpId } = await params
 
     const result = await db

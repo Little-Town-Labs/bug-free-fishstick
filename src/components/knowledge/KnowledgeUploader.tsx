@@ -6,23 +6,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
-type KnowledgeEntryType =
-  | 'past_rfp'
-  | 'case_study'
-  | 'certification'
-  | 'company_doc'
-  | 'product_doc'
-  | 'technical_spec'
-  | 'faq'
+import type { KnowledgeEntryType } from '@/lib/db/schema/knowledge-entries'
 
 const ENTRY_TYPES: { value: KnowledgeEntryType; label: string }[] = [
   { value: 'past_rfp', label: 'Past RFP' },
   { value: 'case_study', label: 'Case Study' },
   { value: 'certification', label: 'Certification' },
   { value: 'company_doc', label: 'Company Doc' },
-  { value: 'product_doc', label: 'Product Doc' },
-  { value: 'technical_spec', label: 'Technical Spec' },
-  { value: 'faq', label: 'FAQ' },
+  { value: 'manual_entry', label: 'Manual Entry' },
 ]
 
 interface KnowledgeUploaderProps {

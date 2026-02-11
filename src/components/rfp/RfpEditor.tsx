@@ -1,13 +1,14 @@
 'use client'
 
 import { DocumentPreview } from '@/components/rfp/DocumentPreview'
+import type { ParsedStructure } from '@/components/rfp/DocumentPreview'
 import { ResponseCard } from '@/components/rfp/ResponseCard'
 
 interface RfpEditorProps {
   rfpId: string
   documentUrl: string | null
   documentType: 'pdf' | 'docx' | null
-  parsedStructure: Record<string, unknown> | null
+  parsedStructure: ParsedStructure | null
   fileName?: string
   responses: Array<{
     id: string

@@ -26,9 +26,7 @@ const TYPE_LABELS: Record<KnowledgeEntryType, string> = {
   case_study: 'Case Study',
   certification: 'Certification',
   company_doc: 'Company Doc',
-  product_doc: 'Product Doc',
-  technical_spec: 'Technical Spec',
-  faq: 'FAQ',
+  manual_entry: 'Manual Entry',
 }
 
 const TYPE_COLORS: Record<KnowledgeEntryType, string> = {
@@ -36,9 +34,7 @@ const TYPE_COLORS: Record<KnowledgeEntryType, string> = {
   case_study: 'bg-green-100 text-green-800 border-green-200',
   certification: 'bg-purple-100 text-purple-800 border-purple-200',
   company_doc: 'bg-orange-100 text-orange-800 border-orange-200',
-  product_doc: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-  technical_spec: 'bg-gray-100 text-gray-800 border-gray-200',
-  faq: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  manual_entry: 'bg-gray-100 text-gray-800 border-gray-200',
 }
 
 function formatDate(date: string | Date): string {
