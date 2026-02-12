@@ -38,7 +38,7 @@ export default function CustomersPage() {
       const res = await fetch('/api/customers')
       if (!res.ok) throw new Error('Failed to fetch customers')
       const data = await res.json()
-      setCustomers(data)
+      setCustomers(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
