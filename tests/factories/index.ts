@@ -25,6 +25,8 @@ export function createMockTenantSettings(
     organizationId: 'org_test123',
     llmProvider: 'claude',
     llmApiKeyEncrypted: null,
+    openaiApiKeyEncrypted: null,
+    anthropicApiKeyEncrypted: null,
     confidenceThreshold: 0.7,
     autoLearnEnabled: true,
     createdAt: new Date('2025-01-01T00:00:00Z'),
