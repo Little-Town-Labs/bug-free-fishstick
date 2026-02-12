@@ -49,12 +49,12 @@ vi.mock('@/lib/inngest/client', () => ({
   },
 }))
 
-vi.mock('@vercel/kv', () => ({
-  kv: {
+vi.mock('@upstash/redis', () => ({
+  Redis: vi.fn(() => ({
     get: vi.fn().mockResolvedValue(null),
     set: vi.fn().mockResolvedValue('OK'),
     del: vi.fn().mockResolvedValue(1),
-  },
+  })),
 }))
 
 vi.mock('@vercel/blob', () => ({

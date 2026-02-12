@@ -16,6 +16,14 @@ vi.mock('@/lib/utils/auth', () => ({
   },
 }))
 
+vi.mock('@upstash/redis', () => ({
+  Redis: vi.fn(() => ({
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+  })),
+}))
+
 vi.mock('@/lib/db', () => ({
   db: {
     select: vi.fn(() => ({

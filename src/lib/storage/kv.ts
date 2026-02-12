@@ -1,4 +1,9 @@
-import { kv } from '@vercel/kv'
+import { Redis } from '@upstash/redis'
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+})
 
 export interface ProcessingStatus {
   rfpId: string
@@ -20,7 +25,7 @@ export async function setProcessingStatus(
   rfpId: string,
   status: ProcessingStatus
 ): Promise<void> {
-  await kv.set(
+  await redis.set(
     `rfp:${rfpId}:status`,
     JSON.stringify(status),
     { ex: PROCESSING_STATUS_TTL }
@@ -35,7 +40,7 @@ export async function setProcessingStatus(
 export async function getProcessingStatus(
   rfpId: string
 ): Promise<ProcessingStatus | null> {
-  const data = await kv.get<string>(`rfp:${rfpId}:status`)
+  const data = await redis.get<string>(`rfp:${rfpId}:status`)
 
   if (!data) return null
 
@@ -48,5 +53,5 @@ export async function getProcessingStatus(
  * @param rfpId - The RFP ID
  */
 export async function deleteProcessingStatus(rfpId: string): Promise<void> {
-  await kv.del(`rfp:${rfpId}:status`)
+  await redis.del(`rfp:${rfpId}:status`)
 }

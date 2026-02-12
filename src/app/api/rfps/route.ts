@@ -3,7 +3,12 @@ import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { eq, and } from 'drizzle-orm'
-import { kv } from '@vercel/kv'
+import { Redis } from '@upstash/redis'
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+})
 
 const CACHE_TTL = 60 // seconds
 
@@ -15,7 +20,7 @@ export async function GET() {
     const cacheKey = `rfps:${auth.orgId}:${adminFlag}`
 
     try {
-      const cached = await kv.get<typeof rfpsList>(cacheKey)
+      const cached = await redis.get<typeof rfpsList>(cacheKey)
       if (cached) return NextResponse.json({ rfps: cached }, { status: 200 })
     } catch {
       // KV unavailable in local dev — fall through to DB
@@ -28,7 +33,7 @@ export async function GET() {
     const rfpsList = await db.select().from(rfps).where(whereClause)
 
     try {
-      await kv.set(cacheKey, rfpsList, { ex: CACHE_TTL })
+      await redis.set(cacheKey, rfpsList, { ex: CACHE_TTL })
     } catch {
       // KV unavailable — proceed without caching
     }
@@ -70,7 +75,7 @@ export async function POST(request: NextRequest) {
     try {
       const adminKey = `rfps:${auth.orgId}:admin`
       const memberKey = `rfps:${auth.orgId}:${auth.userId}`
-      await Promise.all([kv.del(adminKey), kv.del(memberKey)])
+      await Promise.all([redis.del(adminKey), redis.del(memberKey)])
     } catch {
       // KV unavailable — proceed
     }

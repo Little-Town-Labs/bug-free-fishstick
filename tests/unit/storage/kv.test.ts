@@ -1,21 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+const redisMock = vi.hoisted(() => ({
+  set: vi.fn(),
+  get: vi.fn(),
+  del: vi.fn(),
+}))
+
+vi.mock('@upstash/redis', () => ({
+  Redis: vi.fn(() => redisMock),
+}))
+
 import {
   setProcessingStatus,
   getProcessingStatus,
   deleteProcessingStatus,
   type ProcessingStatus,
 } from '@/lib/storage/kv'
-
-// Mock @vercel/kv
-vi.mock('@vercel/kv', () => ({
-  kv: {
-    set: vi.fn(),
-    get: vi.fn(),
-    del: vi.fn(),
-  },
-}))
-
-import { kv } from '@vercel/kv'
 
 describe('Vercel KV Storage', () => {
   beforeEach(() => {
@@ -24,7 +24,7 @@ describe('Vercel KV Storage', () => {
 
   describe('setProcessingStatus', () => {
     it('should store RFP processing status with TTL', async () => {
-      vi.mocked(kv.set).mockResolvedValue('OK' as any)
+      vi.mocked(redisMock.set).mockResolvedValue('OK' as any)
 
       const status: ProcessingStatus = {
         rfpId: 'rfp-123',
@@ -36,7 +36,7 @@ describe('Vercel KV Storage', () => {
 
       await setProcessingStatus('rfp-123', status)
 
-      expect(kv.set).toHaveBeenCalledWith(
+      expect(redisMock.set).toHaveBeenCalledWith(
         'rfp:rfp-123:status',
         JSON.stringify(status),
         { ex: 3600 }
@@ -44,7 +44,7 @@ describe('Vercel KV Storage', () => {
     })
 
     it('should store status with error field', async () => {
-      vi.mocked(kv.set).mockResolvedValue('OK' as any)
+      vi.mocked(redisMock.set).mockResolvedValue('OK' as any)
 
       const status: ProcessingStatus = {
         rfpId: 'rfp-456',
@@ -56,13 +56,13 @@ describe('Vercel KV Storage', () => {
 
       await setProcessingStatus('rfp-456', status)
 
-      const calledValue = vi.mocked(kv.set).mock.calls[0]![1]
+      const calledValue = vi.mocked(redisMock.set).mock.calls[0]![1]
       const parsed = JSON.parse(calledValue as string)
       expect(parsed.error).toBe('Failed to parse document')
     })
 
     it('should use correct key namespacing', async () => {
-      vi.mocked(kv.set).mockResolvedValue('OK' as any)
+      vi.mocked(redisMock.set).mockResolvedValue('OK' as any)
 
       const status: ProcessingStatus = {
         rfpId: 'rfp-abc',
@@ -73,7 +73,7 @@ describe('Vercel KV Storage', () => {
 
       await setProcessingStatus('rfp-abc', status)
 
-      const calledKey = vi.mocked(kv.set).mock.calls[0]![0]
+      const calledKey = vi.mocked(redisMock.set).mock.calls[0]![0]
       expect(calledKey).toBe('rfp:rfp-abc:status')
     })
   })
@@ -87,16 +87,16 @@ describe('Vercel KV Storage', () => {
         updatedAt: new Date().toISOString(),
       }
 
-      vi.mocked(kv.get).mockResolvedValue(JSON.stringify(status))
+      vi.mocked(redisMock.get).mockResolvedValue(JSON.stringify(status))
 
       const result = await getProcessingStatus('rfp-123')
 
       expect(result).toEqual(status)
-      expect(kv.get).toHaveBeenCalledWith('rfp:rfp-123:status')
+      expect(redisMock.get).toHaveBeenCalledWith('rfp:rfp-123:status')
     })
 
     it('should return null if status not found', async () => {
-      vi.mocked(kv.get).mockResolvedValue(null)
+      vi.mocked(redisMock.get).mockResolvedValue(null)
 
       const result = await getProcessingStatus('rfp-nonexistent')
 
@@ -112,7 +112,7 @@ describe('Vercel KV Storage', () => {
       }
 
       // KV might return parsed object directly
-      vi.mocked(kv.get).mockResolvedValue(status as any)
+      vi.mocked(redisMock.get).mockResolvedValue(status as any)
 
       const result = await getProcessingStatus('rfp-456')
 
@@ -128,7 +128,7 @@ describe('Vercel KV Storage', () => {
         updatedAt: new Date().toISOString(),
       }
 
-      vi.mocked(kv.get).mockResolvedValue(JSON.stringify(status))
+      vi.mocked(redisMock.get).mockResolvedValue(JSON.stringify(status))
 
       const result = await getProcessingStatus('rfp-789')
 
@@ -139,19 +139,19 @@ describe('Vercel KV Storage', () => {
 
   describe('deleteProcessingStatus', () => {
     it('should delete status by rfpId', async () => {
-      vi.mocked(kv.del).mockResolvedValue(1)
+      vi.mocked(redisMock.del).mockResolvedValue(1)
 
       await deleteProcessingStatus('rfp-123')
 
-      expect(kv.del).toHaveBeenCalledWith('rfp:rfp-123:status')
+      expect(redisMock.del).toHaveBeenCalledWith('rfp:rfp-123:status')
     })
 
     it('should use correct key namespacing for deletion', async () => {
-      vi.mocked(kv.del).mockResolvedValue(1)
+      vi.mocked(redisMock.del).mockResolvedValue(1)
 
       await deleteProcessingStatus('rfp-xyz')
 
-      const calledKey = vi.mocked(kv.del).mock.calls[0]![0]
+      const calledKey = vi.mocked(redisMock.del).mock.calls[0]![0]
       expect(calledKey).toBe('rfp:rfp-xyz:status')
     })
   })
