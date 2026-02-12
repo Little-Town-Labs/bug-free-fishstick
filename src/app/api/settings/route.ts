@@ -3,7 +3,7 @@ import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { tenantSettings, llmProviders } from '@/lib/db/schema'
 import type { LlmProvider } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { encrypt } from '@/lib/services/encryption'
 
 const DEFAULT_SETTINGS = {
@@ -82,31 +82,41 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid LLM provider' }, { status: 400 })
     }
 
-    // Update base settings (original columns only)
-    const baseUpdate: Record<string, unknown> = { updatedAt: new Date() }
-    if (body.llmProvider !== undefined) baseUpdate.llmProvider = body.llmProvider
-    if (body.llmApiKey !== undefined) baseUpdate.llmApiKeyEncrypted = body.llmApiKey === null ? null : encrypt(body.llmApiKey)
-    if (body.confidenceThreshold !== undefined) baseUpdate.confidenceThreshold = body.confidenceThreshold
-    if (body.autoLearnEnabled !== undefined) baseUpdate.autoLearnEnabled = body.autoLearnEnabled
+    // Ensure row exists first
+    await db.execute(sql`
+      INSERT INTO tenant_settings (organization_id, llm_provider, confidence_threshold, auto_learn_enabled)
+      VALUES (${auth.orgId}, 'claude', 0.7, true)
+      ON CONFLICT (organization_id) DO NOTHING
+    `)
 
-    await db
-      .insert(tenantSettings)
-      .values({ organizationId: auth.orgId, ...DEFAULT_SETTINGS })
-      .onConflictDoUpdate({ target: tenantSettings.organizationId, set: baseUpdate })
-
-    // Update new key columns separately — safe if migration hasn't run yet
-    if (body.openaiApiKey !== undefined || body.anthropicApiKey !== undefined) {
+    // Apply each field update individually to avoid missing column errors
+    if (body.llmProvider !== undefined) {
+      await db.execute(sql`UPDATE tenant_settings SET llm_provider = ${body.llmProvider}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
+    }
+    if (body.llmApiKey !== undefined) {
+      const val = body.llmApiKey === null ? null : encrypt(body.llmApiKey)
+      await db.execute(sql`UPDATE tenant_settings SET llm_api_key_encrypted = ${val}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
+    }
+    if (body.openaiApiKey !== undefined) {
       try {
-        const keyUpdate: Record<string, unknown> = { updatedAt: new Date() }
-        if (body.openaiApiKey !== undefined) keyUpdate.openaiApiKeyEncrypted = body.openaiApiKey === null ? null : encrypt(body.openaiApiKey)
-        if (body.anthropicApiKey !== undefined) keyUpdate.anthropicApiKeyEncrypted = body.anthropicApiKey === null ? null : encrypt(body.anthropicApiKey)
-
-        await db
-          .update(tenantSettings)
-          .set(keyUpdate)
-          .where(eq(tenantSettings.organizationId, auth.orgId))
+        const val = body.openaiApiKey === null ? null : encrypt(body.openaiApiKey)
+        await db.execute(sql`UPDATE tenant_settings SET openai_api_key_encrypted = ${val}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
       } catch (e) {
-        console.warn('[PATCH /api/settings] new key columns not available yet:', String(e))
+        console.warn('[PATCH /api/settings] openai column missing, running migration:', String(e))
+        await db.execute(sql`ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS openai_api_key_encrypted text`)
+        const val = body.openaiApiKey === null ? null : encrypt(body.openaiApiKey)
+        await db.execute(sql`UPDATE tenant_settings SET openai_api_key_encrypted = ${val}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
+      }
+    }
+    if (body.anthropicApiKey !== undefined) {
+      try {
+        const val = body.anthropicApiKey === null ? null : encrypt(body.anthropicApiKey)
+        await db.execute(sql`UPDATE tenant_settings SET anthropic_api_key_encrypted = ${val}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
+      } catch (e) {
+        console.warn('[PATCH /api/settings] anthropic column missing, running migration:', String(e))
+        await db.execute(sql`ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS anthropic_api_key_encrypted text`)
+        const val = body.anthropicApiKey === null ? null : encrypt(body.anthropicApiKey)
+        await db.execute(sql`UPDATE tenant_settings SET anthropic_api_key_encrypted = ${val}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
       }
     }
 
