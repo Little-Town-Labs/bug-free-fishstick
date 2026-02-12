@@ -13,6 +13,8 @@ interface SettingsFormProps {
   initialSettings: {
     llmProvider: LlmProvider
     llmApiKeyConfigured: boolean
+    openaiApiKeyConfigured: boolean
+    anthropicApiKeyConfigured: boolean
     confidenceThreshold: number
     autoLearnEnabled: boolean
   }
@@ -21,14 +23,16 @@ interface SettingsFormProps {
 
 export function SettingsForm({ initialSettings, isAdmin }: SettingsFormProps) {
   const [provider, setProvider] = useState<LlmProvider>(initialSettings.llmProvider)
-  const [apiKey, setApiKey] = useState('')
+  const [openaiKey, setOpenaiKey] = useState('')
+  const [anthropicKey, setAnthropicKey] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
     setSaving(true)
     try {
       const body: Record<string, unknown> = { llmProvider: provider }
-      if (apiKey) body.llmApiKey = apiKey
+      if (openaiKey) body.openaiApiKey = openaiKey
+      if (anthropicKey) body.anthropicApiKey = anthropicKey
 
       const res = await fetch('/api/settings', {
         method: 'PATCH',
@@ -49,26 +53,40 @@ export function SettingsForm({ initialSettings, isAdmin }: SettingsFormProps) {
       <CardHeader>
         <CardTitle>LLM Provider Configuration</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="llm-provider">LLM Provider</Label>
+          <Label htmlFor="llm-provider">Active Provider</Label>
           <LlmProviderSelector
             value={provider}
             onChange={setProvider}
             disabled={!isAdmin || saving}
           />
+          <p className="text-xs text-muted-foreground">The provider used for RFP processing.</p>
         </div>
+
         <div className="space-y-2">
-          <Label>API Key</Label>
+          <Label>Anthropic API Key</Label>
           <ApiKeyInput
-            isConfigured={initialSettings.llmApiKeyConfigured}
-            onChange={setApiKey}
+            isConfigured={initialSettings.anthropicApiKeyConfigured}
+            onChange={setAnthropicKey}
             disabled={!isAdmin || saving}
           />
-          {!isAdmin && (
-            <p className="text-xs text-muted-foreground">Only admins can update API keys.</p>
-          )}
         </div>
+
+        <div className="space-y-2">
+          <Label>OpenAI API Key</Label>
+          <ApiKeyInput
+            isConfigured={initialSettings.openaiApiKeyConfigured}
+            onChange={setOpenaiKey}
+            disabled={!isAdmin || saving}
+          />
+          <p className="text-xs text-muted-foreground">Required for knowledge base embeddings.</p>
+        </div>
+
+        {!isAdmin && (
+          <p className="text-xs text-muted-foreground">Only admins can update these settings.</p>
+        )}
+
         {isAdmin && (
           <Button onClick={handleSave} disabled={saving}>
             {saving ? 'Saving...' : 'Save Settings'}

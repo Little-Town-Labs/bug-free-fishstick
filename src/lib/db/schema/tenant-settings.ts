@@ -9,6 +9,8 @@ export const tenantSettings = pgTable('tenant_settings', {
   // LLM configuration
   llmProvider: text('llm_provider', { enum: llmProviders }).notNull().default('claude'),
   llmApiKeyEncrypted: text('llm_api_key_encrypted'),
+  openaiApiKeyEncrypted: text('openai_api_key_encrypted'),
+  anthropicApiKeyEncrypted: text('anthropic_api_key_encrypted'),
 
   // AI behavior settings
   confidenceThreshold: real('confidence_threshold').notNull().default(0.7),

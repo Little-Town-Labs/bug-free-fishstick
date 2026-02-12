@@ -17,6 +17,8 @@ function toResponse(data: {
   organizationId: string
   llmProvider: LlmProvider
   llmApiKeyEncrypted: string | null
+  openaiApiKeyEncrypted?: string | null
+  anthropicApiKeyEncrypted?: string | null
   confidenceThreshold: number
   autoLearnEnabled: boolean
   createdAt: Date | string
@@ -26,6 +28,8 @@ function toResponse(data: {
     organizationId: data.organizationId,
     llmProvider: data.llmProvider,
     llmApiKeyConfigured: data.llmApiKeyEncrypted !== null,
+    openaiApiKeyConfigured: data.openaiApiKeyEncrypted != null,
+    anthropicApiKeyConfigured: data.anthropicApiKeyEncrypted != null,
     confidenceThreshold: data.confidenceThreshold,
     autoLearnEnabled: data.autoLearnEnabled,
     createdAt: data.createdAt,
@@ -78,6 +82,8 @@ export async function PATCH(request: NextRequest) {
     const updateValues: Record<string, unknown> = { updatedAt: new Date() }
     if (body.llmProvider !== undefined) updateValues.llmProvider = body.llmProvider
     if (body.llmApiKey !== undefined) updateValues.llmApiKeyEncrypted = encrypt(body.llmApiKey)
+    if (body.openaiApiKey !== undefined) updateValues.openaiApiKeyEncrypted = encrypt(body.openaiApiKey)
+    if (body.anthropicApiKey !== undefined) updateValues.anthropicApiKeyEncrypted = encrypt(body.anthropicApiKey)
     if (body.confidenceThreshold !== undefined) updateValues.confidenceThreshold = body.confidenceThreshold
     if (body.autoLearnEnabled !== undefined) updateValues.autoLearnEnabled = body.autoLearnEnabled
 
