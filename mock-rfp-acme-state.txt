@@ -1,0 +1,198 @@
+REQUEST FOR PROPOSAL
+RFP No. ACME-2024-IT-0047
+
+STATE OF ACME
+Department of Administrative Services
+Office of Information Technology
+
+RFP TITLE: Automated RFP Processing and Response Management System
+
+ISSUE DATE: September 15, 2024
+PROPOSAL DUE DATE: October 31, 2024, 5:00 PM EST
+CONTRACT PERIOD: January 1, 2025 – December 31, 2027 (with two 1-year renewal options)
+
+================================================================================
+SECTION 1: INTRODUCTION AND BACKGROUND
+================================================================================
+
+1.1 Purpose
+
+The State of Acme, Department of Administrative Services (hereinafter "the State" or
+"the Agency") is soliciting proposals from qualified vendors to design, develop, and
+implement an Automated RFP Processing and Response Management System. The State
+currently receives approximately 200–300 RFP documents per year from various federal,
+state, and municipal entities and seeks to modernize its response capabilities through
+artificial intelligence and workflow automation.
+
+1.2 Background
+
+The State of Acme's procurement division currently processes incoming RFPs using a
+manual workflow. Staff members read each RFP in full, extract key requirements,
+research appropriate response content, draft responses across multiple departments,
+coordinate approvals, and submit final documents. This process is resource-intensive,
+prone to inconsistency, and results in missed opportunities due to tight submission
+deadlines.
+
+The Agency seeks a software solution that leverages modern AI/ML technologies to:
+  - Automatically ingest and parse incoming RFP documents (PDF, Word, Excel)
+  - Extract and categorize requirements, evaluation criteria, and deadlines
+  - Generate draft responses based on historical winning proposals and company knowledge
+  - Route response sections to appropriate subject matter experts for review
+  - Track approval workflows and submission deadlines
+  - Maintain a searchable knowledge base of past proposals and responses
+
+1.3 Current State
+
+  - 12 FTE staff dedicated to RFP processing
+  - Average response time: 14 business days per RFP
+  - Current win rate: approximately 34%
+  - Document storage: shared network drive (unstructured)
+  - No systematic tracking of lessons learned or win/loss analysis
+
+================================================================================
+SECTION 2: SCOPE OF WORK
+================================================================================
+
+2.1 Required Capabilities
+
+The vendor shall provide a fully functional system that includes, at minimum:
+
+2.1.1 Document Ingestion and Parsing
+  a) Support for PDF, Microsoft Word (.docx), Excel (.xlsx), and plain text formats
+  b) Automatic extraction of: deadline dates, submission requirements, evaluation
+     criteria, mandatory certifications, page limits, formatting requirements
+  c) OCR capability for scanned documents
+  d) Batch processing of multiple documents
+
+2.1.2 AI-Powered Response Generation
+  a) Natural language generation for draft response sections
+  b) Integration with agency knowledge base (existing proposal library)
+  c) Compliance checking against solicitation requirements
+  d) Confidence scoring for generated content
+  e) Citation of source materials used in response generation
+
+2.1.3 Workflow Management
+  a) Configurable approval workflows with role-based access control
+  b) Automated routing to subject matter experts by topic area
+  c) Deadline tracking and automated reminders
+  d) Version control and audit trail for all document changes
+  e) Return-for-revision workflow with comment tracking
+
+2.1.4 Knowledge Base Management
+  a) Structured repository of approved response content
+  b) Tagging and categorization by topic, agency type, contract value
+  c) Automatic extraction of learnings from completed proposals
+  d) Search functionality across all historical proposals
+
+2.1.5 Reporting and Analytics
+  a) Win/loss tracking and analysis
+  b) Time-to-completion metrics
+  c) Staff utilization reporting
+  d) Proposal pipeline dashboard
+
+2.2 Non-Functional Requirements
+
+  a) Web-based application accessible via modern browsers (Chrome, Firefox, Edge)
+  b) Role-based access control with SSO integration (SAML 2.0 or OAuth 2.0)
+  c) 99.5% uptime SLA during business hours (7 AM – 7 PM EST, M–F)
+  d) Data encryption at rest (AES-256) and in transit (TLS 1.2+)
+  e) SOC 2 Type II certification or equivalent
+  f) Compliance with State of Acme data residency requirements (data must remain
+     within the continental United States)
+  g) API access for integration with existing systems (ERP, document management)
+  h) Mobile-responsive design
+  i) WCAG 2.1 AA accessibility compliance
+
+================================================================================
+SECTION 3: VENDOR QUALIFICATIONS
+================================================================================
+
+3.1 Mandatory Qualifications
+
+Vendors must demonstrate:
+  a) Minimum 3 years of experience delivering AI/ML software solutions
+  b) At least two (2) comparable implementations for government or enterprise clients
+  c) Active SOC 2 Type II certification
+  d) References from at least three (3) clients with similar scope
+  e) US-based support team available during business hours EST
+
+3.2 Preferred Qualifications
+  a) Prior experience with state or federal government procurement systems
+  b) FedRAMP authorization (Moderate or High)
+  c) Experience integrating with Tyler Technologies or SAP procurement systems
+  d) Demonstrated use of large language models (GPT-4, Claude, or equivalent)
+
+================================================================================
+SECTION 4: PROPOSAL REQUIREMENTS
+================================================================================
+
+4.1 Technical Proposal (Maximum 40 pages)
+
+  Volume 1 – Technical Approach
+    1.1 Understanding of requirements
+    1.2 Proposed solution architecture
+    1.3 AI/ML technology stack and model details
+    1.4 Data security and privacy approach
+    1.5 Implementation methodology and timeline
+
+  Volume 2 – Past Performance
+    2.1 Three (3) comparable project references
+    2.2 Case studies demonstrating measurable outcomes
+
+  Volume 3 – Staffing Plan
+    3.1 Key personnel résumés
+    3.2 Project organizational chart
+    3.3 Subcontractor utilization (if applicable)
+
+4.2 Price Proposal (Separate sealed envelope)
+  - Year 1 implementation and licensing fees
+  - Annual maintenance and support fees (Years 2–3)
+  - Optional renewal pricing
+  - Itemized cost breakdown by deliverable
+
+================================================================================
+SECTION 5: EVALUATION CRITERIA
+================================================================================
+
+Proposals will be evaluated on the following criteria:
+
+  Technical Approach and Solution Quality     35 points
+  Past Performance and References             25 points
+  Staffing and Key Personnel                  15 points
+  Price/Cost Reasonableness                   20 points
+  Small/Disadvantaged Business Participation   5 points
+  ─────────────────────────────────────────────────────
+  TOTAL                                       100 points
+
+================================================================================
+SECTION 6: CONTRACT TERMS
+================================================================================
+
+6.1 Contract Type: Fixed-price for implementation; annual subscription for licensing
+6.2 Payment Terms: Net 30 days upon acceptance of deliverables
+6.3 Liquidated Damages: $500/day for delays beyond agreed milestones
+6.4 Warranty: Minimum 12-month warranty on all delivered software
+6.5 Intellectual Property: Work-for-hire; all custom development owned by the State
+6.6 Data Ownership: All data remains property of the State of Acme
+
+================================================================================
+SECTION 7: SUBMISSION INSTRUCTIONS
+================================================================================
+
+Electronic submissions only via the State Procurement Portal:
+  https://procurement.acme.gov/rfp/ACME-2024-IT-0047
+
+Questions due: October 15, 2024
+Answers posted: October 22, 2024
+Proposals due: October 31, 2024, 5:00 PM EST
+
+Point of Contact:
+  Sarah Mitchell, Procurement Officer
+  Department of Administrative Services
+  sarah.mitchell@acme.gov
+  (555) 867-5309
+
+================================================================================
+END OF RFP DOCUMENT
+RFP No. ACME-2024-IT-0047 | State of Acme | Page 7 of 7
+================================================================================
