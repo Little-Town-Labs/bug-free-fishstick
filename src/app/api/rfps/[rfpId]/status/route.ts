@@ -13,20 +13,16 @@ export async function GET(
     const auth = await requireAuth()
     const { rfpId } = await params
 
-    const [rfp] = await db
-      .select()
-      .from(rfps)
-      .where(and(eq(rfps.id, rfpId), eq(rfps.organizationId, auth.orgId)))
-      .limit(1)
+    const [[rfp], allResponses] = await Promise.all([
+      db.select().from(rfps)
+        .where(and(eq(rfps.id, rfpId), eq(rfps.organizationId, auth.orgId)))
+        .limit(1),
+      db.select().from(rfpResponses).where(eq(rfpResponses.rfpId, rfpId)),
+    ])
 
     if (!rfp) {
       return NextResponse.json({ error: 'RFP not found' }, { status: 404 })
     }
-
-    const allResponses = await db
-      .select()
-      .from(rfpResponses)
-      .where(eq(rfpResponses.rfpId, rfpId))
 
     const totalResponses = allResponses.length
     const completedResponses = allResponses.filter(

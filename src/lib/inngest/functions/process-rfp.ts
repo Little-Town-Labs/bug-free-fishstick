@@ -73,17 +73,15 @@ export const processRfp = inngest.createFunction(
 
     // Step 5: Generate responses
     const generatedResponses = await step.run('generate-responses', async () => {
-      // Fetch relevant knowledge context via vector search (if RFP has a customer)
-      const knowledgeContext = rfp.customerId
-        ? (await searchSimilar(rfp.name, rfp.customerId, organizationId, 10)).map((r) => ({
-            content: r.content,
-            relevanceScore: r.similarity,
-            source: r.title,
-          }))
-        : []
-
-      // Fetch org-level learnings for context
-      const orgLearnings = await db.select().from(learnings).where(eq(learnings.organizationId, organizationId))
+      // Fetch knowledge context and learnings in parallel
+      const [knowledgeContext, orgLearnings] = await Promise.all([
+        rfp.customerId
+          ? searchSimilar(rfp.name, rfp.customerId, organizationId, 10).then((results) =>
+              results.map((r) => ({ content: r.content, relevanceScore: r.similarity, source: r.title }))
+            )
+          : Promise.resolve([]),
+        db.select().from(learnings).where(eq(learnings.organizationId, organizationId)),
+      ])
       const learningsContext = orgLearnings.map((l) => l.content)
 
       return await generateResponses({

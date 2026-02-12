@@ -28,28 +28,22 @@ export async function POST(
       return NextResponse.json({ error: 'Type and title are required' }, { status: 400 })
     }
 
-    // Upload file to blob storage
-    const blob = await put(`knowledge/${auth.orgId}/${customerId}/${file.name}`, file, {
-      access: 'public',
-    })
-
-    // Parse file content
-    const buffer = Buffer.from(await file.arrayBuffer())
-    let content: string
-
-    if (file.name.endsWith('.pdf') || file.type === 'application/pdf') {
-      const parsed = await parsePdf(buffer)
-      content = parsed.text
-    } else if (
-      file.name.endsWith('.docx') ||
-      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ) {
-      const parsed = await parseWord(buffer)
-      content = parsed.text
-    } else {
-      // For plain text or other formats, read as text
-      content = buffer.toString('utf-8')
-    }
+    // Upload file and parse content in parallel
+    const [blob, content] = await Promise.all([
+      put(`knowledge/${auth.orgId}/${customerId}/${file.name}`, file, { access: 'public' }),
+      file.arrayBuffer().then((buf) => {
+        const buffer = Buffer.from(buf)
+        if (file.name.endsWith('.pdf') || file.type === 'application/pdf') {
+          return parsePdf(buffer).then((p) => p.text)
+        } else if (
+          file.name.endsWith('.docx') ||
+          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ) {
+          return parseWord(buffer).then((p) => p.text)
+        }
+        return buffer.toString('utf-8')
+      }),
+    ])
 
     // Create knowledge entry
     const [created] = await db

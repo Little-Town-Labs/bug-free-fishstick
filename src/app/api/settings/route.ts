@@ -18,34 +18,33 @@ export async function GET() {
   try {
     const auth = await requireAuth()
 
-    const [row] = await db
-      .select({
+    const [rowResult, keyRowResult] = await Promise.allSettled([
+      db.select({
         llmProvider: tenantSettings.llmProvider,
         llmApiKeyEncrypted: tenantSettings.llmApiKeyEncrypted,
         confidenceThreshold: tenantSettings.confidenceThreshold,
         autoLearnEnabled: tenantSettings.autoLearnEnabled,
       })
-      .from(tenantSettings)
-      .where(eq(tenantSettings.organizationId, auth.orgId))
-      .limit(1)
-
-    // Fetch new key columns separately — safe if migration hasn't run yet
-    let openaiConfigured = false
-    let anthropicConfigured = false
-    try {
-      const [keyRow] = await db
-        .select({
-          openai: tenantSettings.openaiApiKeyEncrypted,
-          anthropic: tenantSettings.anthropicApiKeyEncrypted,
-        })
         .from(tenantSettings)
         .where(eq(tenantSettings.organizationId, auth.orgId))
-        .limit(1)
-      openaiConfigured = keyRow?.openai !== null && keyRow?.openai !== undefined
-      anthropicConfigured = keyRow?.anthropic !== null && keyRow?.anthropic !== undefined
-    } catch (e) {
-      console.warn('[GET /api/settings] new key columns not available yet:', String(e))
+        .limit(1),
+      db.select({
+        openai: tenantSettings.openaiApiKeyEncrypted,
+        anthropic: tenantSettings.anthropicApiKeyEncrypted,
+      })
+        .from(tenantSettings)
+        .where(eq(tenantSettings.organizationId, auth.orgId))
+        .limit(1),
+    ])
+
+    const [row] = rowResult.status === 'fulfilled' ? rowResult.value : [undefined]
+    const [keyRow] = keyRowResult.status === 'fulfilled' ? keyRowResult.value : [undefined]
+    if (keyRowResult.status === 'rejected') {
+      console.warn('[GET /api/settings] new key columns not available yet:', String(keyRowResult.reason))
     }
+
+    const openaiConfigured = keyRow?.openai !== null && keyRow?.openai !== undefined
+    const anthropicConfigured = keyRow?.anthropic !== null && keyRow?.anthropic !== undefined
 
     return NextResponse.json({
       settings: {
@@ -89,36 +88,37 @@ export async function PATCH(request: NextRequest) {
       ON CONFLICT (organization_id) DO NOTHING
     `)
 
-    // Apply each field update individually to avoid missing column errors
-    if (body.llmProvider !== undefined) {
-      await db.execute(sql`UPDATE tenant_settings SET llm_provider = ${body.llmProvider}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
-    }
-    if (body.llmApiKey !== undefined) {
-      const val = body.llmApiKey === null ? null : encrypt(body.llmApiKey)
-      await db.execute(sql`UPDATE tenant_settings SET llm_api_key_encrypted = ${val}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
-    }
-    if (body.openaiApiKey !== undefined) {
-      try {
-        const val = body.openaiApiKey === null ? null : encrypt(body.openaiApiKey)
-        await db.execute(sql`UPDATE tenant_settings SET openai_api_key_encrypted = ${val}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
-      } catch (e) {
-        console.warn('[PATCH /api/settings] openai column missing, running migration:', String(e))
-        await db.execute(sql`ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS openai_api_key_encrypted text`)
-        const val = body.openaiApiKey === null ? null : encrypt(body.openaiApiKey)
-        await db.execute(sql`UPDATE tenant_settings SET openai_api_key_encrypted = ${val}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
-      }
-    }
-    if (body.anthropicApiKey !== undefined) {
-      try {
-        const val = body.anthropicApiKey === null ? null : encrypt(body.anthropicApiKey)
-        await db.execute(sql`UPDATE tenant_settings SET anthropic_api_key_encrypted = ${val}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
-      } catch (e) {
-        console.warn('[PATCH /api/settings] anthropic column missing, running migration:', String(e))
-        await db.execute(sql`ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS anthropic_api_key_encrypted text`)
-        const val = body.anthropicApiKey === null ? null : encrypt(body.anthropicApiKey)
-        await db.execute(sql`UPDATE tenant_settings SET anthropic_api_key_encrypted = ${val}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
-      }
-    }
+    // Apply each field update in parallel; migration fallbacks are idempotent
+    await Promise.all([
+      body.llmProvider !== undefined
+        ? db.execute(sql`UPDATE tenant_settings SET llm_provider = ${body.llmProvider}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
+        : null,
+      body.llmApiKey !== undefined
+        ? db.execute(sql`UPDATE tenant_settings SET llm_api_key_encrypted = ${body.llmApiKey === null ? null : encrypt(body.llmApiKey)}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
+        : null,
+      body.openaiApiKey !== undefined
+        ? (async () => {
+            try {
+              await db.execute(sql`UPDATE tenant_settings SET openai_api_key_encrypted = ${body.openaiApiKey === null ? null : encrypt(body.openaiApiKey)}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
+            } catch (e) {
+              console.warn('[PATCH /api/settings] openai column missing, running migration:', String(e))
+              await db.execute(sql`ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS openai_api_key_encrypted text`)
+              await db.execute(sql`UPDATE tenant_settings SET openai_api_key_encrypted = ${body.openaiApiKey === null ? null : encrypt(body.openaiApiKey)}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
+            }
+          })()
+        : null,
+      body.anthropicApiKey !== undefined
+        ? (async () => {
+            try {
+              await db.execute(sql`UPDATE tenant_settings SET anthropic_api_key_encrypted = ${body.anthropicApiKey === null ? null : encrypt(body.anthropicApiKey)}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
+            } catch (e) {
+              console.warn('[PATCH /api/settings] anthropic column missing, running migration:', String(e))
+              await db.execute(sql`ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS anthropic_api_key_encrypted text`)
+              await db.execute(sql`UPDATE tenant_settings SET anthropic_api_key_encrypted = ${body.anthropicApiKey === null ? null : encrypt(body.anthropicApiKey)}, updated_at = now() WHERE organization_id = ${auth.orgId}`)
+            }
+          })()
+        : null,
+    ].filter(Boolean))
 
     return NextResponse.json({ success: true })
   } catch (error) {

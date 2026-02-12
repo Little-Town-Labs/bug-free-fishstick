@@ -25,15 +25,12 @@ export async function GET(
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
     }
 
-    const [knowledgeCount] = await db
-      .select({ count: count() })
-      .from(knowledgeEntries)
-      .where(and(eq(knowledgeEntries.customerId, customerId), eq(knowledgeEntries.organizationId, auth.orgId)))
-
-    const [rfpCount] = await db
-      .select({ count: count() })
-      .from(rfps)
-      .where(and(eq(rfps.customerId, customerId), eq(rfps.organizationId, auth.orgId)))
+    const [[knowledgeCount], [rfpCount]] = await Promise.all([
+      db.select({ count: count() }).from(knowledgeEntries)
+        .where(and(eq(knowledgeEntries.customerId, customerId), eq(knowledgeEntries.organizationId, auth.orgId))),
+      db.select({ count: count() }).from(rfps)
+        .where(and(eq(rfps.customerId, customerId), eq(rfps.organizationId, auth.orgId))),
+    ])
 
     return NextResponse.json({
       customer: {
