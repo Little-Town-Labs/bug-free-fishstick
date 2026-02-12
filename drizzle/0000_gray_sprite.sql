@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+--> statement-breakpoint
 CREATE TABLE "tenant_settings" (
 	"organization_id" text PRIMARY KEY NOT NULL,
 	"llm_provider" text DEFAULT 'claude' NOT NULL,
