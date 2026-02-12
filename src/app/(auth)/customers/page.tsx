@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -84,6 +85,7 @@ export default function CustomersPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New Customer</DialogTitle>
+              <DialogDescription>Add a new customer to your organization.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2">
