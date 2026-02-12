@@ -21,6 +21,7 @@ vi.mock('@/lib/db', () => ({
     select: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
+    execute: vi.fn(),
   },
 }))
 
@@ -163,45 +164,29 @@ describe('Settings API Routes', () => {
     it('admin can update llmProvider', async () => {
       vi.mocked(requireAuth).mockResolvedValue(adminCtx)
       vi.mocked(isAdmin).mockReturnValue(true)
-
-      const updatedRow = { ...mockSettingsRow, llmProvider: 'openai' }
-      vi.mocked(db.insert).mockReturnValue({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi.fn(() => ({
-            returning: vi.fn(() => Promise.resolve([updatedRow])),
-          })),
-        })),
-      } as unknown as ReturnType<typeof db.insert>)
+      vi.mocked(db.execute).mockResolvedValue({} as never)
 
       const request = createMockRequest('PATCH', undefined, { llmProvider: 'openai' })
       const response = await PATCH(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.settings.llmProvider).toBe('openai')
+      expect(data).toEqual({ success: true })
     })
 
     it('admin can update llmApiKey (stored encrypted, not returned)', async () => {
       vi.mocked(requireAuth).mockResolvedValue(adminCtx)
       vi.mocked(isAdmin).mockReturnValue(true)
-
-      const updatedRow = { ...mockSettingsRow, llmApiKeyEncrypted: 'enc:sk-ant-new-key' }
-      vi.mocked(db.insert).mockReturnValue({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi.fn(() => ({
-            returning: vi.fn(() => Promise.resolve([updatedRow])),
-          })),
-        })),
-      } as unknown as ReturnType<typeof db.insert>)
+      vi.mocked(db.execute).mockResolvedValue({} as never)
 
       const request = createMockRequest('PATCH', undefined, { llmApiKey: 'sk-ant-new-key' })
       const response = await PATCH(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.settings.llmApiKeyConfigured).toBe(true)
-      expect(data.settings.llmApiKeyEncrypted).toBeUndefined()
-      expect(data.settings.llmApiKey).toBeUndefined()
+      expect(data).toEqual({ success: true })
+      expect(data.llmApiKey).toBeUndefined()
+      expect(data.llmApiKeyEncrypted).toBeUndefined()
     })
 
     it('non-admin gets 403', async () => {
