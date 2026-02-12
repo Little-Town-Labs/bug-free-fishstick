@@ -17,12 +17,22 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'node_modules/',
+        '.next/',
         'src/test/',
         '**/*.d.ts',
         '**/*.config.*',
         '**/types/**',
+        // Next.js pages are tested via E2E, not unit tests
+        'src/app/**/page.tsx',
+        'src/app/layout.tsx',
+        'src/app/page.tsx',
+        // Clerk middleware - not unit-testable
+        'src/middleware.ts',
+        // Inngest route is a passthrough registration
+        'src/app/api/inngest/route.ts',
       ],
       thresholds: {
         global: {

@@ -1,11 +1,5 @@
-import { Inngest } from 'inngest'
+import { Inngest, EventSchemas } from 'inngest'
 
-export const inngest = new Inngest({
-  id: 'rfp-automator',
-  schemas: new EventSchemas().fromRecord<Events>(),
-})
-
-// Define event types
 type Events = {
   'rfp/uploaded': {
     data: {
@@ -42,5 +36,7 @@ type Events = {
   }
 }
 
-// Import EventSchemas for type safety
-import { EventSchemas } from 'inngest'
+export const inngest = new Inngest({
+  id: 'rfp-automator',
+  schemas: new EventSchemas().fromRecord<Events>(),
+})

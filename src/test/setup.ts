@@ -1,4 +1,7 @@
 import '@testing-library/jest-dom'
+
+// Test encryption key (32 bytes = 64 hex chars)
+process.env.ENCRYPTION_KEY = 'a'.repeat(64)
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { setupServer } from 'msw/node'
 

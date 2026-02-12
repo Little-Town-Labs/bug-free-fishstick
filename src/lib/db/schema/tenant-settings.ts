@@ -1,13 +1,22 @@
-import { pgTable, text, timestamp, uuid, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, text, real, boolean, timestamp } from 'drizzle-orm/pg-core'
+
+export const llmProviders = ['claude', 'openai', 'azure'] as const
+export type LlmProvider = (typeof llmProviders)[number]
 
 export const tenantSettings = pgTable('tenant_settings', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  organizationId: text('organization_id').notNull().unique(),
-  defaultLlmProvider: text('default_llm_provider').default('anthropic'),
+  organizationId: text('organization_id').primaryKey(),
+
+  // LLM configuration
+  llmProvider: text('llm_provider', { enum: llmProviders }).notNull().default('claude'),
   llmApiKeyEncrypted: text('llm_api_key_encrypted'),
-  brandingSettings: jsonb('branding_settings'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+
+  // AI behavior settings
+  confidenceThreshold: real('confidence_threshold').notNull().default(0.7),
+  autoLearnEnabled: boolean('auto_learn_enabled').notNull().default(true),
+
+  // Timestamps
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
 export type TenantSetting = typeof tenantSettings.$inferSelect

@@ -1,0 +1,85 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
+import { db } from '@/lib/db'
+import { rfps } from '@/lib/db/schema/rfps'
+import { eq, and } from 'drizzle-orm'
+import { kv } from '@vercel/kv'
+
+const CACHE_TTL = 60 // seconds
+
+export async function GET() {
+  try {
+    const auth = await requireAuth()
+
+    const adminFlag = isAdmin(auth.orgRole) ? 'admin' : auth.userId
+    const cacheKey = `rfps:${auth.orgId}:${adminFlag}`
+
+    try {
+      const cached = await kv.get<typeof rfpsList>(cacheKey)
+      if (cached) return NextResponse.json({ rfps: cached }, { status: 200 })
+    } catch {
+      // KV unavailable in local dev — fall through to DB
+    }
+
+    const whereClause = isAdmin(auth.orgRole)
+      ? eq(rfps.organizationId, auth.orgId)
+      : and(eq(rfps.organizationId, auth.orgId), eq(rfps.assignedUserId, auth.userId))
+
+    const rfpsList = await db.select().from(rfps).where(whereClause)
+
+    try {
+      await kv.set(cacheKey, rfpsList, { ex: CACHE_TTL })
+    } catch {
+      // KV unavailable — proceed without caching
+    }
+
+    return NextResponse.json({ rfps: rfpsList }, { status: 200 })
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
+    throw error
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await requireAuth()
+    const body = await request.json()
+
+    // Validate required fields
+    if (!body.name) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+    }
+
+    if (!body.customerId) {
+      return NextResponse.json({ error: 'Customer ID is required' }, { status: 400 })
+    }
+
+    const [createdRfp] = await db
+      .insert(rfps)
+      .values({
+        organizationId: auth.orgId,
+        assignedUserId: auth.userId,
+        name: body.name,
+        customerId: body.customerId,
+      })
+      .returning()
+
+    // Invalidate the org's RFP list cache for all users
+    try {
+      const adminKey = `rfps:${auth.orgId}:admin`
+      const memberKey = `rfps:${auth.orgId}:${auth.userId}`
+      await Promise.all([kv.del(adminKey), kv.del(memberKey)])
+    } catch {
+      // KV unavailable — proceed
+    }
+
+    return NextResponse.json({ rfp: createdRfp }, { status: 201 })
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
+    throw error
+  }
+}
