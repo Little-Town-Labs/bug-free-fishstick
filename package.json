@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -H 0.0.0.0",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
@@ -21,6 +21,9 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "inngest:dev": "npx inngest-cli@latest dev"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.36",

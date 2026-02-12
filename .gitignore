@@ -47,9 +47,9 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 
-# Drizzle
-drizzle/*.sql
-drizzle/meta/
+# Drizzle - migrations are tracked; local overrides only
+# drizzle/*.sql
+# drizzle/meta/
 
 # Inngest
 .inngest/
