@@ -49,6 +49,14 @@ vi.mock('@/lib/inngest/client', () => ({
   },
 }))
 
+vi.mock('@vercel/kv', () => ({
+  kv: {
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+  },
+}))
+
 vi.mock('@vercel/blob', () => ({
   put: vi.fn(() =>
     Promise.resolve({

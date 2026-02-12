@@ -1,10 +1,12 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ProgressTracker } from '@/components/rfp/ProgressTracker'
 import { RfpEditor } from '@/components/rfp/RfpEditor'
+import { RfpDetailSkeleton } from '@/components/shared/Skeletons'
 
 export default function RfpDetailPage() {
   const params = useParams<{ id: string }>()
@@ -30,20 +32,22 @@ export default function RfpDetailPage() {
         <h1 className="text-2xl font-bold">{rfp.name}</h1>
       </div>
 
-      <ProgressTracker
-        totalFields={0}
-        completedFields={0}
-        automationPercentage={rfp.automationPercentage}
-        status={rfp.status}
-      />
+      <Suspense fallback={<RfpDetailSkeleton />}>
+        <ProgressTracker
+          totalFields={0}
+          completedFields={0}
+          automationPercentage={rfp.automationPercentage}
+          status={rfp.status}
+        />
 
-      <RfpEditor
-        rfpId={rfpId}
-        documentUrl={rfp.documentUrl}
-        documentType={rfp.documentType}
-        parsedStructure={rfp.parsedStructure}
-        responses={[]}
-      />
+        <RfpEditor
+          rfpId={rfpId}
+          documentUrl={rfp.documentUrl}
+          documentType={rfp.documentType}
+          parsedStructure={rfp.parsedStructure}
+          responses={[]}
+        />
+      </Suspense>
     </div>
   )
 }

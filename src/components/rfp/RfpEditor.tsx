@@ -162,11 +162,16 @@ export function RfpEditor({
   )
 
   return (
-    <div className="relative" data-testid="rfp-editor">
+    <div className="relative" data-testid="rfp-editor" aria-label="RFP Editor">
       {isProcessing && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 rounded-lg">
+        <div
+          className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 rounded-lg"
+          role="status"
+          aria-live="polite"
+          aria-label="Processing RFP"
+        >
           <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-2" aria-hidden="true" />
             <p className="text-sm text-muted-foreground">Processing RFP...</p>
           </div>
         </div>
@@ -189,6 +194,8 @@ export function RfpEditor({
               <span
                 data-testid="auto-save-indicator"
                 className="text-xs text-muted-foreground animate-pulse"
+                role="status"
+                aria-live="polite"
               >
                 Saving...
               </span>
@@ -202,6 +209,7 @@ export function RfpEditor({
 
           {saveError && (
             <div
+              role="alert"
               data-testid="save-error"
               className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded"
             >

@@ -83,7 +83,12 @@ export function ResponseCard({
   }
 
   return (
-    <div data-testid="response-card" className={cn('rounded-xl border', cardBorderClass)}>
+    <div
+      data-testid="response-card"
+      className={cn('rounded-xl border', cardBorderClass)}
+      tabIndex={0}
+      aria-label={`Response for: ${question}`}
+    >
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="font-semibold">{question}</div>
@@ -108,6 +113,7 @@ export function ResponseCard({
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               rows={4}
+              aria-label={`Edit response for: ${question}`}
             />
           ) : (
             <p className="text-sm">

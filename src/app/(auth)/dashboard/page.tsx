@@ -1,8 +1,10 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { RfpListSkeleton } from '@/components/shared/Skeletons'
 
 export default function DashboardPage() {
   return (
@@ -52,9 +54,11 @@ export default function DashboardPage() {
           <CardTitle>Recent RFPs</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground py-8 text-center">
-            No RFPs yet. Create your first RFP to get started.
-          </p>
+          <Suspense fallback={<RfpListSkeleton />}>
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              No RFPs yet. Create your first RFP to get started.
+            </p>
+          </Suspense>
         </CardContent>
       </Card>
     </div>
