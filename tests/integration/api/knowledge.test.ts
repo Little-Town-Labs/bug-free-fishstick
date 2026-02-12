@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
+// Mock next/server's after() — not available outside a real Next.js request scope
+vi.mock('next/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/server')>()
+  return { ...actual, after: vi.fn((fn: () => unknown) => fn()) }
+})
+
 // Mock dependencies
 vi.mock('@/lib/utils/auth', () => ({
   requireAuth: vi.fn(),

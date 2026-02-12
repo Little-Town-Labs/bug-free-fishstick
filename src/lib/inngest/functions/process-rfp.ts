@@ -19,23 +19,16 @@ export const processRfp = inngest.createFunction(
   async ({ event, step }: GetFunctionInput<typeof inngest, 'rfp/process'>) => {
     const { rfpId, organizationId } = event.data
 
-    // Step 1: Fetch RFP and update status to processing
+    // Step 1: Fetch RFP and update status to processing (parallel)
     const rfp = await step.run('fetch-rfp', async () => {
-      const results = await db
-        .select()
-        .from(rfps)
-        .where(eq(rfps.id, rfpId))
+      const [results] = await Promise.all([
+        db.select().from(rfps).where(eq(rfps.id, rfpId)),
+        db.update(rfps).set({ status: 'processing' }).where(eq(rfps.id, rfpId)),
+      ])
 
       if (!results || results.length === 0) {
         throw new Error(`RFP not found: ${rfpId}`)
       }
-
-      // Update status to processing
-      await db
-        .update(rfps)
-        .set({ status: 'processing' })
-        .where(eq(rfps.id, rfpId))
-        .returning()
 
       return results[0]!
     })
@@ -98,11 +91,12 @@ export const processRfp = inngest.createFunction(
 
     // Step 6: Check quality
     const qualityResults = await step.run('check-quality', async () => {
+      const fieldMap = new Map(analyzed.fields.map(f => [f.id, f]))
       return await checkQuality({
         responses: generatedResponses.responses.map(r => ({
           fieldId: r.fieldId,
-          question: analyzed.fields.find(f => f.id === r.fieldId)?.question || '',
-          fieldType: analyzed.fields.find(f => f.id === r.fieldId)?.type || 'text',
+          question: fieldMap.get(r.fieldId)?.question || '',
+          fieldType: fieldMap.get(r.fieldId)?.type || 'text',
           responseText: r.responseText,
           confidenceScore: r.confidenceScore,
         })),
@@ -112,9 +106,11 @@ export const processRfp = inngest.createFunction(
 
     // Step 7: Save responses
     await step.run('save-responses', async () => {
+      const fieldMap = new Map(analyzed.fields.map(f => [f.id, f]))
+      const qualityMap = new Map(qualityResults.results.map(q => [q.fieldId, q]))
       const responseValues = generatedResponses.responses.map(r => {
-        const field = analyzed.fields.find(f => f.id === r.fieldId)
-        const quality = qualityResults.results.find(q => q.fieldId === r.fieldId)
+        const field = fieldMap.get(r.fieldId)
+        const quality = qualityMap.get(r.fieldId)
         return {
           rfpId,
           fieldId: r.fieldId,

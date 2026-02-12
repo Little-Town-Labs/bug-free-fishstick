@@ -712,8 +712,7 @@ describe('process-rfp Inngest workflow', () => {
       const organizationId = 'org-456'
       const mockRfp = createMockRfp({ id: rfpId, organizationId })
 
-      const returningMock = vi.fn()
-        .mockResolvedValueOnce([{ ...mockRfp, status: 'processing' }])
+      const setMock = vi.fn().mockReturnThis()
 
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn().mockReturnThis(),
@@ -721,9 +720,9 @@ describe('process-rfp Inngest workflow', () => {
       } as unknown as ReturnType<typeof db.select>)
 
       vi.mocked(db.update).mockReturnValue({
-        set: vi.fn().mockReturnThis(),
+        set: setMock,
         where: vi.fn().mockReturnThis(),
-        returning: returningMock,
+        returning: vi.fn().mockResolvedValue([]),
       } as unknown as ReturnType<typeof db.update>)
 
       vi.mocked(downloadFile).mockResolvedValue(Buffer.from('data'))
@@ -738,8 +737,8 @@ describe('process-rfp Inngest workflow', () => {
         // Expected to throw
       }
 
-      // Verify status was updated to processing at least once
-      expect(returningMock).toHaveBeenCalled()
+      // Verify status was updated to processing
+      expect(setMock).toHaveBeenCalledWith({ status: 'processing' })
     })
   })
 

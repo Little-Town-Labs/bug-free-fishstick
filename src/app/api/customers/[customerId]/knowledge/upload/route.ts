@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { requireAdmin, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { knowledgeEntries, KnowledgeEntryType } from '@/lib/db/schema/knowledge-entries'
@@ -65,15 +65,15 @@ export async function POST(
       throw new Error('Failed to create knowledge entry')
     }
 
-    // Trigger embedding generation
-    await inngest.send({
+    // Trigger embedding generation after response is sent — non-blocking
+    after(() => inngest.send({
       name: 'rfp/generate-embeddings',
       data: {
         knowledgeEntryId: created.id,
         organizationId: auth.orgId,
         content,
       },
-    })
+    }))
 
     return NextResponse.json({ entry: created }, { status: 201 })
   } catch (error) {
