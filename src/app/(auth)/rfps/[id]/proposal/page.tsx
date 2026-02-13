@@ -9,7 +9,35 @@ import { ProposalEditor } from '@/components/rfp/ProposalEditor'
 import { Button } from '@/components/ui/button'
 import type { ClarifyingQuestion, ProposalDraft } from '@/lib/db/schema/proposal-drafts'
 
+const POLL_INTERVAL_MS = 3000
+
 type Step = 'creating' | 'answering' | 'viewing'
+
+function Spinner() {
+  return (
+    <svg
+      className="animate-spin h-5 w-5"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
+    </svg>
+  )
+}
 
 export default function ProposalWizardPage() {
   const params = useParams<{ id: string }>()
@@ -78,7 +106,7 @@ export default function ProposalWizardPage() {
       } catch {
         // ignore transient errors
       }
-    }, 3000)
+    }, POLL_INTERVAL_MS)
 
     return () => {
       if (pollingRef.current) {
@@ -131,26 +159,7 @@ export default function ProposalWizardPage() {
 
       {step === 'creating' && !error && (
         <div className="flex items-center gap-3 text-muted-foreground">
-          <svg
-            className="animate-spin h-5 w-5"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
+          <Spinner />
           <span>Preparing questions…</span>
         </div>
       )}
@@ -171,26 +180,7 @@ export default function ProposalWizardPage() {
         <div className="space-y-4">
           {(!draft || draft.status === 'generating') && (
             <div className="flex items-center gap-3 text-muted-foreground">
-              <svg
-                className="animate-spin h-5 w-5"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
+              <Spinner />
               <span>Generating your proposal…</span>
             </div>
           )}

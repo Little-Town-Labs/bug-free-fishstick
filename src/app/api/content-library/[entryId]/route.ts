@@ -25,7 +25,6 @@ export async function GET(_request: NextRequest, { params }: Params) {
     if (statusCode === 404) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
-    console.error('GET /api/content-library/[entryId] error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -49,7 +48,6 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (statusCode === 404) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
-    console.error('PATCH /api/content-library/[entryId] error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -68,7 +66,6 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     if (statusCode === 404) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
-    console.error('DELETE /api/content-library/[entryId] error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

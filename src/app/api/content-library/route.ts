@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: 401 })
     }
-    console.error('GET /api/content-library error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -38,7 +37,6 @@ export async function POST(request: NextRequest) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: 401 })
     }
-    console.error('POST /api/content-library error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

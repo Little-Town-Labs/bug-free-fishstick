@@ -27,8 +27,8 @@ export function ClarifyingQuestionsForm({
     setSubmitting(true)
     try {
       const answersArray = questions.map((q) => ({
-        questionId: q.id,
-        answer: answers[q.id]?.trim() || null,
+        id: q.id,
+        answer: answers[q.id]?.trim() ?? '',
       }))
 
       const res = await fetch(`/api/rfps/${rfpId}/proposals/${draftId}/answers`, {

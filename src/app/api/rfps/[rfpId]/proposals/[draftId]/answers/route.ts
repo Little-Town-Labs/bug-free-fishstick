@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     const draft = await submitAnswers(draftId, orgId, parsed.data.answers)
-    return NextResponse.json({ draftId: draft.id, status: draft.status }, { status: 202 })
+    return NextResponse.json({ draft }, { status: 202 })
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message }, { status: err.statusCode })

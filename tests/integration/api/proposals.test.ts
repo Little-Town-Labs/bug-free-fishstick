@@ -158,7 +158,7 @@ describe('proposals API', () => {
   })
 
   describe('POST /api/rfps/[rfpId]/proposals/[draftId]/answers', () => {
-    it('should return 202 with draftId and status generating', async () => {
+    it('should return 202 with full draft object', async () => {
       vi.mocked(submitAnswers).mockResolvedValue({ ...mockDraft, status: 'generating' } as any)
 
       const req = createRequest('POST', 'http://localhost/api/rfps/rfp-1/proposals/draft-1/answers', {
@@ -172,8 +172,8 @@ describe('proposals API', () => {
 
       expect(res.status).toBe(202)
       const body = await res.json()
-      expect(body.draftId).toBe('draft-1')
-      expect(body.status).toBe('generating')
+      expect(body.draft.id).toBe('draft-1')
+      expect(body.draft.status).toBe('generating')
     })
 
     it('should return 400 when answers array is missing', async () => {

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { ProposalDraft, ProposalDraftStatus } from '@/lib/db/schema/proposal-drafts'
 
+const POLL_INTERVAL_MS = 3000
+
 interface ProposalDraftPanelProps {
   rfpId: string
   initialDrafts: ProposalDraft[]
@@ -80,7 +82,7 @@ export function ProposalDraftPanel({ rfpId, initialDrafts }: ProposalDraftPanelP
           }
           return next
         })
-      }, 3000)
+      }, POLL_INTERVAL_MS)
     }
 
     if (!hasGenerating && intervalRef.current) {
