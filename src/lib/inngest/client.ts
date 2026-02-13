@@ -34,6 +34,13 @@ type Events = {
       organizationId: string
     }
   }
+  'proposal/generate': {
+    data: {
+      draftId: string
+      rfpId: string
+      organizationId: string
+    }
+  }
 }
 
 export const inngest = new Inngest({

@@ -4,8 +4,9 @@ import { processRfp } from '@/lib/inngest/functions/process-rfp'
 import { exportDocument } from '@/lib/inngest/functions/export-document'
 import { generateEmbeddingsFunction } from '@/lib/inngest/functions/generate-embeddings'
 import { extractLearnings } from '@/lib/inngest/functions/extract-learnings'
+import { generateProposal } from '@/lib/inngest/functions/generate-proposal'
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [processRfp, exportDocument, generateEmbeddingsFunction, extractLearnings],
+  functions: [processRfp, exportDocument, generateEmbeddingsFunction, extractLearnings, generateProposal],
 })
