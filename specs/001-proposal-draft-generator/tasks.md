@@ -126,10 +126,10 @@ Web application — existing Next.js monorepo under `src/` at repository root.
 
 **Purpose**: WCAG compliance, error resilience, and end-to-end integration verification.
 
-- [ ] T036 [P] Audit and add ARIA labels, keyboard navigation, and focus management to `ClarifyingQuestionsForm`, `ProposalEditor`, and `ContentLibraryForm` per WCAG 2.1 AA — follow patterns in existing `ResponseCard` and `RfpEditor` components
-- [ ] T037 [P] Add error boundary and generation-failed state to `ProposalDraftPanel` in `src/components/rfp/ProposalDraftPanel.tsx` — display `generationError` message when status is `error`; add "Retry" button that creates a new draft for the same RFP
-- [ ] T038 Add integration smoke test verifying content library entries appear in generated proposal content — extend `tests/integration/api/proposals.test.ts` to seed content library entries before generation and assert they appear in the returned `markdownContent`
-- [ ] T039 Run quickstart.md validation: apply migration, start Inngest dev server, add 3 content library entries, generate a proposal end-to-end, edit the draft, and export the file — document any issues found
+- [X] T036 [P] Audit and add ARIA labels, keyboard navigation, and focus management to `ClarifyingQuestionsForm`, `ProposalEditor`, and `ContentLibraryForm` per WCAG 2.1 AA — follow patterns in existing `ResponseCard` and `RfpEditor` components
+- [X] T037 [P] Add error boundary and generation-failed state to `ProposalDraftPanel` in `src/components/rfp/ProposalDraftPanel.tsx` — display `generationError` message when status is `error`; add "Retry" button that creates a new draft for the same RFP
+- [X] T038 Add integration smoke test verifying content library entries appear in generated proposal content — extend `tests/integration/api/proposals.test.ts` to seed content library entries before generation and assert they appear in the returned `markdownContent`
+- [X] T039 Run quickstart.md validation: apply migration, start Inngest dev server, add 3 content library entries, generate a proposal end-to-end, edit the draft, and export the file — document any issues found
 
 ---
 

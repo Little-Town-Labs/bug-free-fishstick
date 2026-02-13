@@ -61,7 +61,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(requireAuth).mockResolvedValue(mockUser)
   // Re-wire chain after clearAllMocks
-  const chain = db as unknown as Record<string, ReturnType<typeof vi.fn>>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chain = db as any
   chain.select.mockReturnValue(chain)
   chain.from.mockReturnValue(chain)
   chain.where.mockReturnValue(chain)
@@ -120,7 +121,8 @@ describe('GET /api/rfps/[rfpId]/proposals/[draftId]/export', () => {
 
     it('falls back gracefully when RFP lookup fails', async () => {
       vi.mocked(getDraft).mockResolvedValue(mockDraftWithContent)
-      const chain = db as unknown as Record<string, ReturnType<typeof vi.fn>>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const chain = db as any
       chain.limit.mockResolvedValue([])
 
       const res = await exportHandler(

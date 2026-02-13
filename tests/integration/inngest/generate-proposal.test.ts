@@ -140,6 +140,45 @@ describe('generate-proposal Inngest function', () => {
       expect(searchSimilar).toHaveBeenCalled()
     })
 
+    it('should pass content library entries to writeProposal', async () => {
+      threeCallSequence(mockContentLibraryEntries)
+      vi.mocked(writeProposal).mockResolvedValue({ markdownContent: mockMarkdown })
+      vi.mocked(updateDraftContent).mockResolvedValue({ ...mockDraft, status: 'draft', markdownContent: mockMarkdown } as any)
+
+      const step = createMockStep()
+      const event = createMockEvent({ draftId: 'draft-1', rfpId: 'rfp-1', organizationId: 'org-1' })
+
+      await (generateProposal as unknown as Function)({ event, step })
+
+      expect(writeProposal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contentLibraryEntries: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'cl-1',
+              name: 'Standard Rate',
+              category: 'Pricing',
+              content: '$150/hr',
+            }),
+          ]),
+        })
+      )
+    })
+
+    it('should call writeProposal with empty contentLibraryEntries when library is empty', async () => {
+      threeCallSequence([])
+      vi.mocked(writeProposal).mockResolvedValue({ markdownContent: mockMarkdown })
+      vi.mocked(updateDraftContent).mockResolvedValue({ ...mockDraft, status: 'draft' } as any)
+
+      const step = createMockStep()
+      const event = createMockEvent({ draftId: 'draft-1', rfpId: 'rfp-1', organizationId: 'org-1' })
+
+      await (generateProposal as unknown as Function)({ event, step })
+
+      expect(writeProposal).toHaveBeenCalledWith(
+        expect.objectContaining({ contentLibraryEntries: [] })
+      )
+    })
+
     it('should only fetch content library entries for the correct org (tenant isolation)', async () => {
       threeCallSequence()
       vi.mocked(writeProposal).mockResolvedValue({ markdownContent: mockMarkdown })

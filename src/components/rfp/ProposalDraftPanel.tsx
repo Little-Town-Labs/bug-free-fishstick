@@ -46,6 +46,7 @@ const statusConfig: Record<
 export function ProposalDraftPanel({ rfpId, initialDrafts }: ProposalDraftPanelProps) {
   const [draftsList, setDraftsList] = useState<ProposalDraft[]>(initialDrafts)
   const [cancelling, setCancelling] = useState<string | null>(null)
+  const [retrying, setRetrying] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -104,6 +105,23 @@ export function ProposalDraftPanel({ rfpId, initialDrafts }: ProposalDraftPanelP
     }
   }, [])
 
+  async function handleRetry() {
+    setRetrying(true)
+    try {
+      const res = await fetch(`/api/rfps/${rfpId}/proposals`, { method: 'POST' })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Failed to retry')
+      }
+      const data = await res.json()
+      setDraftsList((prev) => [data.draft, ...prev])
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to retry')
+    } finally {
+      setRetrying(false)
+    }
+  }
+
   async function handleCancel(draftId: string) {
     setCancelling(draftId)
     try {
@@ -151,7 +169,9 @@ export function ProposalDraftPanel({ rfpId, initialDrafts }: ProposalDraftPanelP
                     {config.label}
                   </span>
                   {draft.status === 'error' && draft.generationError && (
-                    <span className="text-xs text-red-600">{draft.generationError}</span>
+                    <p role="alert" className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                      {draft.generationError}
+                    </p>
                   )}
                 </div>
 
@@ -162,6 +182,17 @@ export function ProposalDraftPanel({ rfpId, initialDrafts }: ProposalDraftPanelP
                   >
                     View
                   </Link>
+                  {draft.status === 'error' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={retrying}
+                      onClick={handleRetry}
+                      aria-label={`Retry generating draft v${draft.version}`}
+                    >
+                      {retrying ? 'Retrying…' : 'Retry'}
+                    </Button>
+                  )}
                   {draft.status === 'generating' && (
                     <Button
                       variant="outline"

@@ -66,6 +66,7 @@ export function ClarifyingQuestionsForm({
         <div key={q.id} className="space-y-2">
           <div className="flex items-start gap-2">
             <span
+              id={`q-${q.id}-section`}
               aria-label={`Section: ${q.rfpSection}`}
               className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
             >
