@@ -23,6 +23,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               <Link href="/knowledge" className="text-muted-foreground hover:text-foreground transition-colors">
                 Knowledge
               </Link>
+              <Link href="/content-library" className="text-muted-foreground hover:text-foreground transition-colors">
+                Content Library
+              </Link>
               <Link href="/settings" className="text-muted-foreground hover:text-foreground transition-colors">
                 Settings
               </Link>
