@@ -108,15 +108,15 @@ Web application — existing Next.js monorepo under `src/` at repository root.
 
 > **Write these tests FIRST — they must FAIL before implementation begins**
 
-- [ ] T030 [P] [US3] Write unit tests for the export route in `tests/unit/api/proposals-export.test.ts` — verify: returns `text/markdown` content type, `Content-Disposition: attachment` header, filename includes RFP name, returns 422 when draft has no `markdownContent`, validates org scope
+- [X] T030 [P] [US3] Write unit tests for the export route in `tests/unit/api/proposals-export.test.ts` — verify: returns `text/markdown` content type, `Content-Disposition: attachment` header, filename includes RFP name, returns 422 when draft has no `markdownContent`, validates org scope
 
 ### Implementation for User Story 3
 
-- [ ] T031 [P] [US3] Create `ProposalEditor` component in `src/components/rfp/ProposalEditor.tsx` — textarea showing full `markdownContent`; "Save" button calls `PATCH .../proposals/{draftId}` with updated content; auto-save on blur (debounced 1s); shows saved/unsaved indicator; "Finalize" button sets status to `finalized`; warns on navigation with unsaved changes; ARIA labels and keyboard accessible
-- [ ] T032 [P] [US3] Add `PATCH` handler to `src/app/api/rfps/[rfpId]/proposals/[draftId]/route.ts` — validates draft is in `draft` or `finalized` state (rejects edits during `generating`), validates org scope, accepts `{ markdownContent?, status? }`, returns updated draft
-- [ ] T033 [P] [US3] Implement `GET /api/rfps/[rfpId]/proposals/[draftId]/export` in `src/app/api/rfps/[rfpId]/proposals/[draftId]/export/route.ts` — validates org scope, validates `markdownContent` is non-null, returns response with headers `Content-Type: text/markdown; charset=utf-8` and `Content-Disposition: attachment; filename="proposal-{rfp-name}.md"`
-- [ ] T034 [US3] Integrate `ProposalEditor` into proposal wizard page `src/app/(auth)/rfps/[rfpId]/proposal/page.tsx` — replace read-only markdown preview (from T019 Phase 3) with `ProposalEditor` once draft status is `draft`; thread draft ID and markdown content through to the component
-- [ ] T035 [US3] Add export button to proposal page `src/app/(auth)/rfps/[rfpId]/proposal/page.tsx` — button triggers `GET .../export` and initiates browser file download; disable button when status is not `draft` or `finalized`
+- [X] T031 [P] [US3] Create `ProposalEditor` component in `src/components/rfp/ProposalEditor.tsx` — textarea showing full `markdownContent`; "Save" button calls `PATCH .../proposals/{draftId}` with updated content; auto-save on blur (debounced 1s); shows saved/unsaved indicator; "Finalize" button sets status to `finalized`; warns on navigation with unsaved changes; ARIA labels and keyboard accessible
+- [X] T032 [P] [US3] Add `PATCH` handler to `src/app/api/rfps/[rfpId]/proposals/[draftId]/route.ts` — validates draft is in `draft` or `finalized` state (rejects edits during `generating`), validates org scope, accepts `{ markdownContent?, status? }`, returns updated draft
+- [X] T033 [P] [US3] Implement `GET /api/rfps/[rfpId]/proposals/[draftId]/export` in `src/app/api/rfps/[rfpId]/proposals/[draftId]/export/route.ts` — validates org scope, validates `markdownContent` is non-null, returns response with headers `Content-Type: text/markdown; charset=utf-8` and `Content-Disposition: attachment; filename="proposal-{rfp-name}.md"`
+- [X] T034 [US3] Integrate `ProposalEditor` into proposal wizard page `src/app/(auth)/rfps/[rfpId]/proposal/page.tsx` — replace read-only markdown preview (from T019 Phase 3) with `ProposalEditor` once draft status is `draft`; thread draft ID and markdown content through to the component
+- [X] T035 [US3] Add export button to proposal page `src/app/(auth)/rfps/[rfpId]/proposal/page.tsx` — button triggers `GET .../export` and initiates browser file download; disable button when status is not `draft` or `finalized`
 
 **Checkpoint**: All three user stories are independently functional. Users can generate, edit, and export proposals. The content library feeds into generation.
 

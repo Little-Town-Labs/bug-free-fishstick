@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { ClarifyingQuestionsForm } from '@/components/rfp/ClarifyingQuestionsForm'
+import { ProposalEditor } from '@/components/rfp/ProposalEditor'
 import { Button } from '@/components/ui/button'
 import type { ClarifyingQuestion, ProposalDraft } from '@/lib/db/schema/proposal-drafts'
 
@@ -91,6 +92,26 @@ export default function ProposalWizardPage() {
   function handleAnswersSubmitted(updatedDraft: ProposalDraft) {
     setDraft(updatedDraft)
     setStep('viewing')
+  }
+
+  async function handleExport() {
+    if (!draft) return
+    try {
+      const res = await fetch(`/api/rfps/${rfpId}/proposals/${draft.id}/export`)
+      if (!res.ok) {
+        toast.error('Export failed')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `proposal.md`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('Export failed')
+    }
   }
 
   return (
@@ -180,37 +201,29 @@ export default function ProposalWizardPage() {
             </div>
           )}
 
-          {draft?.status === 'draft' && draft.markdownContent && (
+          {(draft?.status === 'draft' || draft?.status === 'finalized') && draft.markdownContent && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Proposal Preview</h2>
-                <a
-                  href={`/api/rfps/${rfpId}/proposals/${draft.id}/export`}
-                  className="text-sm text-primary underline-offset-4 hover:underline"
+                <h2 className="text-lg font-semibold">
+                  {draft.status === 'finalized' ? 'Finalized Proposal' : 'Proposal Preview'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  disabled={draft.status !== 'draft' && draft.status !== 'finalized'}
+                  className="text-sm text-primary underline-offset-4 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Export proposal as Markdown file"
                 >
                   Download .md
-                </a>
+                </button>
               </div>
-              <pre className="rounded-md border bg-muted p-4 text-sm overflow-auto whitespace-pre-wrap font-mono">
-                {draft.markdownContent}
-              </pre>
-            </div>
-          )}
-
-          {draft?.status === 'finalized' && draft.markdownContent && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Finalized Proposal</h2>
-                <a
-                  href={`/api/rfps/${rfpId}/proposals/${draft.id}/export`}
-                  className="text-sm text-primary underline-offset-4 hover:underline"
-                >
-                  Download .md
-                </a>
-              </div>
-              <pre className="rounded-md border bg-muted p-4 text-sm overflow-auto whitespace-pre-wrap font-mono">
-                {draft.markdownContent}
-              </pre>
+              <ProposalEditor
+                rfpId={rfpId}
+                draftId={draft.id}
+                initialContent={draft.markdownContent}
+                status={draft.status as 'draft' | 'finalized'}
+                onSaved={setDraft}
+              />
             </div>
           )}
         </div>
