@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { knowledgeEntries } from '@/lib/db/schema/knowledge-entries'
 import { generateEmbedding } from '@/lib/ai/embeddings'
-import { sql, eq, and, isNotNull } from 'drizzle-orm'
+import { sql, eq, and, isNotNull, isNull, or } from 'drizzle-orm'
 import type { KnowledgeEntry } from '@/lib/db/schema/knowledge-entries'
 
 export type KnowledgeEntryWithSimilarity = Omit<KnowledgeEntry, 'embedding'> & {
@@ -10,11 +10,18 @@ export type KnowledgeEntryWithSimilarity = Omit<KnowledgeEntry, 'embedding'> & {
 
 export async function searchSimilar(
   query: string,
-  customerId: string,
   organizationId: string,
-  limit: number = 10
+  limit: number = 10,
+  customerId?: string,
 ): Promise<KnowledgeEntryWithSimilarity[]> {
   const queryEmbedding = await generateEmbedding(query)
+
+  const customerFilter = customerId
+    ? or(
+        eq(knowledgeEntries.customerId, customerId),
+        isNull(knowledgeEntries.customerId)
+      )
+    : isNull(knowledgeEntries.customerId)
 
   const results = await db
     .select({
@@ -33,7 +40,7 @@ export async function searchSimilar(
     .where(
       and(
         eq(knowledgeEntries.organizationId, organizationId),
-        eq(knowledgeEntries.customerId, customerId),
+        customerFilter,
         isNotNull(knowledgeEntries.embedding)
       )
     )

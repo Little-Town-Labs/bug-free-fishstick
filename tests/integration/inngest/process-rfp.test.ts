@@ -742,6 +742,31 @@ describe('process-rfp Inngest workflow', () => {
     })
   })
 
+  describe('searchSimilar integration', () => {
+    it('should call searchSimilar even when rfp.customerId is null', async () => {
+      const rfpId = 'rfp-140'
+      const organizationId = 'org-456'
+      // RFP with no customerId
+      const mockRfp = createMockRfp({ id: rfpId, organizationId, customerId: null })
+
+      setupStandardDbMocks(mockRfp)
+      vi.mocked(downloadFile).mockResolvedValue(Buffer.from('data'))
+      vi.mocked(parsePdf).mockResolvedValue(createMockParsedPdf('text'))
+      vi.mocked(analyzeDocument).mockResolvedValue(createMockAnalyzedResult([]))
+      vi.mocked(generateResponses).mockResolvedValue({ responses: [] })
+      vi.mocked(checkQuality).mockResolvedValue({ results: [] })
+
+      const step = createMockStep()
+      const event = createMockEvent({ rfpId, organizationId })
+
+      await (processRfp as unknown as Function)({ event, step })
+
+      // searchSimilar should always be called, even without a customerId
+      const { searchSimilar } = await import('@/lib/services/vector-search')
+      expect(vi.mocked(searchSimilar)).toHaveBeenCalled()
+    })
+  })
+
   describe('Edge cases', () => {
     it('should handle RFP with no identified fields (0% automation)', async () => {
       const rfpId = 'rfp-139'

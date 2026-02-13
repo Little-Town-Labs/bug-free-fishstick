@@ -1,97 +1,94 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { KnowledgeEntryCard } from '@/components/knowledge/KnowledgeEntryCard'
-import { KnowledgeSearch } from '@/components/knowledge/KnowledgeSearch'
-import { CustomerSelector } from '@/components/shared/CustomerSelector'
+import { KnowledgeUploader } from '@/components/knowledge/KnowledgeUploader'
 import type { KnowledgeEntry } from '@/lib/db/schema/knowledge-entries'
 
-interface Customer {
-  id: string
-  name: string
-  description: string | null
-}
-
-type SearchResult = KnowledgeEntry & { similarity: number }
-
-export default function KnowledgePage() {
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [customersLoading, setCustomersLoading] = useState(true)
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
+export default function CompanyKnowledgePage() {
   const [entries, setEntries] = useState<KnowledgeEntry[]>([])
-  const [entriesLoading, setEntriesLoading] = useState(false)
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [isSearching, setIsSearching] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [uploaderOpen, setUploaderOpen] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
-  const fetchCustomers = useCallback(async () => {
+  const fetchEntries = useCallback(async () => {
     try {
-      setCustomersLoading(true)
-      const res = await fetch('/api/customers')
-      if (!res.ok) throw new Error('Failed to fetch customers')
-      const data = await res.json()
-      setCustomers(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    } finally {
-      setCustomersLoading(false)
-    }
-  }, [])
-
-  const fetchEntries = useCallback(async (customerId: string) => {
-    try {
-      setEntriesLoading(true)
-      setError(null)
-      const res = await fetch(`/api/customers/${customerId}/knowledge`)
+      setLoading(true)
+      const res = await fetch('/api/knowledge')
       if (!res.ok) throw new Error('Failed to fetch knowledge entries')
       const data = await res.json()
-      setEntries(data)
+      setEntries(data.entries)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
-      setEntriesLoading(false)
+      setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchCustomers()
-  }, [fetchCustomers])
+    fetchEntries()
+  }, [fetchEntries])
 
-  const handleCustomerChange = (customerId: string) => {
-    setSelectedCustomerId(customerId)
-    setSearchResults([])
-    if (customerId) {
-      fetchEntries(customerId)
-    } else {
-      setEntries([])
+  const handleDelete = async (entryId: string) => {
+    try {
+      const res = await fetch(`/api/knowledge/${entryId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete entry')
+      await fetchEntries()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     }
   }
 
-  const handleSearch = (query: string) => {
-    if (!selectedCustomerId || !query.trim()) {
-      setSearchResults([])
-      return
+  const handleUpload = async (file: File, type: string, title: string) => {
+    setIsUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', type)
+      formData.append('title', title)
+      const res = await fetch('/api/knowledge/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) throw new Error('Failed to upload document')
+      setUploaderOpen(false)
+      await fetchEntries()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setIsUploading(false)
     }
-    setIsSearching(true)
-    fetch(`/api/customers/${selectedCustomerId}/knowledge/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Search failed'))))
-      .then((data) => setSearchResults(data.results ?? data))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Search failed'))
-      .finally(() => setIsSearching(false))
   }
-
-  const displayedEntries = searchResults.length > 0 ? searchResults : entries
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Knowledge Base</h1>
+        <h1 className="text-2xl font-bold">Company Knowledge</h1>
+        <Dialog open={uploaderOpen} onOpenChange={setUploaderOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm">Upload Document</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Upload to Company Knowledge Base</DialogTitle>
+            </DialogHeader>
+            <KnowledgeUploader
+              onUpload={handleUpload}
+              isUploading={isUploading}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       {error && (
@@ -100,78 +97,35 @@ export default function KnowledgePage() {
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base font-medium">Select Customer</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {customersLoading ? (
-            <Skeleton className="h-10 w-full max-w-sm" />
-          ) : (
-            <CustomerSelector
-              customers={customers}
-              selectedId={selectedCustomerId ?? undefined}
-              onSelect={handleCustomerChange}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      {selectedCustomerId && (
-        <KnowledgeSearch
-          results={searchResults}
-          isSearching={isSearching}
-          onSearch={handleSearch}
-        />
-      )}
-
-      {selectedCustomerId && (
+      {loading ? (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold">
-            {searchResults.length > 0
-              ? `Search Results (${searchResults.length})`
-              : `Knowledge Entries (${entriesLoading ? '...' : entries.length})`}
-          </h2>
-
-          {entriesLoading ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="pt-4">
-                    <Skeleton className="h-5 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : displayedEntries.length === 0 ? (
-            <Card>
-              <CardContent>
-                <p className="text-sm text-muted-foreground py-8 text-center">
-                  {searchResults.length > 0
-                    ? 'No results found for your search.'
-                    : 'No knowledge entries for this customer yet.'}
-                </p>
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-4">
+                <Skeleton className="h-5 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full" />
               </CardContent>
             </Card>
-          ) : (
-            <div className="space-y-3">
-              {displayedEntries.map((entry) => (
-                <KnowledgeEntryCard key={entry.id} entry={entry} />
-              ))}
-            </div>
-          )}
+          ))}
         </div>
-      )}
-
-      {!selectedCustomerId && !customersLoading && (
+      ) : entries.length === 0 ? (
         <Card>
           <CardContent>
             <p className="text-sm text-muted-foreground py-8 text-center">
-              Select a customer above to browse or search their knowledge base.
+              No company knowledge entries yet. Upload a document to populate the knowledge base.
             </p>
           </CardContent>
         </Card>
+      ) : (
+        <div className="space-y-3">
+          {entries.map((entry) => (
+            <KnowledgeEntryCard
+              key={entry.id}
+              entry={entry}
+              onDelete={() => handleDelete(entry.id)}
+            />
+          ))}
+        </div>
       )}
     </div>
   )

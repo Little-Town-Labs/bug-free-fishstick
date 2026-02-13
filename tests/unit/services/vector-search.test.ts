@@ -52,7 +52,7 @@ describe('Vector Search Service', () => {
         { ...mockEntry2, embedding: undefined, similarity: 0.82 },
       ])
 
-      const results = await searchSimilar(mockQuery, customerId, organizationId)
+      const results = await searchSimilar(mockQuery, organizationId, 10, customerId)
 
       expect(results).toHaveLength(2)
       expect(results[0]!.similarity).toBe(0.95)
@@ -68,17 +68,17 @@ describe('Vector Search Service', () => {
         { ...mockEntry, embedding: undefined, similarity: 0.9 },
       ])
 
-      await searchSimilar(mockQuery, customerId, organizationId)
+      await searchSimilar(mockQuery, organizationId, 10, customerId)
 
       expect(generateEmbedding).toHaveBeenCalledWith(mockQuery)
       expect(generateEmbedding).toHaveBeenCalledTimes(1)
     })
 
-    it('should filter by customerId and organizationId', async () => {
+    it('should filter by organizationId', async () => {
       vi.mocked(generateEmbedding).mockResolvedValue(mockEmbedding)
       limitMock.mockResolvedValue([])
 
-      await searchSimilar(mockQuery, customerId, organizationId)
+      await searchSimilar(mockQuery, organizationId, 10, customerId)
 
       expect(whereMock).toHaveBeenCalled()
       expect(selectMock).toHaveBeenCalled()
@@ -89,7 +89,7 @@ describe('Vector Search Service', () => {
       vi.mocked(generateEmbedding).mockResolvedValue(mockEmbedding)
       limitMock.mockResolvedValue([])
 
-      await searchSimilar(mockQuery, customerId, organizationId)
+      await searchSimilar(mockQuery, organizationId)
 
       expect(limitMock).toHaveBeenCalledWith(10)
     })
@@ -98,7 +98,7 @@ describe('Vector Search Service', () => {
       vi.mocked(generateEmbedding).mockResolvedValue(mockEmbedding)
       limitMock.mockResolvedValue([])
 
-      await searchSimilar(mockQuery, customerId, organizationId, 5)
+      await searchSimilar(mockQuery, organizationId, 5, customerId)
 
       expect(limitMock).toHaveBeenCalledWith(5)
     })
@@ -107,7 +107,7 @@ describe('Vector Search Service', () => {
       vi.mocked(generateEmbedding).mockResolvedValue(mockEmbedding)
       limitMock.mockResolvedValue([])
 
-      const results = await searchSimilar(mockQuery, customerId, organizationId)
+      const results = await searchSimilar(mockQuery, organizationId, 10, customerId)
 
       expect(results).toEqual([])
       expect(Array.isArray(results)).toBe(true)
@@ -118,7 +118,7 @@ describe('Vector Search Service', () => {
       vi.mocked(generateEmbedding).mockRejectedValue(embeddingError)
 
       await expect(
-        searchSimilar(mockQuery, customerId, organizationId)
+        searchSimilar(mockQuery, organizationId, 10, customerId)
       ).rejects.toThrow('OpenAI API error: rate limit exceeded')
 
       expect(selectMock).not.toHaveBeenCalled()
@@ -134,7 +134,7 @@ describe('Vector Search Service', () => {
         { ...entryWithoutEmbedding, similarity: 0.91 },
       ])
 
-      const results = await searchSimilar(mockQuery, customerId, organizationId)
+      const results = await searchSimilar(mockQuery, organizationId, 10, customerId)
 
       expect(results).toHaveLength(1)
       expect(results[0]).not.toHaveProperty('embedding')
@@ -142,6 +142,36 @@ describe('Vector Search Service', () => {
       expect(results[0]).toHaveProperty('id')
       expect(results[0]).toHaveProperty('content')
       expect(results[0]).toHaveProperty('title')
+    })
+
+    it('should work without customerId (org-level search)', async () => {
+      const orgEntry = createMockKnowledgeEntry({ customerId: undefined, organizationId })
+
+      vi.mocked(generateEmbedding).mockResolvedValue(mockEmbedding)
+      limitMock.mockResolvedValue([
+        { ...orgEntry, embedding: undefined, similarity: 0.88 },
+      ])
+
+      const results = await searchSimilar(mockQuery, organizationId)
+
+      expect(results).toHaveLength(1)
+      expect(whereMock).toHaveBeenCalled()
+    })
+
+    it('should include org-level entries when customerId is provided', async () => {
+      const orgEntry = createMockKnowledgeEntry({ customerId: undefined, organizationId })
+      const customerEntry = createMockKnowledgeEntry({ customerId, organizationId })
+
+      vi.mocked(generateEmbedding).mockResolvedValue(mockEmbedding)
+      limitMock.mockResolvedValue([
+        { ...customerEntry, embedding: undefined, similarity: 0.95 },
+        { ...orgEntry, embedding: undefined, similarity: 0.88 },
+      ])
+
+      const results = await searchSimilar(mockQuery, organizationId, 10, customerId)
+
+      // Both customer-specific and org-level entries should be returned
+      expect(results).toHaveLength(2)
     })
   })
 })

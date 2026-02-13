@@ -16,8 +16,7 @@ export const knowledgeEntries = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
     organizationId: text('organization_id').notNull(),
     customerId: uuid('customer_id')
-      .notNull()
-      .references(() => customers.id, { onDelete: 'cascade' }),
+      .references(() => customers.id, { onDelete: 'set null' }),
 
     // Content
     type: text('type', { enum: knowledgeEntryTypes }).notNull(),

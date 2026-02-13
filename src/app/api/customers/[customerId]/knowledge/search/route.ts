@@ -22,9 +22,9 @@ export async function POST(
 
     const results = await searchSimilar(
       parsed.data.query,
-      customerId,
       auth.orgId,
-      parsed.data.limit
+      parsed.data.limit,
+      customerId
     )
 
     return NextResponse.json({ results }, { status: 200 })

@@ -68,11 +68,9 @@ export const processRfp = inngest.createFunction(
     const generatedResponses = await step.run('generate-responses', async () => {
       // Fetch knowledge context and learnings in parallel
       const [knowledgeContext, orgLearnings] = await Promise.all([
-        rfp.customerId
-          ? searchSimilar(rfp.name, rfp.customerId, organizationId, 10).then((results) =>
-              results.map((r) => ({ content: r.content, relevanceScore: r.similarity, source: r.title }))
-            )
-          : Promise.resolve([]),
+        searchSimilar(rfp.name, organizationId, 10, rfp.customerId ?? undefined).then((results) =>
+          results.map((r) => ({ content: r.content, relevanceScore: r.similarity, source: r.title }))
+        ),
         db.select().from(learnings).where(eq(learnings.organizationId, organizationId)),
       ])
       const learningsContext = orgLearnings.map((l) => l.content)

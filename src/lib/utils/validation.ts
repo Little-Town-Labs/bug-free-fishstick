@@ -106,6 +106,22 @@ export const createKnowledgeEntrySchema = z.object({
 export type CreateKnowledgeEntryInput = z.infer<typeof createKnowledgeEntrySchema>
 
 /**
+ * Schema for creating an org-level knowledge entry (no customerId)
+ */
+export const createOrgKnowledgeEntrySchema = z.object({
+  type: z.enum(['past_rfp', 'case_study', 'certification', 'company_doc', 'manual_entry']),
+  title: z.string().min(1).max(255),
+  content: z.string().min(1).max(500000),
+  metadata: z
+    .object({
+      tags: z.array(z.string().max(50)).max(20).optional(),
+    })
+    .optional(),
+})
+
+export type CreateOrgKnowledgeEntryInput = z.infer<typeof createOrgKnowledgeEntrySchema>
+
+/**
  * Schema for updating tenant settings
  */
 export const updateTenantSettingsSchema = z.object({
