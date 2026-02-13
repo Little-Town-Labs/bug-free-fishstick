@@ -2,12 +2,21 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ClarifyingQuestionsForm } from '@/components/rfp/ClarifyingQuestionsForm'
-import { ProposalEditor } from '@/components/rfp/ProposalEditor'
 import { Button } from '@/components/ui/button'
 import type { ClarifyingQuestion, ProposalDraft } from '@/lib/db/schema/proposal-drafts'
+
+const ClarifyingQuestionsForm = dynamic(
+  () => import('@/components/rfp/ClarifyingQuestionsForm').then((m) => m.ClarifyingQuestionsForm),
+  { ssr: false }
+)
+
+const ProposalEditor = dynamic(
+  () => import('@/components/rfp/ProposalEditor').then((m) => m.ProposalEditor),
+  { ssr: false }
+)
 
 const POLL_INTERVAL_MS = 3000
 
@@ -15,27 +24,23 @@ type Step = 'creating' | 'answering' | 'viewing'
 
 function Spinner() {
   return (
-    <svg
-      className="animate-spin h-5 w-5"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-      />
-    </svg>
+    <div className="animate-spin h-5 w-5" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+        />
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+        />
+      </svg>
+    </div>
   )
 }
 
@@ -54,9 +59,14 @@ export default function ProposalWizardPage() {
   useEffect(() => {
     if (step !== 'creating') return
 
+    const controller = new AbortController()
+
     async function createDraft() {
       try {
-        const res = await fetch(`/api/rfps/${rfpId}/proposals`, { method: 'POST' })
+        const res = await fetch(`/api/rfps/${rfpId}/proposals`, {
+          method: 'POST',
+          signal: controller.signal,
+        })
         if (!res.ok) {
           const data = await res.json()
           throw new Error(data.error ?? 'Failed to create proposal draft')
@@ -65,12 +75,14 @@ export default function ProposalWizardPage() {
         setDraft(data.draft)
         setStep('answering')
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
         setError(err instanceof Error ? err.message : 'Failed to create proposal draft')
         toast.error(err instanceof Error ? err.message : 'Failed to create proposal draft')
       }
     }
 
     createDraft()
+    return () => controller.abort()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -83,11 +95,15 @@ export default function ProposalWizardPage() {
 
     // If we jumped here from query param, load the draft first
     if (!draft) {
-      fetch(`/api/rfps/${rfpId}/proposals/${draftId}`)
+      const controller = new AbortController()
+      fetch(`/api/rfps/${rfpId}/proposals/${draftId}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data: ProposalDraft) => setDraft(data))
-        .catch(() => setError('Failed to load draft'))
-      return
+        .catch((err: unknown) => {
+          if (err instanceof Error && err.name === 'AbortError') return
+          setError('Failed to load draft')
+        })
+      return () => controller.abort()
     }
 
     if (draft.status !== 'generating') return
@@ -114,8 +130,7 @@ export default function ProposalWizardPage() {
         pollingRef.current = null
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, draft?.status])
+  }, [step, draft?.status, rfpId, existingDraftId])
 
   function handleAnswersSubmitted(updatedDraft: ProposalDraft) {
     setDraft(updatedDraft)
@@ -158,7 +173,7 @@ export default function ProposalWizardPage() {
       )}
 
       {step === 'creating' && !error && (
-        <div className="flex items-center gap-3 text-muted-foreground">
+        <div className="flex items-center gap-3 text-muted-foreground" role="status" aria-live="polite">
           <Spinner />
           <span>Preparing questions…</span>
         </div>
@@ -178,12 +193,12 @@ export default function ProposalWizardPage() {
 
       {step === 'viewing' && (
         <div className="space-y-4">
-          {(!draft || draft.status === 'generating') && (
-            <div className="flex items-center gap-3 text-muted-foreground">
+          {!draft || draft.status === 'generating' ? (
+            <div className="flex items-center gap-3 text-muted-foreground" role="status" aria-live="polite">
               <Spinner />
               <span>Generating your proposal…</span>
             </div>
-          )}
+          ) : null}
 
           {draft?.status === 'error' && (
             <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">

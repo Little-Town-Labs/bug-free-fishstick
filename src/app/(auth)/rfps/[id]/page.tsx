@@ -2,13 +2,18 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ProgressTracker } from '@/components/rfp/ProgressTracker'
 import { RfpEditor } from '@/components/rfp/RfpEditor'
-import { ProposalDraftPanel } from '@/components/rfp/ProposalDraftPanel'
 import { RfpDetailSkeleton } from '@/components/shared/Skeletons'
 import type { ProposalDraft } from '@/lib/db/schema/proposal-drafts'
+
+const ProposalDraftPanel = dynamic(
+  () => import('@/components/rfp/ProposalDraftPanel').then((m) => m.ProposalDraftPanel),
+  { ssr: false }
+)
 
 export default function RfpDetailPage() {
   const params = useParams<{ id: string }>()
@@ -18,20 +23,23 @@ export default function RfpDetailPage() {
   const [loadingDrafts, setLoadingDrafts] = useState(true)
 
   useEffect(() => {
+    const controller = new AbortController()
     async function loadDrafts() {
       try {
-        const res = await fetch(`/api/rfps/${rfpId}/proposals`)
+        const res = await fetch(`/api/rfps/${rfpId}/proposals`, { signal: controller.signal })
         if (res.ok) {
           const data = await res.json()
           setDrafts(data.drafts ?? [])
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
         // ignore; panel will show empty state
       } finally {
         setLoadingDrafts(false)
       }
     }
     loadDrafts()
+    return () => controller.abort()
   }, [rfpId])
 
   // Placeholder data - will be replaced by useRfp hook
