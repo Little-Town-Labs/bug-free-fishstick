@@ -1,0 +1,208 @@
+openapi: 3.1.0
+info:
+  title: Proposal Content Library API
+  version: 1.0.0
+  description: CRUD operations for the org-scoped reusable content library used in proposal generation.
+
+paths:
+  /api/content-library:
+    get:
+      summary: List content library entries for the authenticated org
+      operationId: listContentLibraryEntries
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by category (case-insensitive, partial match)
+      responses:
+        '200':
+          description: List of entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContentLibraryEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create a new content library entry
+      operationId: createContentLibraryEntry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContentLibraryEntryRequest'
+      responses:
+        '201':
+          description: Entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentLibraryEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/content-library/{entryId}:
+    parameters:
+      - name: entryId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get a specific content library entry
+      operationId: getContentLibraryEntry
+      responses:
+        '200':
+          description: Entry found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentLibraryEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update a content library entry
+      operationId: updateContentLibraryEntry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContentLibraryEntryRequest'
+      responses:
+        '200':
+          description: Entry updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentLibraryEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete a content library entry
+      operationId: deleteContentLibraryEntry
+      responses:
+        '204':
+          description: Entry deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    ContentLibraryEntry:
+      type: object
+      required: [id, organizationId, category, name, content, createdBy, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+        category:
+          type: string
+          example: Pricing
+        name:
+          type: string
+          example: Standard SLA Terms
+        content:
+          type: string
+          description: Markdown-compatible content body
+        createdBy:
+          type: string
+          description: Clerk user ID
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateContentLibraryEntryRequest:
+      type: object
+      required: [category, name, content]
+      properties:
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Service
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Managed Cloud Hosting
+        content:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: Reusable content text (markdown supported)
+
+    UpdateContentLibraryEntryRequest:
+      type: object
+      properties:
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        content:
+          type: string
+          minLength: 1
+          maxLength: 50000
+
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Not found

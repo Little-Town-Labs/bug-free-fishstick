@@ -1,0 +1,355 @@
+openapi: 3.1.0
+info:
+  title: Proposal Drafts API
+  version: 1.0.0
+  description: >
+    Manages proposal draft generation for a specific RFP. The flow is:
+    1. POST /proposals → creates draft in `awaiting_answers` state, returns clarifying questions
+    2. POST /proposals/{draftId}/answers → submits user answers, triggers async generation
+    3. GET /proposals/{draftId} → poll until status is `draft` or `error`
+    4. PATCH /proposals/{draftId} → save edits to the markdown content
+    5. GET /proposals/{draftId}/export → download the markdown file
+
+paths:
+  /api/rfps/{rfpId}/proposals:
+    parameters:
+      - name: rfpId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: List all proposal drafts for an RFP
+      operationId: listProposalDrafts
+      responses:
+        '200':
+          description: List of drafts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  drafts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProposalDraftSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      summary: Initiate a new proposal generation session
+      description: >
+        Analyzes the RFP and knowledge base, then generates clarifying questions.
+        Returns a draft in `awaiting_answers` state with the generated questions.
+        This operation is synchronous and completes in < 5 seconds.
+      operationId: createProposalDraft
+      responses:
+        '201':
+          description: Draft created with clarifying questions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalDraft'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: RFP has not been parsed yet (no fields available)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: RFP must be processed before generating a proposal
+
+  /api/rfps/{rfpId}/proposals/{draftId}:
+    parameters:
+      - name: rfpId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: draftId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get a specific proposal draft
+      description: Use this to poll for generation status. Returns `markdownContent` once status is `draft`.
+      operationId: getProposalDraft
+      responses:
+        '200':
+          description: Draft details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalDraft'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update the markdown content of a draft
+      description: Saves user edits to the draft. Only valid when status is `draft` or `finalized`.
+      operationId: updateProposalDraft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                markdownContent:
+                  type: string
+                  description: The full updated markdown content
+                status:
+                  type: string
+                  enum: [draft, finalized]
+                  description: Optional status update (e.g., to mark as finalized)
+      responses:
+        '200':
+          description: Draft updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalDraft'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Cannot edit a draft that is still generating
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/rfps/{rfpId}/proposals/{draftId}/answers:
+    parameters:
+      - name: rfpId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: draftId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      summary: Submit answers to clarifying questions and trigger proposal generation
+      description: >
+        Stores the user's answers, transitions the draft to `generating`, and
+        dispatches the Inngest background job. The response returns immediately;
+        poll GET /proposals/{draftId} to check generation progress.
+      operationId: submitClarifyingAnswers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answers]
+              properties:
+                answers:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, answer]
+                    properties:
+                      id:
+                        type: string
+                        description: Question ID (from the draft's clarifyingQuestions array)
+                      answer:
+                        type: string
+                        description: User's answer (may be empty string if skipped)
+      responses:
+        '202':
+          description: Answers accepted, generation queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  draftId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: generating
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Draft is not in `awaiting_answers` state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/rfps/{rfpId}/proposals/{draftId}/export:
+    parameters:
+      - name: rfpId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: draftId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Download the proposal draft as a markdown file
+      operationId: exportProposalDraft
+      responses:
+        '200':
+          description: Markdown file download
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="proposal-rfp-name.md"'
+            Content-Type:
+              schema:
+                type: string
+                example: text/markdown; charset=utf-8
+          content:
+            text/markdown:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Draft has no content yet (still generating or in error state)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+components:
+  schemas:
+    ClarifyingQuestion:
+      type: object
+      required: [id, question, rfpSection]
+      properties:
+        id:
+          type: string
+          example: q1
+        question:
+          type: string
+          example: What is your preferred pricing model for this engagement?
+        rfpSection:
+          type: string
+          example: Section 4 — Pricing and Payment Terms
+        answer:
+          type: string
+          nullable: true
+
+    ProposalDraftSummary:
+      type: object
+      required: [id, rfpId, status, version, createdBy, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        rfpId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [awaiting_answers, generating, draft, finalized, error]
+        version:
+          type: integer
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProposalDraft:
+      allOf:
+        - $ref: '#/components/schemas/ProposalDraftSummary'
+        - type: object
+          properties:
+            clarifyingQuestions:
+              type: array
+              nullable: true
+              items:
+                $ref: '#/components/schemas/ClarifyingQuestion'
+            markdownContent:
+              type: string
+              nullable: true
+              description: Generated proposal markdown; null until status is `draft`
+            generationError:
+              type: string
+              nullable: true
+              description: Error details if status is `error`
+
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Not found
