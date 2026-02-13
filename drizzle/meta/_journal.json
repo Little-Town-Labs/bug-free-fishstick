@@ -15,6 +15,27 @@
       "when": 1770823283724,
       "tag": "0001_slow_lily_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770900000000,
+      "tag": "0002_add_provider_api_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1770900000001,
+      "tag": "0003_nullable_knowledge_customer",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770948852403,
+      "tag": "0004_proposal_tables",
+      "breakpoints": true
     }
   ]
 }
