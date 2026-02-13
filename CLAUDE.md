@@ -299,6 +299,8 @@ See the `templates/` directory in the [LTLClaude repository](https://github.com/
 - Neon PostgreSQL + pgvector (data), Vercel Blob (files), Vercel KV (cache) (001-rfp-automation-core)
 - TypeScript 5.0+ (strict mode), Node.js 18.19.1 (system) + Next.js 14 (App Router), Drizzle ORM 0.45+, Vercel AI SDK, Inngest, Zod, shadcn/ui (001-proposal-draft-generator)
 - Neon PostgreSQL + pgvector (data), Vercel Blob (file export), Upstash Redis (caching) (001-proposal-draft-generator)
+- TypeScript 5.0+ (strict mode), Node.js 18.19.1 + Next.js 15, React 19, Drizzle ORM 0.45+, Inngest, Vercel AI SDK, shadcn/ui, react-pdf (new), pdfjs-dist (new) (002-p0-critical-gaps)
+- Neon PostgreSQL + pgvector, Vercel Blob, Vercel KV (002-p0-critical-gaps)
 
 ## Recent Changes
 - 001-rfp-automation-core: Added TypeScript 5.0+ (strict mode), Node.js 20+

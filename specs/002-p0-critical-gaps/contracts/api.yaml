@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: P0 Critical Gaps - New/Modified Endpoints
+  version: 0.1.0
+
+paths:
+  /api/rfps/{rfpId}/download:
+    get:
+      summary: Download completed RFP document
+      description: |
+        Returns the format-preserving completed document (PDF overlay or Word).
+        Redirects to Vercel Blob URL. Falls back to 404 if not yet generated.
+      parameters:
+        - name: rfpId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "302":
+          description: Redirect to completed document blob URL
+        "404":
+          description: Completed document not yet available
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Completed document not available
+                  completedFileError:
+                    type: string
+                    nullable: true
+                    example: PDF generation failed — field positions missing
+        "401":
+          description: Unauthorized
+
+  /api/rfps/{rfpId}/document:
+    get:
+      summary: Proxy original RFP document for client-side rendering
+      description: |
+        Fetches the original uploaded document from Vercel Blob and returns it
+        with appropriate Content-Type header. Used by the DocumentViewer component
+        to render PDFs and Word docs client-side without CORS issues.
+      parameters:
+        - name: rfpId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Original document binary
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: No document uploaded for this RFP
+        "401":
+          description: Unauthorized
+
+  /api/rfps/{rfpId}/finalize:
+    post:
+      summary: Finalize RFP (modified)
+      description: |
+        Existing endpoint. Now additionally sends `rfp/generate-completed-document`
+        Inngest event to trigger background document generation.
+      parameters:
+        - name: rfpId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: RFP finalized, document generation queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rfp:
+                    $ref: "#/components/schemas/Rfp"
+                  documentGenerationQueued:
+                    type: boolean
+                    example: true
+
+components:
+  schemas:
+    Rfp:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [draft, processing, submitted, approved, finalized]
+        completedFileUrl:
+          type: string
+          nullable: true
+          description: URL to completed document (populated after finalization)
+        completedFileError:
+          type: string
+          nullable: true
+          description: Error message if document generation failed

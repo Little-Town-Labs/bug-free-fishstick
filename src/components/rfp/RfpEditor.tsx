@@ -26,8 +26,10 @@ interface RfpEditorProps {
   onAcceptResponse?: (fieldId: string) => void
   onEditResponse?: (fieldId: string, newText: string) => void
   onRejectResponse?: (fieldId: string) => void
+  onItemClick?: (fieldId: string, page?: number) => void
   isProcessing?: boolean
   autoSave?: boolean
+  documentViewer?: React.ReactNode
 }
 
 const DEBOUNCE_MS = 800
@@ -42,8 +44,10 @@ export function RfpEditor({
   onAcceptResponse,
   onEditResponse,
   onRejectResponse,
+  onItemClick,
   isProcessing = false,
   autoSave = false,
+  documentViewer,
 }: RfpEditorProps) {
   const [responses, setResponses] = useState<RfpResponse[]>(initialResponses)
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set())
@@ -177,14 +181,16 @@ export function RfpEditor({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <DocumentPreview
-            documentUrl={documentUrl}
-            documentType={documentType}
-            parsedStructure={parsedStructure}
-            fileName={fileName}
-          />
+          {documentViewer ?? (
+            <DocumentPreview
+              documentUrl={documentUrl}
+              documentType={documentType}
+              parsedStructure={parsedStructure}
+              fileName={fileName}
+            />
+          )}
         </div>
 
         <div className="space-y-4">

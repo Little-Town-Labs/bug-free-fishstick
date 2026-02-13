@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { validateTransition, WorkflowError } from '@/lib/services/rfp-workflow'
 import { createVersionSnapshot } from '@/lib/services/rfp-versions'
+import { inngest } from '@/lib/inngest/client'
 
 export async function POST(
   _request: NextRequest,
@@ -35,7 +36,16 @@ export async function POST(
       .where(and(eq(rfps.id, rfpId), eq(rfps.organizationId, auth.orgId)))
       .returning()
 
-    return NextResponse.json({ rfp: updated })
+    // Queue background document generation
+    await inngest.send({
+      name: 'rfp/generate-completed-document',
+      data: {
+        rfpId,
+        organizationId: auth.orgId,
+      },
+    })
+
+    return NextResponse.json({ rfp: updated, documentGenerationQueued: true })
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })

@@ -36,6 +36,7 @@ export const rfps = pgTable(
     originalFileUrl: text('original_file_url'),
     originalFileType: text('original_file_type', { enum: ['pdf', 'docx'] }),
     completedFileUrl: text('completed_file_url'),
+    completedFileError: text('completed_file_error'),
 
     // Processing state
     automationPercentage: real('automation_percentage').default(0),

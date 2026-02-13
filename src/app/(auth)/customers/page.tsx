@@ -20,7 +20,16 @@ interface Customer {
   id: string
   name: string
   description: string | null
+  settings: {
+    preferredTone?: string
+    industryContext?: string
+    customInstructions?: string
+  } | null
   createdAt: string
+  stats?: {
+    knowledgeEntries: number
+    totalRfps: number
+  }
 }
 
 export default function CustomersPage() {
@@ -39,7 +48,7 @@ export default function CustomersPage() {
       const res = await fetch('/api/customers')
       if (!res.ok) throw new Error('Failed to fetch customers')
       const data = await res.json()
-      setCustomers(Array.isArray(data) ? data : [])
+      setCustomers(Array.isArray(data.customers ?? data) ? (data.customers ?? data) : [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {

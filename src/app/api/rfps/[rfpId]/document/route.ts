@@ -3,6 +3,7 @@ import { requireAuth, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { eq, and } from 'drizzle-orm'
+import { downloadFile } from '@/lib/storage/blob'
 
 export async function GET(
   request: NextRequest,
@@ -22,17 +23,24 @@ export async function GET(
       return NextResponse.json({ error: 'RFP not found' }, { status: 404 })
     }
 
-    if (rfp.completedFileUrl) {
-      return NextResponse.redirect(rfp.completedFileUrl, 302)
+    if (!rfp.originalFileUrl) {
+      return NextResponse.json({ error: 'No document uploaded for this RFP' }, { status: 404 })
     }
 
-    return NextResponse.json(
-      {
-        error: 'Completed document not available',
-        completedFileError: rfp.completedFileError ?? null,
+    const buffer = await downloadFile(rfp.originalFileUrl)
+
+    const contentType = rfp.originalFileType === 'pdf'
+      ? 'application/pdf'
+      : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+    return new Response(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Content-Disposition': `inline; filename="document.${rfp.originalFileType || 'pdf'}"`,
+        'Cache-Control': 'private, max-age=3600',
       },
-      { status: 404 }
-    )
+    })
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })

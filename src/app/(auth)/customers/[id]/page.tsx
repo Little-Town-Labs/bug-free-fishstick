@@ -17,12 +17,31 @@ import {
 } from '@/components/ui/dialog'
 import { KnowledgeEntryCard } from '@/components/knowledge/KnowledgeEntryCard'
 import { KnowledgeUploader } from '@/components/knowledge/KnowledgeUploader'
+import { CustomerSettingsForm } from '@/components/customers/CustomerSettingsForm'
 import type { KnowledgeEntry } from '@/lib/db/schema/knowledge-entries'
+
+interface CustomerSettings {
+  preferredTone?: 'formal' | 'casual' | 'technical'
+  industryContext?: string
+  customInstructions?: string
+}
 
 interface Customer {
   id: string
   name: string
   description: string | null
+  settings: CustomerSettings | null
+  createdAt: string
+  stats?: {
+    knowledgeEntries: number
+    totalRfps: number
+  }
+}
+
+interface RfpSummary {
+  id: string
+  name: string
+  status: string
   createdAt: string
 }
 
@@ -32,8 +51,10 @@ export default function CustomerDetailPage() {
 
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [entries, setEntries] = useState<KnowledgeEntry[]>([])
+  const [rfps, setRfps] = useState<RfpSummary[]>([])
   const [customerLoading, setCustomerLoading] = useState(true)
   const [entriesLoading, setEntriesLoading] = useState(true)
+  const [rfpsLoading, setRfpsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [uploaderOpen, setUploaderOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -44,7 +65,7 @@ export default function CustomerDetailPage() {
       const res = await fetch(`/api/customers/${customerId}`)
       if (!res.ok) throw new Error('Failed to fetch customer')
       const data = await res.json()
-      setCustomer(data)
+      setCustomer(data.customer ?? data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -58,7 +79,7 @@ export default function CustomerDetailPage() {
       const res = await fetch(`/api/customers/${customerId}/knowledge`)
       if (!res.ok) throw new Error('Failed to fetch knowledge entries')
       const data = await res.json()
-      setEntries(data)
+      setEntries(data.entries ?? data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -66,10 +87,25 @@ export default function CustomerDetailPage() {
     }
   }, [customerId])
 
+  const fetchRfps = useCallback(async () => {
+    try {
+      setRfpsLoading(true)
+      const res = await fetch(`/api/rfps?customerId=${customerId}`)
+      if (!res.ok) throw new Error('Failed to fetch RFPs')
+      const data = await res.json()
+      setRfps(data.rfps ?? [])
+    } catch {
+      // non-critical, don't set error
+    } finally {
+      setRfpsLoading(false)
+    }
+  }, [customerId])
+
   useEffect(() => {
     fetchCustomer()
     fetchEntries()
-  }, [fetchCustomer, fetchEntries])
+    fetchRfps()
+  }, [fetchCustomer, fetchEntries, fetchRfps])
 
   const handleDelete = async (entryId: string) => {
     try {
@@ -143,6 +179,7 @@ export default function CustomerDetailPage() {
         <TabsList>
           <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
           <TabsTrigger value="rfps">RFPs</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="knowledge" className="space-y-4">
@@ -196,15 +233,47 @@ export default function CustomerDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="rfps">
+        <TabsContent value="rfps" className="space-y-4">
+          <h2 className="text-lg font-semibold">RFP History</h2>
+          {rfpsLoading ? (
+            <div className="space-y-3">
+              {[...Array(2)].map((_, i) => (
+                <Card key={i}><CardContent className="pt-4"><Skeleton className="h-5 w-3/4" /></CardContent></Card>
+              ))}
+            </div>
+          ) : rfps.length === 0 ? (
+            <Card>
+              <CardContent>
+                <p className="text-sm text-muted-foreground py-8 text-center">
+                  No RFPs for this customer yet.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {rfps.map((rfp) => (
+                <Link key={rfp.id} href={`/rfps/${rfp.id}`}>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                    <CardContent className="pt-4 flex items-center justify-between">
+                      <span className="font-medium text-sm">{rfp.name}</span>
+                      <Badge variant="secondary">{rfp.status}</Badge>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-4">
+          <h2 className="text-lg font-semibold">Customer Settings</h2>
           <Card>
-            <CardHeader>
-              <CardTitle>RFPs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                No RFPs for this customer yet.
-              </p>
+            <CardContent className="pt-6">
+              <CustomerSettingsForm
+                customerId={customerId}
+                settings={customer?.settings ?? null}
+                isAdmin={true}
+              />
             </CardContent>
           </Card>
         </TabsContent>

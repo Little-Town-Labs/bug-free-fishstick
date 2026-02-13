@@ -34,6 +34,12 @@ type Events = {
       organizationId: string
     }
   }
+  'rfp/generate-completed-document': {
+    data: {
+      rfpId: string
+      organizationId: string
+    }
+  }
   'proposal/generate': {
     data: {
       draftId: string

@@ -85,6 +85,7 @@ export function createMockRfp(overrides: Partial<Rfp> = {}): Rfp {
     originalFileUrl: null,
     originalFileType: null,
     completedFileUrl: null,
+    completedFileError: null,
     automationPercentage: 0,
     version: 1,
     returnComments: null,
