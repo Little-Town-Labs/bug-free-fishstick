@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ProgressTracker } from '@/components/rfp/ProgressTracker'
 import { RfpEditor } from '@/components/rfp/RfpEditor'
 import { RfpDetailSkeleton } from '@/components/shared/Skeletons'
+import type { ParsedStructure } from '@/components/rfp/DocumentPreview'
 import { DocumentViewer, type DocumentViewerHandle } from '@/components/rfp/DocumentViewer'
 import type { ProposalDraft } from '@/lib/db/schema/proposal-drafts'
 import type { Rfp } from '@/lib/db/schema/rfps'
@@ -174,14 +175,14 @@ export default function RfpDetailPage() {
           totalFields={0}
           completedFields={0}
           automationPercentage={rfp.automationPercentage ?? 0}
-          status={rfp.status === 'submitted' ? 'review' : rfp.status === 'finalized' ? 'completed' : rfp.status as any}
+          status={rfp.status === 'submitted' ? 'review' : rfp.status === 'finalized' ? 'completed' : rfp.status as 'draft' | 'processing' | 'approved'}
         />
 
         <RfpEditor
           rfpId={rfpId}
           documentUrl={rfp.originalFileUrl ?? null}
           documentType={rfp.originalFileType as 'pdf' | 'docx' | null}
-          parsedStructure={rfp.parsedStructure as any}
+          parsedStructure={rfp.parsedStructure as ParsedStructure | null}
           responses={[]}
           onItemClick={(_fieldId, page) => {
             if (page !== undefined) docViewerRef.current?.scrollToPage(page)

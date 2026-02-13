@@ -13,7 +13,6 @@ export interface DocumentViewerHandle {
 }
 
 // Lazy-load react-pdf components
-let pdfjs: typeof import('pdfjs-dist') | null = null
 let ReactPdfModule: typeof import('react-pdf') | null = null
 
 export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerProps>(
@@ -56,10 +55,9 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
             import.meta.url
           ).toString()
 
-          pdfjs = pdfjsModule
           ReactPdfModule = reactPdf
           setPdfReady(true)
-        } catch (err) {
+        } catch {
           if (!cancelled) setError('Failed to load PDF viewer')
         } finally {
           if (!cancelled) setLoading(false)
@@ -85,7 +83,7 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
           if (!cancelled) {
             setWordHtml(result.value)
           }
-        } catch (err) {
+        } catch {
           if (!cancelled) setError('Failed to load Word document')
         } finally {
           if (!cancelled) setLoading(false)

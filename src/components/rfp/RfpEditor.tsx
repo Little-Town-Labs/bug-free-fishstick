@@ -44,7 +44,7 @@ export function RfpEditor({
   onAcceptResponse,
   onEditResponse,
   onRejectResponse,
-  onItemClick,
+  onItemClick: _onItemClick,
   isProcessing = false,
   autoSave = false,
   documentViewer,
