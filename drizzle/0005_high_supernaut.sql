@@ -1,0 +1,1 @@
+ALTER TABLE "rfps" ADD COLUMN "completed_file_error" text;

@@ -36,6 +36,13 @@
       "when": 1770948852403,
       "tag": "0004_proposal_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771002232155,
+      "tag": "0005_high_supernaut",
+      "breakpoints": true
     }
   ]
 }

@@ -676,8 +676,8 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       )
       const response = await downloadRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
-      expect(response.status).toBe(200)
-      expect(response.headers.get('content-type')).toBeTruthy()
+      expect(response.status).toBe(302)
+      expect(response.headers.get('location')).toBeTruthy()
     })
 
     it('should return 404 if no completed file', async () => {
