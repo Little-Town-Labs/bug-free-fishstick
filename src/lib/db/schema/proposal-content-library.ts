@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, index, vector } from 'drizzle-orm/pg-core'
 
 export const proposalContentLibrary = pgTable(
   'proposal_content_library',
@@ -8,6 +8,7 @@ export const proposalContentLibrary = pgTable(
     category: text('category').notNull(),
     name: text('name').notNull(),
     content: text('content').notNull(),
+    embedding: vector('embedding', { dimensions: 1536 }),
     createdBy: text('created_by').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),

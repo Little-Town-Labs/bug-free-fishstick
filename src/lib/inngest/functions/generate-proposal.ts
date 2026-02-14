@@ -1,9 +1,11 @@
 import { inngest } from '@/lib/inngest/client'
 import type { GetFunctionInput } from 'inngest'
 import { db } from '@/lib/db'
-import { rfps, proposalDrafts, proposalContentLibrary } from '@/lib/db/schema'
+import { rfps, proposalDrafts } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { searchSimilar } from '@/lib/services/vector-search'
+import { searchContentLibrary } from '@/lib/services/content-library-search'
+import { listEntries } from '@/lib/services/proposal-content-library'
 import { writeProposal } from '@/lib/ai/agents/proposal-writer'
 import { updateDraftContent } from '@/lib/services/proposal-draft'
 
@@ -44,12 +46,15 @@ export const generateProposal = inngest.createFunction(
         return searchSimilar(rfpText, organizationId, 10)
       })
 
-      // Step 3: Fetch content library entries for the org
+      // Step 3: Search content library using semantic search (fallback to listing all)
       const contentLibraryEntries = await step.run('fetch-content-library', async () => {
-        return db
-          .select()
-          .from(proposalContentLibrary)
-          .where(eq(proposalContentLibrary.organizationId, organizationId))
+        const query = rfp.name
+        const results = await searchContentLibrary(query, organizationId, 5)
+        if (results.length > 0) return results
+
+        // Fallback to listing all entries if no semantic results
+        const all = await listEntries(organizationId)
+        return all.slice(0, 10).map(e => ({ ...e, similarity: 0 }))
       })
 
       // Step 4: Build RFP sections from parsed structure
@@ -73,6 +78,7 @@ export const generateProposal = inngest.createFunction(
             name: e.name,
             category: e.category,
             content: e.content,
+            similarity: 'similarity' in e ? (e as { similarity: number }).similarity : undefined,
           })),
           clarifyingAnswers: draft.clarifyingQuestions ?? [],
           organizationId,

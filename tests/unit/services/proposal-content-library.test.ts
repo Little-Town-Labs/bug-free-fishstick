@@ -9,6 +9,10 @@ vi.mock('@/lib/db', () => ({
   },
 }))
 
+vi.mock('@/lib/inngest/client', () => ({
+  inngest: { send: vi.fn().mockResolvedValue({ ids: [] }) },
+}))
+
 import { db } from '@/lib/db'
 import {
   createEntry,

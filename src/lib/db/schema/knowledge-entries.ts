@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, vector, jsonb, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, vector, jsonb, index, integer } from 'drizzle-orm/pg-core'
 import { customers } from './customers'
 
 export const knowledgeEntryTypes = [
@@ -26,6 +26,16 @@ export const knowledgeEntries = pgTable(
     // Vector embedding for semantic search (1536 dimensions)
     embedding: vector('embedding', { dimensions: 1536 }),
 
+    // Chunking (for auto-indexed documents)
+    chunkIndex: integer('chunk_index'),
+    totalChunks: integer('total_chunks'),
+    sectionHeading: text('section_heading'),
+    tags: jsonb('tags').$type<string[]>(),
+    sourceEntryId: uuid('source_entry_id'),
+    processingStatus: text('processing_status', {
+      enum: ['pending', 'chunking', 'embedding', 'complete', 'error'] as const,
+    }).notNull().default('complete'),
+
     // Source metadata
     metadata: jsonb('metadata').$type<{
       sourceFile?: string
@@ -41,6 +51,8 @@ export const knowledgeEntries = pgTable(
   (table) => [
     index('knowledge_org_idx').on(table.organizationId),
     index('knowledge_customer_idx').on(table.customerId),
+    index('knowledge_source_entry_idx').on(table.sourceEntryId),
+    index('knowledge_processing_idx').on(table.organizationId, table.processingStatus),
   ]
 )
 

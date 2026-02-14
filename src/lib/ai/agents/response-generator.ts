@@ -17,6 +17,11 @@ export interface GenerateResponsesInput {
   providerConfig: ProviderConfig
   confidenceThreshold?: number  // default 0.7
   learningsContext?: string[]  // insights from past approved RFPs
+  customerContext?: {
+    preferredTone?: 'formal' | 'casual' | 'technical'
+    industryContext?: string
+    customInstructions?: string
+  }
 }
 
 export interface GenerateResponsesResult {
@@ -50,10 +55,27 @@ export async function generateResponses(input: GenerateResponsesInput): Promise<
     ? `\n\nPrevious learnings from approved RFPs:\n${input.learningsContext.map((l) => `- ${l}`).join('\n')}`
     : ''
 
+  let customerSection = ''
+  if (input.customerContext) {
+    const parts: string[] = []
+    if (input.customerContext.preferredTone) {
+      parts.push(`Preferred tone: ${input.customerContext.preferredTone}`)
+    }
+    if (input.customerContext.industryContext) {
+      parts.push(`Industry context: ${input.customerContext.industryContext}`)
+    }
+    if (input.customerContext.customInstructions) {
+      parts.push(`Custom instructions: ${input.customerContext.customInstructions}`)
+    }
+    if (parts.length > 0) {
+      customerSection = `\n\nCustomer-Specific Guidelines:\n${parts.join('\n')}`
+    }
+  }
+
   const result = await generateObject({
     model,
     schema: responseSchema,
-    prompt: `Generate responses for the following RFP fields based on the knowledge context provided.\n\nFields:\n${JSON.stringify(input.fields)}\n\nKnowledge Context:\n${JSON.stringify(input.knowledgeContext)}${learningsSection}`,
+    prompt: `Generate responses for the following RFP fields based on the knowledge context provided.\n\nFields:\n${JSON.stringify(input.fields)}\n\nKnowledge Context:\n${JSON.stringify(input.knowledgeContext)}${learningsSection}${customerSection}`,
   })
 
   return {

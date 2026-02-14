@@ -47,6 +47,38 @@ type Events = {
       organizationId: string
     }
   }
+  'rfp/capture-learning': {
+    data: {
+      type: 'accept' | 'edit' | 'reject'
+      rfpId: string
+      fieldId: string
+      organizationId: string
+      customerId?: string
+      userId: string
+      originalText?: string
+      correctedText?: string
+      questionType?: string
+      confidence?: number
+    }
+  }
+  'content-library/generate-embedding': {
+    data: {
+      entryId: string
+      organizationId: string
+    }
+  }
+  'content-library/batch-embed': {
+    data: {
+      organizationId: string
+    }
+  }
+  'knowledge/chunk-document': {
+    data: {
+      knowledgeEntryId: string
+      organizationId: string
+      customerId?: string
+    }
+  }
 }
 
 export const inngest = new Inngest({

@@ -108,6 +108,26 @@ export function CustomerSettingsForm({ customerId, settings, isAdmin, onSave }: 
           {saving ? 'Saving...' : 'Save Settings'}
         </Button>
       )}
+
+      <div className="mt-6 space-y-2">
+        <Label>AI Prompt Preview</Label>
+        <p className="text-xs text-muted-foreground">
+          This context will be injected into the AI system prompt when generating responses for this customer.
+        </p>
+        <div
+          data-testid="prompt-preview"
+          className="rounded-md border bg-muted/50 p-3 text-sm font-mono whitespace-pre-wrap"
+          aria-label="AI prompt preview"
+        >
+          {[
+            tone ? `Preferred tone: ${tone}` : null,
+            industry ? `Industry context: ${industry}` : null,
+            instructions ? `Custom instructions: ${instructions}` : null,
+          ]
+            .filter(Boolean)
+            .join('\n') || 'No customer-specific guidelines configured.'}
+        </div>
+      </div>
     </div>
   )
 }

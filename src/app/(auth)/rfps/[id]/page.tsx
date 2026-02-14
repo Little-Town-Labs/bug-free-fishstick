@@ -11,6 +11,8 @@ import { RfpDetailSkeleton } from '@/components/shared/Skeletons'
 import type { ParsedStructure } from '@/components/rfp/DocumentPreview'
 import { DocumentViewer, type DocumentViewerHandle } from '@/components/rfp/DocumentViewer'
 import type { ProposalDraft } from '@/lib/db/schema/proposal-drafts'
+import { ClassificationBadge } from '@/components/rfp/ClassificationBadge'
+import { AssignmentSuggestion } from '@/components/rfp/AssignmentSuggestion'
 import type { Rfp } from '@/lib/db/schema/rfps'
 
 const ProposalDraftPanel = dynamic(
@@ -163,6 +165,22 @@ export default function RfpDetailPage() {
           </Link>
         </div>
       </div>
+
+      {(rfp.rfpType || rfp.complexity) && (
+        <div className="flex items-center gap-4 flex-wrap">
+          <ClassificationBadge
+            rfpType={rfp.rfpType ?? null}
+            complexity={rfp.complexity ?? null}
+            industryTags={rfp.industryTags as string[] | null}
+          />
+          <AssignmentSuggestion
+            rfpId={rfpId}
+            currentAssignee={rfp.assignedUserId}
+            suggestedAssigneeId={rfp.suggestedAssigneeId ?? null}
+            isAdmin={true}
+          />
+        </div>
+      )}
 
       {rfp.completedFileError && (
         <p role="alert" className="text-sm text-red-600">

@@ -1,0 +1,156 @@
+openapi: "3.0.3"
+info:
+  title: P1 Accuracy Flywheel API Contracts
+  version: "1.0.0"
+
+paths:
+
+  # US2: Real-Time Learning — new endpoint
+  /api/rfps/{rfpId}/responses/{fieldId}/feedback:
+    post:
+      summary: Capture learning signal from accept/edit/reject action
+      description: |
+        Fires an Inngest event to capture learning asynchronously.
+        Called by the UI after accept, edit (on save), or reject actions.
+      parameters:
+        - name: rfpId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: fieldId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type:
+                  type: string
+                  enum: [accept, edit, reject]
+                originalText:
+                  type: string
+                  description: Original AI-generated text (for edit/reject)
+                correctedText:
+                  type: string
+                  description: User-corrected text (for edit only)
+      responses:
+        "202":
+          description: Learning event queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queued: { type: boolean }
+        "401": { description: Unauthorized }
+        "404": { description: RFP or field not found }
+
+  # US3: Classification — read via existing GET /api/rfps/{rfpId}
+  # Classification fields returned in existing RFP response body:
+  #   rfpType, complexity, industryTags, suggestedAssigneeId
+
+  # US3: Accept/override suggested assignee
+  /api/rfps/{rfpId}/assign:
+    post:
+      summary: Accept or override suggested RFP assignment
+      parameters:
+        - name: rfpId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignedUserId]
+              properties:
+                assignedUserId:
+                  type: string
+                  description: User ID to assign (may match suggestedAssigneeId or override)
+      responses:
+        "200":
+          description: Assignment updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rfp: { $ref: "#/components/schemas/Rfp" }
+        "401": { description: Unauthorized }
+        "403": { description: Admin only }
+
+  # US4: Content library search (semantic)
+  /api/content-library/search:
+    get:
+      summary: Semantic search content library entries
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 5 }
+      responses:
+        "200":
+          description: Ranked content library entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/ContentLibraryEntry"
+                        - type: object
+                          properties:
+                            similarity: { type: number }
+
+  # US4: Trigger batch embedding for all content library entries
+  /api/content-library/embed:
+    post:
+      summary: Trigger batch embedding migration for all unembedded entries
+      responses:
+        "202":
+          description: Batch embedding job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queued: { type: boolean }
+                  count: { type: integer }
+        "403": { description: Admin only }
+
+  # US5: Knowledge entry processing status
+  # Returned in existing GET /api/customers/{customerId}/knowledge response
+  # New field: processingStatus on each entry
+
+components:
+  schemas:
+    Rfp:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        rfpType: { type: string, enum: [technical, commercial, compliance, mixed], nullable: true }
+        complexity: { type: string, enum: [simple, medium, complex], nullable: true }
+        industryTags: { type: array, items: { type: string }, nullable: true }
+        suggestedAssigneeId: { type: string, nullable: true }
+
+    ContentLibraryEntry:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        category: { type: string }
+        name: { type: string }
+        content: { type: string }
+        hasEmbedding: { type: boolean }
