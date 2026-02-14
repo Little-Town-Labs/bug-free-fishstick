@@ -16,14 +16,14 @@
 
 **Purpose**: Database schema additions and Inngest event type registration that all three user stories depend on.
 
-- [ ] T001 Create Drizzle migration file for new tables (`analytics_snapshots`, `integration_configs`, `sync_events`) and modified columns in `rfps` + `rfp_responses` in `drizzle/`
-- [ ] T002 [P] Create `analytics_snapshots` Drizzle schema in `src/lib/db/schema/analytics-snapshots.ts` with `organizationId`, `snapshotDate`, `period`, `metricKey`, `dimensionKey`, `metricValue`, `metadataJson`, `computedAt` columns and unique constraint
-- [ ] T003 [P] Create `integration_configs` Drizzle schema in `src/lib/db/schema/integration-configs.ts` with `organizationId`, `integrationType`, `isEnabled`, `credentialsEncrypted`, `configJson`, `status`, `lastVerifiedAt` columns and unique constraint
-- [ ] T004 [P] Create `sync_events` Drizzle schema in `src/lib/db/schema/sync-events.ts` with `organizationId`, `integrationConfigId`, `integrationType`, `eventType`, `referenceId`, `status`, `inngestEventId`, `requestPayload`, `responsePayload`, `errorMessage`, `attemptCount`, `lastAttemptAt` columns
-- [ ] T005 Add `outcome` (text nullable), `outcomeSetAt` (timestamp nullable), and `crmDealId` (text nullable) columns to `rfps` schema in `src/lib/db/schema/rfps.ts`
-- [ ] T006 Add `version` (integer NOT NULL DEFAULT 1) column to `rfp_responses` schema in `src/lib/db/schema/rfp-responses.ts`
-- [ ] T007 Export all new schemas from `src/lib/db/schema/index.ts`
-- [ ] T008 Add 5 new Inngest event type definitions to `src/lib/inngest/client.ts`: `analytics/compute-snapshots`, `analytics/compute-org-snapshot`, `integration/slack-notify`, `integration/crm-sync-rfp`, `integration/retry-failed`
+- [x] T001 Create Drizzle migration file for new tables (`analytics_snapshots`, `integration_configs`, `sync_events`) and modified columns in `rfps` + `rfp_responses` in `drizzle/`
+- [x] T002 [P] Create `analytics_snapshots` Drizzle schema in `src/lib/db/schema/analytics-snapshots.ts` with `organizationId`, `snapshotDate`, `period`, `metricKey`, `dimensionKey`, `metricValue`, `metadataJson`, `computedAt` columns and unique constraint
+- [x] T003 [P] Create `integration_configs` Drizzle schema in `src/lib/db/schema/integration-configs.ts` with `organizationId`, `integrationType`, `isEnabled`, `credentialsEncrypted`, `configJson`, `status`, `lastVerifiedAt` columns and unique constraint
+- [x] T004 [P] Create `sync_events` Drizzle schema in `src/lib/db/schema/sync-events.ts` with `organizationId`, `integrationConfigId`, `integrationType`, `eventType`, `referenceId`, `status`, `inngestEventId`, `requestPayload`, `responsePayload`, `errorMessage`, `attemptCount`, `lastAttemptAt` columns
+- [x] T005 Add `outcome` (text nullable), `outcomeSetAt` (timestamp nullable), and `crmDealId` (text nullable) columns to `rfps` schema in `src/lib/db/schema/rfps.ts`
+- [x] T006 Add `version` (integer NOT NULL DEFAULT 1) column to `rfp_responses` schema in `src/lib/db/schema/rfp-responses.ts`
+- [x] T007 Export all new schemas from `src/lib/db/schema/index.ts`
+- [x] T008 Add 5 new Inngest event type definitions to `src/lib/inngest/client.ts`: `analytics/compute-snapshots`, `analytics/compute-org-snapshot`, `integration/slack-notify`, `integration/crm-sync-rfp`, `integration/retry-failed`
 
 **Checkpoint**: Schema and event types ready — all phases can proceed
 
@@ -35,9 +35,9 @@
 
 **⚠️ CRITICAL**: Complete before user story implementation
 
-- [ ] T009 Create `src/lib/services/sse-publisher.ts` — thin abstraction over Upstash Redis pub/sub that publishes and subscribes to `rfp-stream:{rfpId}` channels; export `publishFieldUpdate(rfpId, payload)` and `subscribeToRfpStream(rfpId, onMessage, signal)` using `@upstash/redis` subscribe API or `ioredis` with `UPSTASH_REDIS_URL`
-- [ ] T010 Create `src/lib/services/integration-config.ts` — CRUD service for `integration_configs` and `sync_events`; export `getIntegrationConfig(orgId, type)`, `upsertIntegrationConfig(orgId, type, credentials, config)`, `deleteIntegrationConfig(orgId, type)`, `createSyncEvent(data)`, `updateSyncEvent(id, data)`, `listSyncEvents(orgId, filters)`; use existing `encrypt()`/`decrypt()` from `src/lib/services/encryption.ts` for `credentialsEncrypted`
-- [ ] T011 Write unit test for `integration-config.ts` in `tests/unit/services/integration-config.test.ts` — mock `db` and `encryption` module; verify encrypt/decrypt is called, upsert uses `onConflictDoUpdate`, and credentials are never returned in list results
+- [x] T009 Create `src/lib/services/sse-publisher.ts` — thin abstraction over Upstash Redis pub/sub that publishes and subscribes to `rfp-stream:{rfpId}` channels; export `publishFieldUpdate(rfpId, payload)` and `subscribeToRfpStream(rfpId, onMessage, signal)` using `@upstash/redis` subscribe API or `ioredis` with `UPSTASH_REDIS_URL`
+- [x] T010 Create `src/lib/services/integration-config.ts` — CRUD service for `integration_configs` and `sync_events`; export `getIntegrationConfig(orgId, type)`, `upsertIntegrationConfig(orgId, type, credentials, config)`, `deleteIntegrationConfig(orgId, type)`, `createSyncEvent(data)`, `updateSyncEvent(id, data)`, `listSyncEvents(orgId, filters)`; use existing `encrypt()`/`decrypt()` from `src/lib/services/encryption.ts` for `credentialsEncrypted`
+- [x] T011 Write unit test for `integration-config.ts` in `tests/unit/services/integration-config.test.ts` — mock `db` and `encryption` module; verify encrypt/decrypt is called, upsert uses `onConflictDoUpdate`, and credentials are never returned in list results
 
 **Checkpoint**: Foundation ready — user story phases can begin
 
@@ -51,20 +51,20 @@
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create `src/lib/services/analytics.ts` — export `computeOrgSnapshot(orgId, period, snapshotDate)` that runs Drizzle `sql` aggregations against `rfps`, `rfp_responses`, and `customers` tables computing win rate, volume by period, avg completion days, avg automation %, and top customers; returns typed `AnalyticsSnapshot[]` ready for upsert
-- [ ] T013 [P] [US1] Create Inngest function `src/lib/inngest/functions/compute-org-snapshot.ts` — handles `analytics/compute-org-snapshot` event; calls `computeOrgSnapshot()` in `step.run()`; upserts results to `analytics_snapshots` via Drizzle `onConflictDoUpdate`; scopes all DB access by `organizationId`
-- [ ] T014 [US1] Create Inngest function `src/lib/inngest/functions/compute-snapshots.ts` — handles `analytics/compute-snapshots` cron event; `step.run('fetch-org-ids')` fetches distinct `organizationId` values from `rfps`; `step.sendEvent('fan-out')` sends one `analytics/compute-org-snapshot` event per org (mirrors `content-library/batch-embed` pattern in `src/lib/inngest/functions/content-library-embedding.ts`)
-- [ ] T015 [US1] Register `computeSnapshots` and `computeOrgSnapshot` functions in `src/app/api/inngest/route.ts`; add Inngest cron schedule for `analytics/compute-snapshots` every 30 minutes
-- [ ] T016 [US1] Create `GET /api/analytics` route in `src/app/api/analytics/route.ts` — require auth; read `organizationId` from auth context; if admin, query `analytics_snapshots` with optional `period`, `startDate`, `endDate`, `customerId`, `rfpType` query params; if non-admin, additionally filter by `assignedUserId`; format response per `contracts/api.yaml` schema; return 200
-- [ ] T017 [P] [US1] Create `src/components/analytics/MetricCard.tsx` — reusable card for a single metric (label, value, subtitle, trend indicator); accepts `metricKey`, `value`, `unit` props; uses shadcn/ui Card
-- [ ] T018 [P] [US1] Create `src/components/analytics/VolumeChart.tsx` — bar chart of RFP volume over time using `recharts` (already in project via shadcn); accepts time-series data; includes accessible fallback `<table>` with same data for screen readers
-- [ ] T019 [P] [US1] Create `src/components/analytics/WinLossBreakdown.tsx` — grouped bar or stacked chart of win/loss by RFP type; includes accessible data table fallback
-- [ ] T020 [P] [US1] Create `src/components/analytics/TopContributors.tsx` — ranked list of team members by RFPs completed; rendered only when `isAdmin` is true; otherwise renders nothing
-- [ ] T021 [US1] Create `src/components/analytics/AnalyticsDashboard.tsx` — composes MetricCard, VolumeChart, WinLossBreakdown, TopContributors; accepts analytics API response as props; renders filter bar (date range, customer select, RFP type select) with `onChange` handlers; shows "Data as of {dataAsOf}" timestamp; shows empty state when `totalRfps === 0`
-- [ ] T022 [US1] Create analytics page `src/app/(auth)/analytics/page.tsx` — React Server Component; fetch `GET /api/analytics` server-side; pass data to `AnalyticsDashboard`; wrap in Suspense with skeleton
-- [ ] T023 [US1] Add "Analytics" nav link to `src/app/(auth)/layout.tsx` sidebar
-- [ ] T024 [P] [US1] Write unit test for `analytics.ts` service in `tests/unit/services/analytics.test.ts` — mock Drizzle `db`; verify `computeOrgSnapshot` produces correct aggregations for edge cases (zero RFPs, all statuses, multiple periods)
-- [ ] T025 [P] [US1] Write integration test for `compute-org-snapshot` Inngest function in `tests/integration/inngest/compute-org-snapshot.test.ts` — mock DB with sample RFP data; assert `analytics_snapshots` upsert is called with correct metricKey/value pairs; verify org isolation
+- [x] T012 [P] [US1] Create `src/lib/services/analytics.ts` — export `computeOrgSnapshot(orgId, period, snapshotDate)` that runs Drizzle `sql` aggregations against `rfps`, `rfp_responses`, and `customers` tables computing win rate, volume by period, avg completion days, avg automation %, and top customers; returns typed `AnalyticsSnapshot[]` ready for upsert
+- [x] T013 [P] [US1] Create Inngest function `src/lib/inngest/functions/compute-org-snapshot.ts` — handles `analytics/compute-org-snapshot` event; calls `computeOrgSnapshot()` in `step.run()`; upserts results to `analytics_snapshots` via Drizzle `onConflictDoUpdate`; scopes all DB access by `organizationId`
+- [x] T014 [US1] Create Inngest function `src/lib/inngest/functions/compute-snapshots.ts` — handles `analytics/compute-snapshots` cron event; `step.run('fetch-org-ids')` fetches distinct `organizationId` values from `rfps`; `step.sendEvent('fan-out')` sends one `analytics/compute-org-snapshot` event per org (mirrors `content-library/batch-embed` pattern in `src/lib/inngest/functions/content-library-embedding.ts`)
+- [x] T015 [US1] Register `computeSnapshots` and `computeOrgSnapshot` functions in `src/app/api/inngest/route.ts`; add Inngest cron schedule for `analytics/compute-snapshots` every 30 minutes
+- [x] T016 [US1] Create `GET /api/analytics` route in `src/app/api/analytics/route.ts` — require auth; read `organizationId` from auth context; if admin, query `analytics_snapshots` with optional `period`, `startDate`, `endDate`, `customerId`, `rfpType` query params; if non-admin, additionally filter by `assignedUserId`; format response per `contracts/api.yaml` schema; return 200
+- [x] T017 [P] [US1] Create `src/components/analytics/MetricCard.tsx` — reusable card for a single metric (label, value, subtitle, trend indicator); accepts `metricKey`, `value`, `unit` props; uses shadcn/ui Card
+- [x] T018 [P] [US1] Create `src/components/analytics/VolumeChart.tsx` — bar chart of RFP volume over time using `recharts` (already in project via shadcn); accepts time-series data; includes accessible fallback `<table>` with same data for screen readers
+- [x] T019 [P] [US1] Create `src/components/analytics/WinLossBreakdown.tsx` — grouped bar or stacked chart of win/loss by RFP type; includes accessible data table fallback
+- [x] T020 [P] [US1] Create `src/components/analytics/TopContributors.tsx` — ranked list of team members by RFPs completed; rendered only when `isAdmin` is true; otherwise renders nothing
+- [x] T021 [US1] Create `src/components/analytics/AnalyticsDashboard.tsx` — composes MetricCard, VolumeChart, WinLossBreakdown, TopContributors; accepts analytics API response as props; renders filter bar (date range, customer select, RFP type select) with `onChange` handlers; shows "Data as of {dataAsOf}" timestamp; shows empty state when `totalRfps === 0`
+- [x] T022 [US1] Create analytics page `src/app/(auth)/analytics/page.tsx` — React Server Component; fetch `GET /api/analytics` server-side; pass data to `AnalyticsDashboard`; wrap in Suspense with skeleton
+- [x] T023 [US1] Add "Analytics" nav link to `src/app/(auth)/layout.tsx` sidebar
+- [x] T024 [P] [US1] Write unit test for `analytics.ts` service in `tests/unit/services/analytics.test.ts` — mock Drizzle `db`; verify `computeOrgSnapshot` produces correct aggregations for edge cases (zero RFPs, all statuses, multiple periods)
+- [x] T025 [P] [US1] Write integration test for `compute-org-snapshot` Inngest function in `tests/integration/inngest/compute-org-snapshot.test.ts` — mock DB with sample RFP data; assert `analytics_snapshots` upsert is called with correct metricKey/value pairs; verify org isolation
 
 **Checkpoint**: Analytics dashboard fully functional — deploy/demo as MVP
 

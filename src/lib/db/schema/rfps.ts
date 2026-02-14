@@ -51,6 +51,11 @@ export const rfps = pgTable(
     // Approval workflow
     returnComments: text('return_comments'),
 
+    // Outcome tracking (set after finalization)
+    outcome: text('outcome', { enum: ['won', 'lost'] as const }),
+    outcomeSetAt: timestamp('outcome_set_at'),
+    crmDealId: text('crm_deal_id'),
+
     // Parsed document structure (cached)
     parsedStructure: jsonb('parsed_structure').$type<{
       pages: number
