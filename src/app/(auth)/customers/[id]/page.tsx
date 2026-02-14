@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
@@ -106,6 +106,22 @@ export default function CustomerDetailPage() {
     fetchEntries()
     fetchRfps()
   }, [fetchCustomer, fetchEntries, fetchRfps])
+
+  // Poll for processing status updates
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  useEffect(() => {
+    const hasProcessing = entries.some(
+      e => e.processingStatus && e.processingStatus !== 'complete' && e.processingStatus !== 'error'
+    )
+    if (hasProcessing) {
+      pollRef.current = setInterval(() => {
+        fetchEntries()
+      }, 5000)
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [entries, fetchEntries])
 
   const handleDelete = async (entryId: string) => {
     try {

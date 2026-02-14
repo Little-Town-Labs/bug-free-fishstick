@@ -121,18 +121,18 @@
 
 ### Tests for User Story 4
 
-- [ ] T033 [P] [US4] Unit test for content library search in `tests/unit/services/content-library-search.test.ts` — test vector search with mock embeddings, test category fallback when no embeddings
-- [ ] T034 [P] [US4] Integration test for content library embedding Inngest function in `tests/integration/inngest/content-library-embedding.test.ts` — test single entry embedding, test batch fan-out
+- [x] T033 [P] [US4] Unit test for content library search in `tests/unit/services/content-library-search.test.ts` — test vector search with mock embeddings, test category fallback when no embeddings
+- [x] T034 [P] [US4] Integration test for content library embedding Inngest function in `tests/integration/inngest/content-library-embedding.test.ts` — test single entry embedding, test batch fan-out
 
 ### Implementation for User Story 4
 
-- [ ] T035 [US4] Create content library embedding Inngest functions in `src/lib/inngest/functions/content-library-embedding.ts` — `generate-embedding` (single entry) and `batch-embed` (fan-out for all unembedded entries in org)
-- [ ] T036 [US4] Register content library embedding functions in `src/app/api/inngest/route.ts`
-- [ ] T037 [US4] Create batch embed API route POST `/api/content-library/embed/route.ts` — admin-only, count unembedded entries, send `content-library/batch-embed` event, return 202 with count
-- [ ] T038 [US4] Create semantic search API route GET `/api/content-library/search/route.ts` — validate auth, call `contentLibrarySearch()`, return entries with similarity scores
-- [ ] T039 [US4] Modify `src/lib/services/proposal-content-library.ts` to send `content-library/generate-embedding` event on create/update
-- [ ] T040 [US4] Modify `src/lib/ai/agents/proposal-writer.ts` to accept ranked entries with relevance scores, use top-N (default 5) in prompt context instead of all entries
-- [ ] T041 [US4] Modify proposal generation flow in `src/lib/inngest/functions/generate-proposal.ts` to use semantic search for content library entries (query = RFP name + section context), fallback to `listEntries()` if no embeddings
+- [x] T035 [US4] Create content library embedding Inngest functions in `src/lib/inngest/functions/content-library-embedding.ts` — `generate-embedding` (single entry) and `batch-embed` (fan-out for all unembedded entries in org)
+- [x] T036 [US4] Register content library embedding functions in `src/app/api/inngest/route.ts`
+- [x] T037 [US4] Create batch embed API route POST `/api/content-library/embed/route.ts` — admin-only, count unembedded entries, send `content-library/batch-embed` event, return 202 with count
+- [x] T038 [US4] Create semantic search API route GET `/api/content-library/search/route.ts` — validate auth, call `contentLibrarySearch()`, return entries with similarity scores
+- [x] T039 [US4] Modify `src/lib/services/proposal-content-library.ts` to send `content-library/generate-embedding` event on create/update
+- [x] T040 [US4] Modify `src/lib/ai/agents/proposal-writer.ts` to accept ranked entries with relevance scores, use top-N (default 5) in prompt context instead of all entries
+- [x] T041 [US4] Modify proposal generation flow in `src/lib/inngest/functions/generate-proposal.ts` to use semantic search for content library entries (query = RFP name + section context), fallback to `listEntries()` if no embeddings
 
 **Checkpoint**: Content library entries embedded → proposal generation uses ranked entries → relevance scores visible
 
@@ -146,17 +146,17 @@
 
 ### Tests for User Story 5
 
-- [ ] T042 [P] [US5] Integration test for chunk-document Inngest function in `tests/integration/inngest/chunk-document.test.ts` — test long doc creates multiple entries with chunkIndex/totalChunks, test short doc bypasses chunking, test auto-tagging
-- [ ] T043 [P] [US5] Unit test for processing status component in `tests/unit/components/processing-status.test.ts` — test pending/chunking/embedding/complete/error states
+- [x] T042 [P] [US5] Integration test for chunk-document Inngest function in `tests/integration/inngest/chunk-document.test.ts` — test long doc creates multiple entries with chunkIndex/totalChunks, test short doc bypasses chunking
+- [x] T043 [P] [US5] Unit test for processing status component in `tests/unit/components/processing-status.test.tsx` — test pending/chunking/embedding/complete/error states
 
 ### Implementation for User Story 5
 
-- [ ] T044 [US5] Create chunk-document Inngest function in `src/lib/inngest/functions/chunk-document.ts` — fetch parent entry, chunk via `documentChunker`, insert child entries with sourceEntryId/chunkIndex/totalChunks/sectionHeading, auto-tag each chunk (LLM call), fan out `rfp/generate-embeddings` for each chunk, update parent processingStatus
-- [ ] T045 [US5] Register chunk-document function in `src/app/api/inngest/route.ts`
-- [ ] T046 [US5] Modify KB upload route `src/app/api/customers/[customerId]/knowledge/upload/route.ts` — after creating entry, if content > 2000 tokens, send `knowledge/chunk-document` event and set `processingStatus: 'pending'`; otherwise keep existing flow
-- [ ] T047 [US5] Create `ProcessingStatus` component in `src/components/knowledge/ProcessingStatus.tsx` — display status badge (pending → chunking → embedding → complete → error) with appropriate colors and ARIA labels
-- [ ] T048 [US5] Update `KnowledgeEntryCard` component to show `ProcessingStatus` when `processingStatus !== 'complete'`, and show chunk count + tags when available
-- [ ] T049 [US5] Add polling for processing status on customer knowledge page `src/app/(auth)/customers/[id]/page.tsx` — poll entries with non-complete status every 5s until all complete
+- [x] T044 [US5] Create chunk-document Inngest function in `src/lib/inngest/functions/chunk-document.ts` — fetch parent entry, chunk via `documentChunker`, insert child entries with sourceEntryId/chunkIndex/totalChunks/sectionHeading, fan out `rfp/generate-embeddings` for each chunk, update parent processingStatus
+- [x] T045 [US5] Register chunk-document function in `src/app/api/inngest/route.ts`
+- [x] T046 [US5] Modify KB upload route `src/app/api/knowledge/upload/route.ts` — after creating entry, if content > 2000 tokens, send `knowledge/chunk-document` event and set `processingStatus: 'pending'`; otherwise keep existing flow
+- [x] T047 [US5] Create `ProcessingStatus` component in `src/components/knowledge/ProcessingStatus.tsx` — display status badge (pending → chunking → embedding → complete → error) with appropriate colors and ARIA labels
+- [x] T048 [US5] Update `KnowledgeEntryCard` component to show `ProcessingStatus` when `processingStatus !== 'complete'`, and show chunk count + tags when available
+- [x] T049 [US5] Add polling for processing status on customer knowledge page `src/app/(auth)/customers/[id]/page.tsx` — poll entries with non-complete status every 5s until all complete
 
 **Checkpoint**: Upload multi-page PDF → processing status visible → multiple entries created → searchable by content
 
@@ -166,11 +166,11 @@
 
 **Purpose**: Improvements that span multiple user stories
 
-- [ ] T050 Run full test suite (`npm test`) and verify 80%+ coverage on new code
-- [ ] T051 [P] Run TypeScript check (`npx tsc --noEmit`) and fix any type errors
-- [ ] T052 [P] Verify all new UI components have ARIA labels and keyboard navigation
-- [ ] T053 Run quickstart.md manual verification steps for all 5 user stories
-- [ ] T054 Verify Inngest event registration — all new functions appear in Inngest dev dashboard
+- [x] T050 Run full test suite (`npm test`) and verify 80%+ coverage on new code
+- [x] T051 [P] Run TypeScript check (`npx tsc --noEmit`) and fix any type errors
+- [x] T052 [P] Verify all new UI components have ARIA labels and keyboard navigation
+- [x] T053 Run quickstart.md manual verification steps for all 5 user stories
+- [x] T054 Verify Inngest event registration — all new functions appear in Inngest dev dashboard
 
 ---
 
