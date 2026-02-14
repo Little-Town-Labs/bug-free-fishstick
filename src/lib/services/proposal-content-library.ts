@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { proposalContentLibrary } from '@/lib/db/schema'
 import { eq, and, ilike } from 'drizzle-orm'
+import { inngest } from '@/lib/inngest/client'
 import type {
   ProposalContentLibraryEntry,
   NewProposalContentLibraryEntry,
@@ -23,6 +24,12 @@ export async function createEntry(
       content: data.content,
     } satisfies Omit<NewProposalContentLibraryEntry, 'id' | 'createdAt' | 'updatedAt'>)
     .returning()
+
+  // Trigger embedding generation asynchronously
+  await inngest.send({
+    name: 'content-library/generate-embedding',
+    data: { entryId: entry!.id, organizationId: orgId },
+  })
 
   return entry!
 }
@@ -81,7 +88,7 @@ export async function updateEntry(
 
   const [updated] = await db
     .update(proposalContentLibrary)
-    .set({ ...patch, updatedAt: new Date() })
+    .set({ ...patch, embedding: null, updatedAt: new Date() })
     .where(
       and(
         eq(proposalContentLibrary.id, id),
@@ -89,6 +96,12 @@ export async function updateEntry(
       )
     )
     .returning()
+
+  // Re-generate embedding for updated content
+  await inngest.send({
+    name: 'content-library/generate-embedding',
+    data: { entryId: id, organizationId: orgId },
+  })
 
   return updated!
 }

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import type { KnowledgeEntryType } from '@/lib/db/schema/knowledge-entries'
+import { ProcessingStatus } from './ProcessingStatus'
 
 interface KnowledgeEntry {
   id: string
@@ -12,6 +13,9 @@ interface KnowledgeEntry {
   title: string
   content: string
   metadata: Record<string, unknown> | null
+  processingStatus?: string
+  totalChunks?: number | null
+  tags?: string[] | null
   createdAt: string | Date
   updatedAt: string | Date
 }
@@ -61,6 +65,14 @@ export function KnowledgeEntryCard({ entry, onDelete }: KnowledgeEntryCardProps)
             <span data-testid="knowledge-title" className="font-semibold text-sm">
               {entry.title}
             </span>
+            {entry.processingStatus && entry.processingStatus !== 'complete' && (
+              <ProcessingStatus status={entry.processingStatus} />
+            )}
+            {entry.totalChunks && entry.totalChunks > 1 && (
+              <Badge variant="outline" className="text-xs">
+                {entry.totalChunks} chunks
+              </Badge>
+            )}
           </div>
           {onDelete && (
             <Button
@@ -79,6 +91,13 @@ export function KnowledgeEntryCard({ entry, onDelete }: KnowledgeEntryCardProps)
         <p data-testid="knowledge-content-preview" className="text-sm text-muted-foreground mb-3">
           {contentPreview}
         </p>
+        {entry.tags && entry.tags.length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap mb-2">
+            {entry.tags.map(tag => (
+              <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+            ))}
+          </div>
+        )}
         <div data-testid="knowledge-metadata" className="flex items-center gap-4 text-xs text-muted-foreground">
           <span>Created: {formatDate(entry.createdAt)}</span>
           <span>Updated: {formatDate(entry.updatedAt)}</span>

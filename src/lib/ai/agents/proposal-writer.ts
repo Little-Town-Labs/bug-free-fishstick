@@ -16,6 +16,7 @@ export interface WriteProposalInput {
     name: string
     category: string
     content: string
+    similarity?: number
   }>
   clarifyingAnswers: ClarifyingQuestion[]
   organizationId: string
@@ -45,7 +46,10 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
     : '(No knowledge base documents available.)'
 
   const libraryText = contentLibraryEntries.length > 0
-    ? contentLibraryEntries.map(e => `[${e.category}] ${e.name}:\n${e.content}`).join('\n\n')
+    ? contentLibraryEntries.map(e => {
+        const relevance = e.similarity !== undefined ? ` (relevance: ${Math.round(e.similarity * 100)}%)` : ''
+        return `[${e.category}] ${e.name}${relevance}:\n${e.content}`
+      }).join('\n\n')
     : '(No content library entries available.)'
 
   const answersText = clarifyingAnswers.length > 0

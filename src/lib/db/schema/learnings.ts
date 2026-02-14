@@ -1,10 +1,13 @@
-import { pgTable, text, timestamp, uuid, jsonb, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, jsonb, index, real } from 'drizzle-orm/pg-core'
 import { customers } from './customers'
 
 export const learningSourceTypes = [
   'rfp_approval',
   'user_correction',
   'manual_entry',
+  'accept_signal',
+  'edit_correction',
+  'reject_signal',
 ] as const
 export type LearningSourceType = (typeof learningSourceTypes)[number]
 
@@ -21,6 +24,11 @@ export const learnings = pgTable(
     content: text('content').notNull(),
     sourceType: text('source_type', { enum: learningSourceTypes }).notNull(),
     createdBy: text('created_by').notNull(),
+
+    // Response context
+    fieldId: text('field_id'),
+    questionType: text('question_type'),
+    confidence: real('confidence'),
 
     // Source reference
     sourceMetadata: jsonb('source_metadata').$type<{

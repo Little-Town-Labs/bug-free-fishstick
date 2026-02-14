@@ -42,6 +42,12 @@ export const rfps = pgTable(
     automationPercentage: real('automation_percentage').default(0),
     version: integer('version').notNull().default(1),
 
+    // Classification (auto-detected during processing)
+    rfpType: text('rfp_type', { enum: ['technical', 'commercial', 'compliance', 'mixed'] as const }),
+    complexity: text('complexity', { enum: ['simple', 'medium', 'complex'] as const }),
+    industryTags: jsonb('industry_tags').$type<string[]>(),
+    suggestedAssigneeId: text('suggested_assignee_id'),
+
     // Approval workflow
     returnComments: text('return_comments'),
 
@@ -65,6 +71,8 @@ export const rfps = pgTable(
     index('rfps_customer_idx').on(table.customerId),
     index('rfps_user_idx').on(table.assignedUserId),
     index('rfps_status_idx').on(table.status),
+    index('rfps_type_idx').on(table.organizationId, table.rfpType),
+    index('rfps_complexity_idx').on(table.organizationId, table.complexity),
   ]
 )
 

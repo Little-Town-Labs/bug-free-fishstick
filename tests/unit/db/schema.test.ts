@@ -184,6 +184,6 @@ describe('learnings schema', () => {
   })
 
   it('should define valid learning source types', () => {
-    expect(learningSourceTypes).toEqual(['rfp_approval', 'user_correction', 'manual_entry'])
+    expect(learningSourceTypes).toEqual(['rfp_approval', 'user_correction', 'manual_entry', 'accept_signal', 'edit_correction', 'reject_signal'])
   })
 })

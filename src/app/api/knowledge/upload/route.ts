@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     ])
 
     // Create knowledge entry with null customerId (org-level)
+    const estimatedTokens = Math.ceil(content.length / 4)
     const [created] = await db
       .insert(knowledgeEntries)
       .values({
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
         type: type as KnowledgeEntryType,
         title,
         content,
+        processingStatus: estimatedTokens > 2000 ? 'pending' : 'complete',
         metadata: {
           sourceFile: file.name,
           sourceUrl: blob.url,
@@ -61,15 +63,25 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to create knowledge entry')
     }
 
-    // Trigger embedding generation after response is sent — non-blocking
-    after(() => inngest.send({
-      name: 'rfp/generate-embeddings',
-      data: {
-        knowledgeEntryId: created.id,
-        organizationId: auth.orgId,
-        content,
-      },
-    }))
+    // Large documents get chunked first; small ones get direct embedding
+    if (estimatedTokens > 2000) {
+      after(() => inngest.send({
+        name: 'knowledge/chunk-document',
+        data: {
+          knowledgeEntryId: created.id,
+          organizationId: auth.orgId,
+        },
+      }))
+    } else {
+      after(() => inngest.send({
+        name: 'rfp/generate-embeddings',
+        data: {
+          knowledgeEntryId: created.id,
+          organizationId: auth.orgId,
+          content,
+        },
+      }))
+    }
 
     return NextResponse.json({ entry: created }, { status: 201 })
   } catch (error) {

@@ -18,6 +18,14 @@ vi.mock('@/lib/services/vector-search', () => ({
   searchSimilar: vi.fn().mockResolvedValue([]),
 }))
 
+vi.mock('@/lib/services/content-library-search', () => ({
+  searchContentLibrary: vi.fn().mockResolvedValue([]),
+}))
+
+vi.mock('@/lib/services/proposal-content-library', () => ({
+  listEntries: vi.fn().mockResolvedValue([]),
+}))
+
 vi.mock('@/lib/services/proposal-draft', () => ({
   updateDraftContent: vi.fn(),
 }))
@@ -31,6 +39,7 @@ import { searchSimilar } from '@/lib/services/vector-search'
 import { updateDraftContent } from '@/lib/services/proposal-draft'
 import { writeProposal } from '@/lib/ai/agents/proposal-writer'
 import { generateProposal } from '@/lib/inngest/functions/generate-proposal'
+import { searchContentLibrary } from '@/lib/services/content-library-search'
 
 function createMockStep() {
   return {
@@ -107,15 +116,20 @@ describe('generate-proposal Inngest function', () => {
     vi.clearAllMocks()
   })
 
-  const threeCallSequence = (libraryRows = mockContentLibraryEntries) => mockSelectSequence([
-    { type: 'limited', rows: [mockDraft] },
-    { type: 'limited', rows: [mockRfp] },
-    { type: 'multi', rows: libraryRows },
-  ])
+  const twoCallSequence = (libraryRows = mockContentLibraryEntries) => {
+    mockSelectSequence([
+      { type: 'limited', rows: [mockDraft] },
+      { type: 'limited', rows: [mockRfp] },
+    ])
+    // Content library is now fetched via searchContentLibrary, not direct DB select
+    vi.mocked(searchContentLibrary).mockResolvedValue(
+      libraryRows.map(r => ({ ...r, similarity: 0.8 })) as any
+    )
+  }
 
   describe('success path', () => {
     it('should call updateDraftContent and set status to draft on success', async () => {
-      threeCallSequence()
+      twoCallSequence()
       vi.mocked(writeProposal).mockResolvedValue({ markdownContent: mockMarkdown })
       vi.mocked(updateDraftContent).mockResolvedValue({ ...mockDraft, status: 'draft', markdownContent: mockMarkdown } as any)
 
@@ -128,7 +142,7 @@ describe('generate-proposal Inngest function', () => {
     })
 
     it('should call searchSimilar for knowledge context', async () => {
-      threeCallSequence([])
+      twoCallSequence([])
       vi.mocked(writeProposal).mockResolvedValue({ markdownContent: mockMarkdown })
       vi.mocked(updateDraftContent).mockResolvedValue({ ...mockDraft, status: 'draft' } as any)
 
@@ -141,7 +155,7 @@ describe('generate-proposal Inngest function', () => {
     })
 
     it('should pass content library entries to writeProposal', async () => {
-      threeCallSequence(mockContentLibraryEntries)
+      twoCallSequence(mockContentLibraryEntries)
       vi.mocked(writeProposal).mockResolvedValue({ markdownContent: mockMarkdown })
       vi.mocked(updateDraftContent).mockResolvedValue({ ...mockDraft, status: 'draft', markdownContent: mockMarkdown } as any)
 
@@ -165,7 +179,7 @@ describe('generate-proposal Inngest function', () => {
     })
 
     it('should call writeProposal with empty contentLibraryEntries when library is empty', async () => {
-      threeCallSequence([])
+      twoCallSequence([])
       vi.mocked(writeProposal).mockResolvedValue({ markdownContent: mockMarkdown })
       vi.mocked(updateDraftContent).mockResolvedValue({ ...mockDraft, status: 'draft' } as any)
 
@@ -180,7 +194,7 @@ describe('generate-proposal Inngest function', () => {
     })
 
     it('should only fetch content library entries for the correct org (tenant isolation)', async () => {
-      threeCallSequence()
+      twoCallSequence()
       vi.mocked(writeProposal).mockResolvedValue({ markdownContent: mockMarkdown })
       vi.mocked(updateDraftContent).mockResolvedValue({ ...mockDraft, status: 'draft' } as any)
 
@@ -189,14 +203,14 @@ describe('generate-proposal Inngest function', () => {
 
       await (generateProposal as unknown as Function)({ event, step })
 
-      // The function should have fetched content library entries (3 select calls: draft, rfp, library)
-      expect(db.select).toHaveBeenCalledTimes(3)
+      // Content library is now fetched via searchContentLibrary with org scoping
+      expect(searchContentLibrary).toHaveBeenCalledWith(expect.any(String), 'org-1', 5)
     })
   })
 
   describe('failure path', () => {
     it('should set status to error with generationError message when LLM fails', async () => {
-      threeCallSequence([])
+      twoCallSequence([])
       vi.mocked(writeProposal).mockRejectedValue(new Error('LLM provider error'))
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn().mockReturnValue({

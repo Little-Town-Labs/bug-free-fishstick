@@ -235,6 +235,7 @@ export function RfpEditor({
             responses.map((response) => (
               <ResponseCard
                 key={response.id}
+                rfpId={rfpId}
                 fieldId={response.fieldId}
                 question={response.question}
                 responseText={response.responseText}

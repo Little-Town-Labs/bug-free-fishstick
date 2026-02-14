@@ -11,7 +11,10 @@ import { analyzeDocument } from '@/lib/ai/agents/document-analyzer'
 import { generateResponses } from '@/lib/ai/agents/response-generator'
 import { checkQuality } from '@/lib/ai/agents/quality-checker'
 import { searchSimilar } from '@/lib/services/vector-search'
-import { eq } from 'drizzle-orm'
+import { classifyRfp } from '@/lib/ai/agents/rfp-classifier'
+import { suggestAssignee } from '@/lib/services/rfp-classifier'
+import { eq, and } from 'drizzle-orm'
+import { customers } from '@/lib/db/schema/customers'
 
 export const processRfp = inngest.createFunction(
   { id: 'process-rfp' },
@@ -64,16 +67,71 @@ export const processRfp = inngest.createFunction(
       })
     })
 
-    // Step 5: Generate responses
+    // Step 4.5: Classify RFP
+    const classification = await step.run('classify-rfp', async () => {
+      try {
+        const result = await classifyRfp({
+          documentText: parsedDoc.text,
+          fieldCount: analyzed.fields.length,
+          fieldTypes: analyzed.fields.map(f => f.type),
+          providerConfig: { provider: 'claude' },
+        })
+
+        // Suggest assignee based on classification
+        // For now, use existing assigned user as the only candidate
+        const suggested = await suggestAssignee(
+          organizationId,
+          result.rfpType,
+          [rfp.assignedUserId],
+        )
+
+        await db.update(rfps).set({
+          rfpType: result.rfpType,
+          complexity: result.complexity,
+          industryTags: result.industryTags,
+          suggestedAssigneeId: suggested,
+        }).where(eq(rfps.id, rfpId))
+
+        return result
+      } catch {
+        // Classification is non-critical — don't fail the pipeline
+        return null
+      }
+    })
+
+    // Step 5: Generate responses with customer context
     const generatedResponses = await step.run('generate-responses', async () => {
-      // Fetch knowledge context and learnings in parallel
-      const [knowledgeContext, orgLearnings] = await Promise.all([
-        searchSimilar(rfp.name, organizationId, 10, rfp.customerId ?? undefined).then((results) =>
+      // Fetch knowledge context, learnings, and customer settings in parallel
+      const customerId = rfp.customerId ?? undefined
+      const [knowledgeContext, orgLearnings, customerResults] = await Promise.all([
+        searchSimilar(rfp.name, organizationId, 10, customerId).then((results) =>
           results.map((r) => ({ content: r.content, relevanceScore: r.similarity, source: r.title }))
         ),
         db.select().from(learnings).where(eq(learnings.organizationId, organizationId)),
+        customerId
+          ? db.select().from(customers).where(
+              and(eq(customers.id, customerId), eq(customers.organizationId, organizationId))
+            )
+          : Promise.resolve([]),
       ])
-      const learningsContext = orgLearnings.map((l) => l.content)
+
+      // Prioritize customer-specific learnings
+      const customerLearnings = orgLearnings.filter(l => l.customerId === customerId)
+      const orgOnlyLearnings = orgLearnings.filter(l => !l.customerId)
+      const learningsContext = [
+        ...customerLearnings.map(l => l.content),
+        ...orgOnlyLearnings.map(l => l.content),
+      ]
+
+      // Build customer context from settings
+      const customer = customerResults[0]
+      const customerContext = customer?.settings
+        ? {
+            preferredTone: customer.settings.preferredTone,
+            industryContext: customer.settings.industryContext,
+            customInstructions: customer.settings.customInstructions,
+          }
+        : undefined
 
       return await generateResponses({
         fields: analyzed.fields.map(f => ({
@@ -83,6 +141,7 @@ export const processRfp = inngest.createFunction(
         })),
         knowledgeContext,
         learningsContext,
+        customerContext,
         providerConfig: { provider: 'claude' },
       })
     })

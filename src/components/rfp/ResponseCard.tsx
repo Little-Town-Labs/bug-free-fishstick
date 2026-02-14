@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface ResponseCardProps {
+  rfpId?: string
   fieldId: string
   question: string
   responseText: string | null
@@ -32,7 +33,16 @@ const STATUS_LABELS: Record<ResponseCardProps['status'], string> = {
   approved: 'Approved',
 }
 
+function sendFeedback(rfpId: string, fieldId: string, type: string, originalText?: string, correctedText?: string) {
+  fetch(`/api/rfps/${rfpId}/responses/${fieldId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, originalText, correctedText }),
+  }).catch(() => {/* fire-and-forget */})
+}
+
 export function ResponseCard({
+  rfpId,
   fieldId,
   question,
   responseText,
@@ -73,6 +83,9 @@ export function ResponseCard({
   }
 
   function handleSave() {
+    if (rfpId && status === 'auto_filled') {
+      sendFeedback(rfpId, fieldId, 'edit', responseText ?? undefined, editValue)
+    }
     onEdit?.(fieldId, editValue)
     setIsEditing(false)
   }
@@ -143,7 +156,10 @@ export function ResponseCard({
               {onAccept && (
                 <Button
                   size="sm"
-                  onClick={() => onAccept(fieldId)}
+                  onClick={() => {
+                    if (rfpId) sendFeedback(rfpId, fieldId, 'accept')
+                    onAccept(fieldId)
+                  }}
                   disabled={isLoading}
                 >
                   Accept
@@ -163,7 +179,10 @@ export function ResponseCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => onReject(fieldId)}
+                  onClick={() => {
+                    if (rfpId) sendFeedback(rfpId, fieldId, 'reject', responseText ?? undefined)
+                    onReject(fieldId)
+                  }}
                   disabled={isLoading}
                 >
                   Reject
