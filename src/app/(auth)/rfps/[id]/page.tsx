@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -13,7 +14,11 @@ import { DocumentViewer, type DocumentViewerHandle } from '@/components/rfp/Docu
 import type { ProposalDraft } from '@/lib/db/schema/proposal-drafts'
 import { ClassificationBadge } from '@/components/rfp/ClassificationBadge'
 import { AssignmentSuggestion } from '@/components/rfp/AssignmentSuggestion'
+import { PresenceIndicator } from '@/components/rfp/PresenceIndicator'
+import { ActivityLog } from '@/components/rfp/ActivityLog'
+import { OutcomeSelector } from '@/components/rfp/OutcomeSelector'
 import type { Rfp } from '@/lib/db/schema/rfps'
+import type { RfpResponse } from '@/lib/db/schema/rfp-responses'
 
 const ProposalDraftPanel = dynamic(
   () => import('@/components/rfp/ProposalDraftPanel').then((m) => m.ProposalDraftPanel),
@@ -23,13 +28,17 @@ const ProposalDraftPanel = dynamic(
 export default function RfpDetailPage() {
   const params = useParams<{ id: string }>()
   const rfpId = params.id
+  const { userId } = useAuth()
 
   const [rfp, setRfp] = useState<Rfp | null>(null)
   const [loading, setLoading] = useState(true)
   const [drafts, setDrafts] = useState<ProposalDraft[]>([])
   const [loadingDrafts, setLoadingDrafts] = useState(true)
+  const [responses, setResponses] = useState<RfpResponse[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const docViewerRef = useRef<DocumentViewerHandle>(null)
+  const esRef = useRef<EventSource | null>(null)
+  const esReconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Fetch RFP data
   useEffect(() => {
@@ -95,6 +104,56 @@ export default function RfpDetailPage() {
     }
   }, [rfp?.status, rfp?.completedFileUrl, rfp?.completedFileError, rfpId])
 
+  // SSE stream for real-time field updates
+  useEffect(() => {
+    let cancelled = false
+
+    const connect = () => {
+      if (cancelled) return
+      const es = new EventSource(`/api/rfps/${rfpId}/stream`)
+      esRef.current = es
+
+      es.addEventListener('field-updated', (e: MessageEvent) => {
+        try {
+          const payload = JSON.parse(e.data as string) as {
+            fieldId: string
+            value: string | null
+            version: number
+            updatedAt: string
+          }
+          setResponses((prev) =>
+            prev.map((r) =>
+              r.fieldId === payload.fieldId
+                ? { ...r, responseText: payload.value, version: payload.version, updatedAt: new Date(payload.updatedAt) }
+                : r
+            )
+          )
+        } catch {
+          // ignore malformed events
+        }
+      })
+
+      es.onerror = () => {
+        es.close()
+        esRef.current = null
+        if (!cancelled) {
+          esReconnectRef.current = setTimeout(connect, 5_000)
+        }
+      }
+    }
+
+    connect()
+
+    return () => {
+      cancelled = true
+      if (esReconnectRef.current) clearTimeout(esReconnectRef.current)
+      if (esRef.current) {
+        esRef.current.close()
+        esRef.current = null
+      }
+    }
+  }, [rfpId])
+
   const handleMarkdownExport = useCallback(async () => {
     try {
       const res = await fetch(`/api/rfps/${rfpId}/proposals`)
@@ -137,8 +196,15 @@ export default function RfpDetailPage() {
         </Link>
         <h1 className="text-2xl font-bold">{rfp.name}</h1>
         <div className="ml-auto flex items-center gap-2">
+          {userId && (
+            <PresenceIndicator rfpId={rfpId} currentUserId={userId} />
+          )}
           {isFinalized && (
             <>
+              <OutcomeSelector
+                rfp={{ id: rfp.id, status: rfp.status, outcome: rfp.outcome ?? null, crmDealId: rfp.crmDealId ?? null }}
+                onOutcomeSet={(outcome) => setRfp((prev) => prev ? { ...prev, outcome } : prev)}
+              />
               <Button
                 variant="default"
                 disabled={isGenerating}
@@ -201,7 +267,7 @@ export default function RfpDetailPage() {
           documentUrl={rfp.originalFileUrl ?? null}
           documentType={rfp.originalFileType as 'pdf' | 'docx' | null}
           parsedStructure={rfp.parsedStructure as ParsedStructure | null}
-          responses={[]}
+          responses={responses}
           onItemClick={(_fieldId, page) => {
             if (page !== undefined) docViewerRef.current?.scrollToPage(page)
           }}
@@ -216,6 +282,13 @@ export default function RfpDetailPage() {
           }
         />
       </Suspense>
+
+      {responses.length > 0 && (
+        <section aria-label="Activity log">
+          <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Recent Edits</h2>
+          <ActivityLog responses={responses} />
+        </section>
+      )}
 
       {!loadingDrafts && (
         <ProposalDraftPanel rfpId={rfpId} initialDrafts={drafts} />

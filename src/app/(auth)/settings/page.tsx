@@ -9,6 +9,7 @@ const tabs = [
   { label: 'General', href: '/settings' },
   { label: 'Users', href: '/settings/users' },
   { label: 'LLM Configuration', href: '/settings/llm' },
+  { label: 'Integrations', href: '/settings/integrations' },
 ]
 
 export default function SettingsPage() {

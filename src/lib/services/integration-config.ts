@@ -12,6 +12,9 @@ import {
 } from '@/lib/db/schema'
 import { encrypt, decrypt } from '@/lib/services/encryption'
 
+// Re-export IntegrationType for consumers
+export type { IntegrationType }
+
 // ---------------------------------------------------------------------------
 // Integration config CRUD
 // ---------------------------------------------------------------------------
