@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { validateTransition, WorkflowError } from '@/lib/services/rfp-workflow'
 import { inngest } from '@/lib/inngest/client'
+import { getIntegrationConfig } from '@/lib/services/integration-config'
 
 export async function POST(
   _request: NextRequest,
@@ -36,6 +37,25 @@ export async function POST(
       name: 'rfp/extract-learnings',
       data: { rfpId, organizationId: auth.orgId },
     })
+
+    // Fire Slack notification if configured
+    try {
+      const slackConfig = await getIntegrationConfig(auth.orgId, 'slack')
+      if (slackConfig && slackConfig.isEnabled) {
+        await inngest.send({
+          name: 'integration/slack-notify',
+          data: {
+            organizationId: auth.orgId,
+            eventType: 'rfp_approved',
+            rfpId,
+            rfpName: updated?.name ?? rfpId,
+            actorUserId: auth.userId,
+          },
+        })
+      }
+    } catch {
+      // Non-blocking
+    }
 
     return NextResponse.json({ rfp: updated })
   } catch (error) {

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, real, jsonb, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, real, integer, jsonb, index } from 'drizzle-orm/pg-core'
 import { rfps } from './rfps'
 
 export const responseStatuses = ['auto_filled', 'needs_input', 'manually_filled', 'approved'] as const
@@ -42,6 +42,9 @@ export const rfpResponses = pgTable(
       modelUsed?: string
       generatedAt?: string
     }>(),
+
+    // Optimistic locking for real-time conflict detection
+    version: integer('version').notNull().default(1),
 
     // Timestamps
     createdAt: timestamp('created_at').notNull().defaultNow(),

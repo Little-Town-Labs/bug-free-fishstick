@@ -302,6 +302,15 @@ See the `templates/` directory in the [LTLClaude repository](https://github.com/
 - TypeScript 5.0+ (strict mode), Node.js 18.19.1 + Next.js 15, React 19, Drizzle ORM 0.45+, Inngest, Vercel AI SDK, shadcn/ui, react-pdf (new), pdfjs-dist (new) (002-p0-critical-gaps)
 - Neon PostgreSQL + pgvector, Vercel Blob, Vercel KV (002-p0-critical-gaps)
 - TypeScript 5.0+ (strict mode), Node.js 18.19.1 + Next.js 15, React 19 + Drizzle ORM 0.45+, Inngest, Vercel AI SDK, shadcn/ui, pgvector (all existing) (003-p1-accuracy-flywheel)
+- TypeScript 5.0+ (strict mode), Node.js 18.19.1 + Next.js 15, React 19 + Drizzle ORM 0.45+, Inngest, Vercel AI SDK, shadcn/ui, recharts (new), @upstash/redis pub/sub (new) (004-team-scaling-insights)
+
+## 004-team-scaling-insights Status: COMPLETE
+- Branch: `004-team-scaling-insights`; 59 tasks across 6 phases
+- US1: Analytics dashboard — MetricCard, VolumeChart, WinLossBreakdown, TopContributors, AnalyticsDashboard; pre-computed snapshots via Inngest cron; GET /api/analytics with KV caching
+- US2: Real-time collaboration — SSE stream route, presence heartbeat/scan, version-based optimistic locking on rfp_responses, PresenceIndicator, ActivityLog, ConflictResolver, OutcomeSelector
+- US3: CRM/Slack integrations — slack-notify.ts, crm-sync-rfp.ts, retry-failed-sync.ts Inngest functions; integration settings pages; SlackConfigForm, CrmConfigForm, IntegrationCard, SyncEventLog; wired into assign/approve/return/outcome routes
+- New schema: analytics_snapshots, integration_configs, sync_events; rfps (+outcome/outcomeSetAt/crmDealId); rfp_responses (+version)
+- Migration: drizzle/0007_team_scaling_insights.sql
 
 ## Recent Changes
 - 001-rfp-automation-core: Added TypeScript 5.0+ (strict mode), Node.js 20+

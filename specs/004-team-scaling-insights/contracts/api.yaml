@@ -1,0 +1,434 @@
+openapi: 3.1.0
+info:
+  title: Team Scaling & Business Insights API
+  version: "1.0"
+  description: |
+    New and modified API routes for analytics dashboard, real-time collaboration,
+    and CRM/Slack integrations.
+
+paths:
+
+  # ─────────────────────────────────────────────────
+  # ANALYTICS
+  # ─────────────────────────────────────────────────
+
+  /api/analytics:
+    get:
+      summary: Get org analytics dashboard data
+      description: |
+        Returns pre-computed metric snapshots for the authenticated org.
+        Admins receive org-wide data; non-admin members receive only metrics
+        scoped to their own assignments. Cached in Vercel KV (30 min TTL).
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+          description: Aggregation period (default: week)
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter start date (ISO 8601)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter end date (ISO 8601)
+        - name: customerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Scope metrics to a specific customer
+        - name: rfpType
+          in: query
+          schema:
+            type: string
+            enum: [technical, commercial, compliance, mixed]
+          description: Scope metrics to a specific RFP type
+      responses:
+        "200":
+          description: Analytics snapshot data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    properties:
+                      totalRfps: { type: integer }
+                      winRate: { type: number, description: "0.0–1.0" }
+                      avgCompletionDays: { type: number }
+                      activeMembers: { type: integer }
+                  volumeTimeSeries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        count: { type: integer }
+                  winLossByType:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        rfpType: { type: string }
+                        won: { type: integer }
+                        lost: { type: integer }
+                        pending: { type: integer }
+                  topContributors:
+                    type: array
+                    description: Admin only; empty array for non-admin
+                    items:
+                      type: object
+                      properties:
+                        userId: { type: string }
+                        displayName: { type: string }
+                        rfpsCompleted: { type: integer }
+                  dataAsOf: { type: string, format: date-time }
+        "401": { description: Unauthenticated }
+
+  # ─────────────────────────────────────────────────
+  # REAL-TIME COLLABORATION
+  # ─────────────────────────────────────────────────
+
+  /api/rfps/{rfpId}/stream:
+    get:
+      summary: SSE stream for real-time field updates
+      description: |
+        Server-Sent Events stream. Subscribes to the Redis pub/sub channel for
+        this RFP. Emits `field-updated` events when any user saves a response field.
+        Client must handle reconnection (Vercel Function max duration ~60s).
+      parameters:
+        - name: rfpId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  SSE events:
+                  event: field-updated
+                  data: { "responseId": "uuid", "fieldId": "string", "value": "string", "updatedBy": "userId", "version": 2 }
+
+                  event: heartbeat
+                  data: { "ts": "ISO8601" }
+        "401": { description: Unauthenticated }
+
+  /api/rfps/{rfpId}/presence:
+    get:
+      summary: Get current viewers of an RFP
+      description: Returns list of users currently viewing this RFP (from KV TTL keys).
+      parameters:
+        - name: rfpId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Active presence list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  viewers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId: { type: string }
+                        displayName: { type: string }
+                        avatarUrl: { type: string }
+                        color: { type: string, description: "Hex color for avatar ring" }
+                        lastSeenAt: { type: string, format: date-time }
+        "401": { description: Unauthenticated }
+
+    post:
+      summary: Heartbeat — register/refresh viewer presence
+      description: |
+        Called every 10 seconds by any client viewing the RFP. Upserts a KV key
+        with 30s TTL. No request body required.
+      parameters:
+        - name: rfpId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Presence registered }
+        "401": { description: Unauthenticated }
+
+  /api/rfps/{rfpId}/responses/{responseId}:
+    patch:
+      summary: Save a response field (with optimistic locking)
+      description: |
+        Saves updated response content. Requires `version` field matching the
+        current DB version for optimistic locking. On success, publishes a
+        field-updated event to the Redis pub/sub channel for this RFP.
+        Returns 409 on version conflict.
+      parameters:
+        - name: rfpId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: responseId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value, version]
+              properties:
+                value: { type: string, description: "Updated response text" }
+                version: { type: integer, description: "Expected current version for optimistic locking" }
+      responses:
+        "200":
+          description: Updated response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  value: { type: string }
+                  version: { type: integer, description: "New version number" }
+                  updatedAt: { type: string, format: date-time }
+        "409":
+          description: Version conflict — another user saved first
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Version conflict" }
+                  currentVersion: { type: integer }
+                  currentValue: { type: string }
+                  yourValue: { type: string }
+        "401": { description: Unauthenticated }
+
+  /api/rfps/{rfpId}/outcome:
+    patch:
+      summary: Set RFP outcome (won/lost)
+      description: |
+        Records the business outcome of a finalized RFP. Triggers the
+        integration/crm-sync-rfp Inngest event if a CRM integration is configured.
+        Only callable on RFPs with status 'finalized'.
+      parameters:
+        - name: rfpId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome]
+              properties:
+                outcome:
+                  type: string
+                  enum: [won, lost]
+                crmDealId:
+                  type: string
+                  description: Optional CRM deal ID to link for sync
+      responses:
+        "200":
+          description: Outcome recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  outcome: { type: string }
+                  outcomeSetAt: { type: string, format: date-time }
+        "400": { description: RFP not in finalized status }
+        "401": { description: Unauthenticated }
+
+  # ─────────────────────────────────────────────────
+  # INTEGRATIONS
+  # ─────────────────────────────────────────────────
+
+  /api/settings/integrations:
+    get:
+      summary: List integration configs for the org
+      description: Returns all integration configs. Credentials are never returned (only status).
+      responses:
+        "200":
+          description: Integration config list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IntegrationConfigSummary"
+        "401": { description: Unauthenticated }
+
+  /api/settings/integrations/{type}:
+    put:
+      summary: Create or update an integration config (admin only)
+      description: Upserts the integration config for the given type. Credentials are encrypted before storage.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [slack, salesforce, hubspot]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credentials, config]
+              properties:
+                credentials:
+                  type: object
+                  description: |
+                    Type-specific credentials (never stored in plaintext):
+                    - slack: { webhookUrl }
+                    - salesforce: { accessToken, refreshToken, instanceUrl }
+                    - hubspot: { accessToken }
+                config:
+                  type: object
+                  description: |
+                    Non-secret config:
+                    - slack: { notifyOnStatus: string[] }
+                    - salesforce/hubspot: { notifyOnStatus: string[], fieldMappings?: object }
+      responses:
+        "200":
+          description: Integration config saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationConfigSummary"
+        "400": { description: Invalid credentials or config }
+        "401": { description: Unauthenticated }
+        "403": { description: Admin required }
+
+    delete:
+      summary: Disconnect an integration (admin only)
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [slack, salesforce, hubspot]
+      responses:
+        "204": { description: Integration disconnected }
+        "401": { description: Unauthenticated }
+        "403": { description: Admin required }
+
+  /api/settings/integrations/{type}/test:
+    post:
+      summary: Send a test event to verify integration credentials
+      description: Sends a test Slack message or a no-op CRM API call to verify credentials.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [slack, salesforce, hubspot]
+      responses:
+        "200":
+          description: Test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+        "400": { description: Test failed — includes error message }
+        "401": { description: Unauthenticated }
+        "403": { description: Admin required }
+
+  /api/settings/integrations/sync-events:
+    get:
+      summary: List sync event history (admin only)
+      description: Returns recent sync events for admin visibility. Supports filtering by status.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, success, failed, skipped]
+        - name: integrationType
+          in: query
+          schema:
+            type: string
+            enum: [slack, salesforce, hubspot]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Sync event list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SyncEventSummary"
+        "401": { description: Unauthenticated }
+        "403": { description: Admin required }
+
+  /api/settings/integrations/sync-events/{syncEventId}/retry:
+    post:
+      summary: Admin-triggered retry of a failed sync event
+      parameters:
+        - name: syncEventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "202": { description: Retry queued via Inngest }
+        "400": { description: Event not in failed state }
+        "401": { description: Unauthenticated }
+        "403": { description: Admin required }
+
+components:
+  schemas:
+    IntegrationConfigSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        integrationType: { type: string }
+        isEnabled: { type: boolean }
+        status: { type: string, enum: [active, error, requires_reconnect] }
+        configJson: { type: object }
+        lastVerifiedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    SyncEventSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        integrationType: { type: string }
+        eventType: { type: string }
+        referenceId: { type: string }
+        status: { type: string }
+        errorMessage: { type: string, nullable: true }
+        attemptCount: { type: integer }
+        lastAttemptAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }

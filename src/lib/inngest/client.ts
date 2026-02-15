@@ -79,6 +79,40 @@ type Events = {
       customerId?: string
     }
   }
+  'analytics/compute-snapshots': {
+    data: Record<string, never>
+  }
+  'analytics/compute-org-snapshot': {
+    data: {
+      organizationId: string
+      snapshotDate: string
+    }
+  }
+  'integration/slack-notify': {
+    data: {
+      organizationId: string
+      eventType: string
+      rfpId: string
+      rfpName: string
+      assignedUserId?: string
+      actorUserId?: string
+      extraFields?: Record<string, string>
+    }
+  }
+  'integration/crm-sync-rfp': {
+    data: {
+      organizationId: string
+      rfpId: string
+      outcome: 'won' | 'lost'
+      crmDealId?: string
+    }
+  }
+  'integration/retry-failed': {
+    data: {
+      syncEventId: string
+      organizationId: string
+    }
+  }
 }
 
 export const inngest = new Inngest({
