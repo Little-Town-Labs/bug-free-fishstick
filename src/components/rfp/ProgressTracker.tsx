@@ -23,8 +23,7 @@ export function ProgressTracker({
   automationPercentage,
   status,
 }: ProgressTrackerProps) {
-  const progressPercent =
-    totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0
+  const progressPercent = totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0
 
   return (
     <div data-testid="progress-tracker" className="flex flex-col gap-3 p-4">
@@ -37,7 +36,7 @@ export function ProgressTracker({
 
       <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
         <div
-          className={cn('h-full rounded-full bg-primary transition-all')}
+          className={cn('h-full rounded-full bg-primary transition-[width] duration-700 ease-out')}
           style={{ width: `${progressPercent}%` }}
           role="progressbar"
           aria-valuenow={progressPercent}

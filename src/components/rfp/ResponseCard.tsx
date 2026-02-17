@@ -33,12 +33,20 @@ const STATUS_LABELS: Record<ResponseCardProps['status'], string> = {
   approved: 'Approved',
 }
 
-function sendFeedback(rfpId: string, fieldId: string, type: string, originalText?: string, correctedText?: string) {
+function sendFeedback(
+  rfpId: string,
+  fieldId: string,
+  type: string,
+  originalText?: string,
+  correctedText?: string
+) {
   fetch(`/api/rfps/${rfpId}/responses/${fieldId}/feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type, originalText, correctedText }),
-  }).catch(() => {/* fire-and-forget */})
+  }).catch(() => {
+    /* fire-and-forget */
+  })
 }
 
 export function ResponseCard({
@@ -61,19 +69,19 @@ export function ResponseCard({
 
   const cardBorderClass =
     confidenceLevel === 'high'
-      ? 'border-green-200'
+      ? 'border-[color:var(--confidence-high)]'
       : confidenceLevel === 'medium'
-        ? 'border-yellow-200'
+        ? 'border-[color:var(--confidence-medium)]'
         : confidenceLevel === 'low'
-          ? 'border-red-200'
-          : 'border-gray-200'
+          ? 'border-[color:var(--confidence-low)]'
+          : 'border-border'
 
   const indicatorColorClass =
     confidenceLevel === 'high'
-      ? 'text-green-600'
+      ? 'text-[color:var(--confidence-high)]'
       : confidenceLevel === 'medium'
-        ? 'text-yellow-600'
-        : 'text-red-600'
+        ? 'text-[color:var(--confidence-medium)]'
+        : 'text-[color:var(--confidence-low)]'
 
   const hasResponse = responseText !== null && responseText.trim() !== ''
 
@@ -129,9 +137,7 @@ export function ResponseCard({
               aria-label={`Edit response for: ${question}`}
             />
           ) : (
-            <p className="text-sm">
-              {hasResponse ? responseText : 'No response generated'}
-            </p>
+            <p className="text-sm">{hasResponse ? responseText : 'No response generated'}</p>
           )}
         </div>
 
@@ -166,12 +172,7 @@ export function ResponseCard({
                 </Button>
               )}
               {onEdit && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleEditClick}
-                  disabled={isLoading}
-                >
+                <Button size="sm" variant="outline" onClick={handleEditClick} disabled={isLoading}>
                   Edit
                 </Button>
               )}

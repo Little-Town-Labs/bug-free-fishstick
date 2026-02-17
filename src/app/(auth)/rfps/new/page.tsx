@@ -7,6 +7,14 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Upload } from 'lucide-react'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -26,19 +34,25 @@ function StepIndicator({ step }: { step: number }) {
           <div key={num} className="flex items-center">
             <div className="flex flex-col items-center gap-1">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
-                  ${active || complete
-                    ? 'bg-primary text-primary-foreground'
-                    : 'border-2 border-muted text-muted-foreground'}`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300
+                  ${
+                    active || complete
+                      ? 'bg-primary text-primary-foreground scale-110'
+                      : 'border-2 border-muted text-muted-foreground scale-100'
+                  }`}
               >
                 {num}
               </div>
-              <span className={`text-xs ${active ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+              <span
+                className={`text-xs transition-all duration-200 ${active ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}
+              >
                 {label}
               </span>
             </div>
             {i < steps.length - 1 && (
-              <div className={`h-0.5 w-16 mb-5 ${num < step ? 'bg-primary' : 'bg-muted'}`} />
+              <div
+                className={`h-0.5 w-16 mb-5 transition-all duration-500 ${num < step ? 'bg-primary' : 'bg-muted'}`}
+              />
             )}
           </div>
         )
@@ -129,9 +143,11 @@ export default function NewRfpPage() {
     <div className="container mx-auto py-8 max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/dashboard">
-          <Button variant="outline" size="sm" disabled={isSubmitting}>Back</Button>
+          <Button variant="outline" size="sm" disabled={isSubmitting}>
+            Back
+          </Button>
         </Link>
-        <h1 className="text-3xl font-bold">Create New RFP</h1>
+        <h1 className="font-display text-3xl font-bold">Create New RFP</h1>
       </div>
 
       <StepIndicator step={step} />
@@ -154,22 +170,18 @@ export default function NewRfpPage() {
             <div className="space-y-2">
               <Label htmlFor="customer">Customer</Label>
               {customersLoading ? (
-                <select
-                  id="customer"
-                  disabled
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground"
-                >
-                  <option>Loading customers...</option>
-                </select>
+                <Select disabled>
+                  <SelectTrigger id="customer">
+                    <SelectValue placeholder="Loading customers..." />
+                  </SelectTrigger>
+                </Select>
               ) : customers.length === 0 ? (
                 <div className="space-y-1">
-                  <select
-                    id="customer"
-                    disabled
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground"
-                  >
-                    <option>No customers available</option>
-                  </select>
+                  <Select disabled>
+                    <SelectTrigger id="customer">
+                      <SelectValue placeholder="No customers available" />
+                    </SelectTrigger>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
                     No customers found.{' '}
                     <Link href="/customers" className="underline">
@@ -178,26 +190,22 @@ export default function NewRfpPage() {
                   </p>
                 </div>
               ) : (
-                <select
-                  id="customer"
-                  value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Select a customer...</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={customerId} onValueChange={setCustomerId}>
+                  <SelectTrigger id="customer">
+                    <SelectValue placeholder="Select a customer..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
             <div className="flex justify-end">
-              <Button
-                onClick={() => setStep(2)}
-                disabled={!rfpName.trim() || !customerId}
-              >
+              <Button onClick={() => setStep(2)} disabled={!rfpName.trim() || !customerId}>
                 Next
               </Button>
             </div>
@@ -212,10 +220,15 @@ export default function NewRfpPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div
-              className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-                isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+              className={`border-2 border-dashed rounded-lg p-12 text-center transition-all duration-300 ${
+                isDragging
+                  ? 'border-primary bg-primary/10 scale-[1.02]'
+                  : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-accent/50'
               }`}
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setIsDragging(true)
+              }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={(e) => {
                 e.preventDefault()
@@ -225,25 +238,25 @@ export default function NewRfpPage() {
               }}
             >
               {selectedFile ? (
-                <div className="space-y-1">
+                <div className="space-y-2 animate-in fade-in duration-300">
+                  <Upload className="size-8 mx-auto text-primary" />
                   <p className="font-medium text-sm">{selectedFile.name}</p>
                   <p className="text-xs text-muted-foreground">{formatBytes(selectedFile.size)}</p>
-                  <button
-                    className="text-xs text-muted-foreground underline mt-1"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs mt-2"
                     onClick={() => handleFileChange(null)}
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               ) : (
-                <>
-                  <p className="text-muted-foreground mb-2">
-                    Drag and drop your RFP document here
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Supports PDF and DOCX formats
-                  </p>
-                </>
+                <div className="space-y-3">
+                  <Upload className="size-12 mx-auto text-muted-foreground" />
+                  <p className="text-muted-foreground">Drag and drop your RFP document here</p>
+                  <p className="text-xs text-muted-foreground">Supports PDF and DOCX formats</p>
+                </div>
               )}
               <input
                 ref={fileInputRef}
@@ -298,16 +311,10 @@ export default function NewRfpPage() {
               </div>
             </div>
 
-            {submitError && (
-              <p className="text-sm text-red-600">{submitError}</p>
-            )}
+            {submitError && <p className="text-sm text-red-600">{submitError}</p>}
 
             <div className="flex justify-between">
-              <Button
-                variant="outline"
-                onClick={() => setStep(2)}
-                disabled={isSubmitting}
-              >
+              <Button variant="outline" onClick={() => setStep(2)} disabled={isSubmitting}>
                 Back
               </Button>
               <Button onClick={handleSubmit} disabled={isSubmitting}>

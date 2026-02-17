@@ -86,7 +86,7 @@ export default function CustomersPage() {
   return (
     <div className="container mx-auto py-8 space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Customers</h1>
+        <h1 className="font-display text-3xl font-bold">Customers</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>New Customer</Button>
@@ -117,11 +117,7 @@ export default function CustomersPage() {
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                >
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={creating || !newName.trim()}>
