@@ -48,6 +48,11 @@ next-env.d.ts
 Thumbs.db
 
 # Drizzle - migrations are tracked; local overrides only
+
+# Claude Code - local config only
+.claude/settings.json
+.claude/settings.json.backup-*
+.backup-local/
 # drizzle/*.sql
 # drizzle/meta/
 
