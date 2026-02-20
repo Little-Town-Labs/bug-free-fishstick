@@ -34,14 +34,17 @@ export default function DashboardPage() {
   const [rfps, setRfps] = useState<RfpItem[]>([])
   const [customers, setCustomers] = useState<CustomerOption[]>([])
   const [loading, setLoading] = useState(true)
-  const [customerFilter, setCustomerFilter] = useState<string>('')
-  const [typeFilter, setTypeFilter] = useState<string>('')
-  const [complexityFilter, setComplexityFilter] = useState<string>('')
+  const [customerFilter, setCustomerFilter] = useState<string>('all')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [complexityFilter, setComplexityFilter] = useState<string>('all')
 
   const fetchRfps = useCallback(async () => {
     try {
       setLoading(true)
-      const url = customerFilter ? `/api/rfps?customerId=${customerFilter}` : '/api/rfps'
+      const url =
+        customerFilter && customerFilter !== 'all'
+          ? `/api/rfps?customerId=${customerFilter}`
+          : '/api/rfps'
       const res = await fetch(url)
       if (res.ok) {
         const data = await res.json()
@@ -74,8 +77,9 @@ export default function DashboardPage() {
   }, [])
 
   const filteredRfps = rfps.filter((r) => {
-    if (typeFilter && r.rfpType !== typeFilter) return false
-    if (complexityFilter && r.complexity !== complexityFilter) return false
+    if (typeFilter && typeFilter !== 'all' && r.rfpType !== typeFilter) return false
+    if (complexityFilter && complexityFilter !== 'all' && r.complexity !== complexityFilter)
+      return false
     return true
   })
 
@@ -132,7 +136,7 @@ export default function DashboardPage() {
                     <SelectValue placeholder="All Customers" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Customers</SelectItem>
+                    <SelectItem value="all">All Customers</SelectItem>
                     {customers.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}
@@ -146,7 +150,7 @@ export default function DashboardPage() {
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="technical">Technical</SelectItem>
                   <SelectItem value="commercial">Commercial</SelectItem>
                   <SelectItem value="compliance">Compliance</SelectItem>
@@ -158,7 +162,7 @@ export default function DashboardPage() {
                   <SelectValue placeholder="All Complexity" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Complexity</SelectItem>
+                  <SelectItem value="all">All Complexity</SelectItem>
                   <SelectItem value="simple">Simple</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
                   <SelectItem value="complex">Complex</SelectItem>

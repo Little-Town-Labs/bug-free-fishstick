@@ -50,6 +50,13 @@
       "when": 1771030930782,
       "tag": "0006_adorable_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1771125000000,
+      "tag": "0007_team_scaling_insights",
+      "breakpoints": true
     }
   ]
 }
