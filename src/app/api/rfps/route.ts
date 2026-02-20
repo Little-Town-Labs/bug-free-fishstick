@@ -5,10 +5,16 @@ import { rfps } from '@/lib/db/schema/rfps'
 import { eq, and } from 'drizzle-orm'
 import { Redis } from '@upstash/redis'
 
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-})
+let _redis: Redis | null = null
+function getRedis(): Redis {
+  if (!_redis) {
+    _redis = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_TOKEN!,
+    })
+  }
+  return _redis
+}
 
 const CACHE_TTL = 60 // seconds
 
@@ -20,7 +26,7 @@ export async function GET() {
     const cacheKey = `rfps:${auth.orgId}:${adminFlag}`
 
     try {
-      const cached = await redis.get<typeof rfpsList>(cacheKey)
+      const cached = await getRedis().get<typeof rfpsList>(cacheKey)
       if (cached) return NextResponse.json({ rfps: cached }, { status: 200 })
     } catch {
       // KV unavailable in local dev — fall through to DB
@@ -33,7 +39,7 @@ export async function GET() {
     const rfpsList = await db.select().from(rfps).where(whereClause)
 
     try {
-      await redis.set(cacheKey, rfpsList, { ex: CACHE_TTL })
+      await getRedis().set(cacheKey, rfpsList, { ex: CACHE_TTL })
     } catch {
       // KV unavailable — proceed without caching
     }
@@ -75,7 +81,7 @@ export async function POST(request: NextRequest) {
     try {
       const adminKey = `rfps:${auth.orgId}:admin`
       const memberKey = `rfps:${auth.orgId}:${auth.userId}`
-      await Promise.all([redis.del(adminKey), redis.del(memberKey)])
+      await Promise.all([getRedis().del(adminKey), getRedis().del(memberKey)])
     } catch {
       // KV unavailable — proceed
     }

@@ -4,10 +4,16 @@ import { queryAnalyticsSnapshots, type AnalyticsFilters } from '@/lib/services/a
 import { Redis } from '@upstash/redis'
 import crypto from 'crypto'
 
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-})
+let _redis: Redis | null = null
+function getRedis(): Redis {
+  if (!_redis) {
+    _redis = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_TOKEN!,
+    })
+  }
+  return _redis
+}
 
 const CACHE_TTL = 30 * 60 // 30 minutes
 
@@ -42,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     // Try cache first
     try {
-      const cached = await redis.get(cacheKey)
+      const cached = await getRedis().get(cacheKey)
       if (cached) {
         return NextResponse.json(
           typeof cached === 'string' ? JSON.parse(cached) : cached,
@@ -65,7 +71,7 @@ export async function GET(request: NextRequest) {
 
     // Cache the response
     try {
-      await redis.set(cacheKey, JSON.stringify(response), { ex: CACHE_TTL })
+      await getRedis().set(cacheKey, JSON.stringify(response), { ex: CACHE_TTL })
     } catch {
       // KV write failure is non-fatal
     }

@@ -1,9 +1,15 @@
 import { Redis } from '@upstash/redis'
 
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-})
+let _redis: Redis | null = null
+function getRedis(): Redis {
+  if (!_redis) {
+    _redis = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_TOKEN!,
+    })
+  }
+  return _redis
+}
 
 export interface FieldUpdatePayload {
   responseId: string
@@ -25,7 +31,10 @@ export async function publishFieldUpdate(
   rfpId: string,
   payload: FieldUpdatePayload
 ): Promise<void> {
-  await redis.publish(channelName(rfpId), JSON.stringify({ type: 'field-updated', ...payload }))
+  await getRedis().publish(
+    channelName(rfpId),
+    JSON.stringify({ type: 'field-updated', ...payload })
+  )
 }
 
 /**
@@ -42,7 +51,7 @@ export async function subscribeToRfpStream(
   signal: AbortSignal
 ): Promise<void> {
   const channel = channelName(rfpId)
-  const subscriber = redis.subscribe([channel])
+  const subscriber = getRedis().subscribe([channel])
 
   subscriber.on('message', (data: { channel: string; message: unknown }) => {
     const raw = typeof data.message === 'string' ? data.message : JSON.stringify(data.message)

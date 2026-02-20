@@ -1,9 +1,15 @@
 import { Redis } from '@upstash/redis'
 
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-})
+let _redis: Redis | null = null
+function getRedis(): Redis {
+  if (!_redis) {
+    _redis = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_TOKEN!,
+    })
+  }
+  return _redis
+}
 
 export interface ProcessingStatus {
   rfpId: string
@@ -21,15 +27,8 @@ const PROCESSING_STATUS_TTL = 3600 // 1 hour
  * @param rfpId - The RFP ID
  * @param status - Processing status object
  */
-export async function setProcessingStatus(
-  rfpId: string,
-  status: ProcessingStatus
-): Promise<void> {
-  await redis.set(
-    `rfp:${rfpId}:status`,
-    JSON.stringify(status),
-    { ex: PROCESSING_STATUS_TTL }
-  )
+export async function setProcessingStatus(rfpId: string, status: ProcessingStatus): Promise<void> {
+  await getRedis().set(`rfp:${rfpId}:status`, JSON.stringify(status), { ex: PROCESSING_STATUS_TTL })
 }
 
 /**
@@ -37,10 +36,8 @@ export async function setProcessingStatus(
  * @param rfpId - The RFP ID
  * @returns Processing status or null if not found
  */
-export async function getProcessingStatus(
-  rfpId: string
-): Promise<ProcessingStatus | null> {
-  const data = await redis.get<string>(`rfp:${rfpId}:status`)
+export async function getProcessingStatus(rfpId: string): Promise<ProcessingStatus | null> {
+  const data = await getRedis().get<string>(`rfp:${rfpId}:status`)
 
   if (!data) return null
 
@@ -53,5 +50,5 @@ export async function getProcessingStatus(
  * @param rfpId - The RFP ID
  */
 export async function deleteProcessingStatus(rfpId: string): Promise<void> {
-  await redis.del(`rfp:${rfpId}:status`)
+  await getRedis().del(`rfp:${rfpId}:status`)
 }

@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/utils/auth'
 import { Redis } from '@upstash/redis'
 
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-})
+let _redis: Redis | null = null
+function getRedis(): Redis {
+  if (!_redis) {
+    _redis = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_TOKEN!,
+    })
+  }
+  return _redis
+}
 
 const PRESENCE_TTL = 30 // seconds
 const PRESENCE_PREFIX = 'presence:'
@@ -37,10 +43,10 @@ export async function GET(
 
     try {
       do {
-        const [nextCursor, keys] = await redis.scan(cursor, { match: pattern, count: 20 })
+        const [nextCursor, keys] = await getRedis().scan(cursor, { match: pattern, count: 20 })
         cursor = Number(nextCursor)
         if (keys.length > 0) {
-          const values = await redis.mget<(PresenceEntry | null)[]>(...keys)
+          const values = await getRedis().mget<(PresenceEntry | null)[]>(...keys)
           for (const v of values) {
             if (v) viewers.push(typeof v === 'string' ? JSON.parse(v) : v)
           }
@@ -77,7 +83,7 @@ export async function POST(
     }
 
     try {
-      await redis.set(presenceKey(rfpId, auth.userId), JSON.stringify(entry), { ex: PRESENCE_TTL })
+      await getRedis().set(presenceKey(rfpId, auth.userId), JSON.stringify(entry), { ex: PRESENCE_TTL })
     } catch {
       // KV unavailable — heartbeat is best-effort
     }
