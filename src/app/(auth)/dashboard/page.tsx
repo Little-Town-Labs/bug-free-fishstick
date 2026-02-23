@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Trash2 } from 'lucide-react'
 import { RfpListSkeleton } from '@/components/shared/Skeletons'
 
 interface RfpItem {
@@ -37,6 +38,8 @@ export default function DashboardPage() {
   const [customerFilter, setCustomerFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [complexityFilter, setComplexityFilter] = useState<string>('all')
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchRfps = useCallback(async () => {
     try {
@@ -60,6 +63,19 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchRfps()
   }, [fetchRfps])
+
+  const handleDelete = useCallback(async (rfpId: string) => {
+    setDeletingId(rfpId)
+    try {
+      const res = await fetch(`/api/rfps/${rfpId}`, { method: 'DELETE' })
+      if (res.ok || res.status === 204) {
+        setRfps((prev) => prev.filter((r) => r.id !== rfpId))
+      }
+    } finally {
+      setDeletingId(null)
+      setConfirmingDeleteId(null)
+    }
+  }, [])
 
   useEffect(() => {
     async function loadCustomers() {
@@ -181,31 +197,84 @@ export default function DashboardPage() {
               </p>
             ) : (
               <div className="space-y-2">
-                {filteredRfps.map((rfp) => (
-                  <Link key={rfp.id} href={`/rfps/${rfp.id}`} className="block">
-                    <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <div>
-                        <p className="font-medium text-sm">{rfp.name}</p>
-                        {rfp.customerCompanyName && (
-                          <p className="text-xs text-muted-foreground">{rfp.customerCompanyName}</p>
-                        )}
+                {filteredRfps.map((rfp) => {
+                  const isInProgress = ['draft', 'processing', 'submitted'].includes(rfp.status)
+                  const isConfirming = confirmingDeleteId === rfp.id
+                  const isDeleting = deletingId === rfp.id
+
+                  return (
+                    <Link key={rfp.id} href={`/rfps/${rfp.id}`} className="block">
+                      <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                        <div>
+                          <p className="font-medium text-sm">{rfp.name}</p>
+                          {rfp.customerCompanyName && (
+                            <p className="text-xs text-muted-foreground">
+                              {rfp.customerCompanyName}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {rfp.rfpType && (
+                            <Badge variant="outline" className="text-xs">
+                              {rfp.rfpType}
+                            </Badge>
+                          )}
+                          {rfp.complexity && (
+                            <Badge variant="outline" className="text-xs">
+                              {rfp.complexity}
+                            </Badge>
+                          )}
+                          <Badge variant="secondary">{rfp.status}</Badge>
+                          {isInProgress &&
+                            (isConfirming ? (
+                              <>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  disabled={isDeleting}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleDelete(rfp.id)
+                                  }}
+                                >
+                                  {isDeleting ? 'Deleting…' : 'Delete'}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  disabled={isDeleting}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setConfirmingDeleteId(null)
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setConfirmingDeleteId(rfp.id)
+                                }}
+                                aria-label={`Delete ${rfp.name}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            ))}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {rfp.rfpType && (
-                          <Badge variant="outline" className="text-xs">
-                            {rfp.rfpType}
-                          </Badge>
-                        )}
-                        {rfp.complexity && (
-                          <Badge variant="outline" className="text-xs">
-                            {rfp.complexity}
-                          </Badge>
-                        )}
-                        <Badge variant="secondary">{rfp.status}</Badge>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  )
+                })}
               </div>
             )}
           </Suspense>
