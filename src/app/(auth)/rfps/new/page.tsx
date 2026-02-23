@@ -170,7 +170,7 @@ export default function NewRfpPage() {
             <div className="space-y-2">
               <Label htmlFor="customer">Customer</Label>
               {customersLoading ? (
-                <Select disabled>
+                <Select disabled value={customerId}>
                   <SelectTrigger id="customer">
                     <SelectValue placeholder="Loading customers..." />
                   </SelectTrigger>

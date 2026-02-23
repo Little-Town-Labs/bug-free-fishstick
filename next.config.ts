@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
@@ -12,6 +12,11 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  webpack: (config) => {
+    // pdfjs-dist requires canvas to be aliased away in server/edge builds
+    config.resolve.alias.canvas = false
+    return config
+  },
   async headers() {
     return [
       {
@@ -22,4 +27,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig;
+export default nextConfig

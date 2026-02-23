@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -82,11 +83,11 @@ export default function CompanyKnowledgePage() {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Upload to Company Knowledge Base</DialogTitle>
+              <DialogDescription>
+                Add documents to your organization&apos;s shared knowledge base.
+              </DialogDescription>
             </DialogHeader>
-            <KnowledgeUploader
-              onUpload={handleUpload}
-              isUploading={isUploading}
-            />
+            <KnowledgeUploader onUpload={handleUpload} isUploading={isUploading} />
           </DialogContent>
         </Dialog>
       </div>

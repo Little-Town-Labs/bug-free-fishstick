@@ -1,6 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react'
+import { Document, Page, pdfjs } from 'react-pdf'
+
+// Must be at module level so webpack can statically process the new URL() pattern
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString()
 
 interface DocumentViewerProps {
   documentUrl: string | null
@@ -12,61 +19,29 @@ export interface DocumentViewerHandle {
   scrollToPage: (page: number) => void
 }
 
-// Lazy-load react-pdf components
-let ReactPdfModule: typeof import('react-pdf') | null = null
-
 export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerProps>(
   function DocumentViewer({ documentUrl, documentType, activePage }, ref) {
     const [numPages, setNumPages] = useState<number>(0)
     const [currentPage, setCurrentPage] = useState(1)
-    const [pdfReady, setPdfReady] = useState(false)
     const [wordHtml, setWordHtml] = useState<string | null>(null)
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(documentType === 'docx')
     const [error, setError] = useState<string | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
 
     // Expose scrollToPage
-    useImperativeHandle(ref, () => ({
-      scrollToPage: (page: number) => {
-        if (documentType === 'pdf') {
-          setCurrentPage(Math.max(1, Math.min(page + 1, numPages))) // 0-indexed to 1-indexed
-        } else if (containerRef.current) {
-          containerRef.current.scrollTop = 0
-        }
-      },
-    }), [documentType, numPages])
-
-    // Initialize PDF.js
-    useEffect(() => {
-      if (documentType !== 'pdf') return
-      let cancelled = false
-
-      async function initPdf() {
-        try {
-          const [pdfjsModule, reactPdf] = await Promise.all([
-            import('pdfjs-dist'),
-            import('react-pdf'),
-          ])
-          if (cancelled) return
-
-          // Configure worker
-          pdfjsModule.GlobalWorkerOptions.workerSrc = new URL(
-            'pdfjs-dist/build/pdf.worker.min.mjs',
-            import.meta.url
-          ).toString()
-
-          ReactPdfModule = reactPdf
-          setPdfReady(true)
-        } catch {
-          if (!cancelled) setError('Failed to load PDF viewer')
-        } finally {
-          if (!cancelled) setLoading(false)
-        }
-      }
-
-      initPdf()
-      return () => { cancelled = true }
-    }, [documentType])
+    useImperativeHandle(
+      ref,
+      () => ({
+        scrollToPage: (page: number) => {
+          if (documentType === 'pdf') {
+            setCurrentPage(Math.max(1, Math.min(page + 1, numPages))) // 0-indexed to 1-indexed
+          } else if (containerRef.current) {
+            containerRef.current.scrollTop = 0
+          }
+        },
+      }),
+      [documentType, numPages]
+    )
 
     // Load Word document as HTML via mammoth
     useEffect(() => {
@@ -91,7 +66,9 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
       }
 
       loadWord()
-      return () => { cancelled = true }
+      return () => {
+        cancelled = true
+      }
     }, [documentType, documentUrl])
 
     // Sync activePage prop
@@ -111,7 +88,11 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
 
     if (!documentUrl || !documentType) {
       return (
-        <div className="border rounded-lg p-8 text-center text-muted-foreground" role="document" aria-label="Document viewer">
+        <div
+          className="border rounded-lg p-8 text-center text-muted-foreground"
+          role="document"
+          aria-label="Document viewer"
+        >
           <p>No document available for preview.</p>
         </div>
       )
@@ -126,20 +107,26 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
       )
     }
 
-    if (loading || (documentType === 'pdf' && !pdfReady)) {
+    if (loading) {
       return (
-        <div className="border rounded-lg p-8 animate-pulse" aria-label="Loading document" role="status">
+        <div
+          className="border rounded-lg p-8 animate-pulse"
+          aria-label="Loading document"
+          role="status"
+        >
           <div className="h-96 bg-muted rounded" />
         </div>
       )
     }
 
     // PDF rendering
-    if (documentType === 'pdf' && pdfReady && ReactPdfModule) {
-      const { Document, Page } = ReactPdfModule
-
+    if (documentType === 'pdf') {
       return (
-        <div className="border rounded-lg overflow-hidden" role="document" aria-label="PDF document viewer">
+        <div
+          className="border rounded-lg overflow-hidden"
+          role="document"
+          aria-label="PDF document viewer"
+        >
           <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/50">
             <button
               onClick={handlePrevPage}
@@ -167,7 +154,11 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
               onLoadSuccess={({ numPages: n }: { numPages: number }) => setNumPages(n)}
               onLoadError={() => setError('Failed to load PDF')}
               loading={
-                <div className="h-96 flex items-center justify-center" aria-label="Loading PDF" role="status">
+                <div
+                  className="h-96 flex items-center justify-center"
+                  aria-label="Loading PDF"
+                  role="status"
+                >
                   <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
                 </div>
               }
@@ -187,7 +178,11 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
     // Word/DOCX rendering
     if (documentType === 'docx' && wordHtml) {
       return (
-        <div className="border rounded-lg overflow-hidden" role="document" aria-label="Word document viewer">
+        <div
+          className="border rounded-lg overflow-hidden"
+          role="document"
+          aria-label="Word document viewer"
+        >
           <div className="px-3 py-2 border-b bg-muted/50">
             <span className="text-sm text-muted-foreground">Word Document Preview</span>
           </div>
