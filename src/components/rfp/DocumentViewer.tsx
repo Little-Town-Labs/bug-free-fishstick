@@ -23,8 +23,9 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
   function DocumentViewer({ documentUrl, documentType, activePage }, ref) {
     const [numPages, setNumPages] = useState<number>(0)
     const [currentPage, setCurrentPage] = useState(1)
+    const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null)
     const [wordHtml, setWordHtml] = useState<string | null>(null)
-    const [loading, setLoading] = useState(documentType === 'docx')
+    const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
 
@@ -43,33 +44,39 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
       [documentType, numPages]
     )
 
-    // Load Word document as HTML via mammoth
+    // Fetch document bytes — handles both PDF and DOCX in one place
     useEffect(() => {
-      if (documentType !== 'docx' || !documentUrl) return
+      if (!documentUrl || !documentType) return
       let cancelled = false
+      setLoading(true)
+      setError(null)
 
-      async function loadWord() {
+      async function loadDocument() {
         try {
           const res = await fetch(documentUrl!)
-          if (!res.ok) throw new Error('Failed to fetch document')
+          if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
           const buffer = await res.arrayBuffer()
-          const mammoth = await import('mammoth')
-          const result = await mammoth.convertToHtml({ arrayBuffer: buffer })
-          if (!cancelled) {
+          if (cancelled) return
+
+          if (documentType === 'pdf') {
+            setPdfData(buffer)
+          } else {
+            const mammoth = await import('mammoth')
+            const result = await mammoth.convertToHtml({ arrayBuffer: buffer })
             setWordHtml(result.value)
           }
-        } catch {
-          if (!cancelled) setError('Failed to load Word document')
+        } catch (err) {
+          if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load document')
         } finally {
           if (!cancelled) setLoading(false)
         }
       }
 
-      loadWord()
+      loadDocument()
       return () => {
         cancelled = true
       }
-    }, [documentType, documentUrl])
+    }, [documentUrl, documentType])
 
     // Sync activePage prop
     useEffect(() => {
@@ -120,7 +127,7 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
     }
 
     // PDF rendering
-    if (documentType === 'pdf') {
+    if (documentType === 'pdf' && pdfData) {
       return (
         <div
           className="border rounded-lg overflow-hidden"
@@ -150,9 +157,9 @@ export const DocumentViewer = forwardRef<DocumentViewerHandle, DocumentViewerPro
           </div>
           <div className="overflow-auto max-h-[70vh]" ref={containerRef}>
             <Document
-              file={documentUrl}
+              file={pdfData}
               onLoadSuccess={({ numPages: n }: { numPages: number }) => setNumPages(n)}
-              onLoadError={() => setError('Failed to load PDF')}
+              onLoadError={(err) => setError(`PDF error: ${err.message}`)}
               loading={
                 <div
                   className="h-96 flex items-center justify-center"
