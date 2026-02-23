@@ -3,11 +3,9 @@
 import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 
-// Must be at module level so webpack can statically process the new URL() pattern
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString()
+// Use pdfjs.version so the worker URL always matches the API version
+// (react-pdf may bundle a different pdfjs-dist than the one in root node_modules)
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
 interface DocumentViewerProps {
   documentUrl: string | null
