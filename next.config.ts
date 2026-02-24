@@ -16,6 +16,14 @@ const nextConfig: NextConfig = {
   // pdfjs-dist uses DOMMatrix (a browser API) at module-init time, which
   // crashes Inngest and other server-side routes in Node.js.
   serverExternalPackages: ['pdfjs-dist', 'pdf-parse'],
+  // Include the pdfjs-dist worker file that Vercel's file tracer misses
+  // (loaded via dynamic import() inside pdfjs-dist for its "fake worker").
+  outputFileTracingIncludes: {
+    '/api/inngest': [
+      './node_modules/pdf-parse/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+      './node_modules/pdf-parse/node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs',
+    ],
+  },
   webpack: (config) => {
     // pdfjs-dist requires canvas to be aliased away in server/edge builds
     config.resolve.alias.canvas = false
