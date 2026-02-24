@@ -28,24 +28,28 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedPdfResult> {
     throw new Error('File size exceeds 50MB limit')
   }
 
-  const pdfParse = (await import('pdf-parse')).default
-  const data = await pdfParse(buffer)
+  // Dynamic import so the module is loaded after the DOMMatrix polyfill
+  // in instrumentation.ts has run (pdfjs-dist uses DOMMatrix at init time)
+  const { PDFParse } = await import('pdf-parse')
+
+  const parser = new PDFParse({ data: buffer })
+  const [textResult, infoResult] = await Promise.all([parser.getText(), parser.getInfo()])
 
   // Extract metadata
   const metadata: { title?: string; author?: string } = {}
-  if (data.info?.Title) {
-    metadata.title = data.info.Title as string
+  if (infoResult.info?.Title) {
+    metadata.title = infoResult.info.Title as string
   }
-  if (data.info?.Author) {
-    metadata.author = data.info.Author as string
+  if (infoResult.info?.Author) {
+    metadata.author = infoResult.info.Author as string
   }
 
   // Extract structured fields from text
-  const fields = extractFields(data.text)
+  const fields = extractFields(textResult.text)
 
   return {
-    text: data.text,
-    pages: data.numpages,
+    text: textResult.text,
+    pages: textResult.total,
     metadata,
     fields,
   }
