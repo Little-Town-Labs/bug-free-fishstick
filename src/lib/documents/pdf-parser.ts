@@ -28,9 +28,13 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedPdfResult> {
     throw new Error('File size exceeds 50MB limit')
   }
 
-  // pdf-parse v1 uses a bundled pdfjs-dist v2 that works reliably in Node.js
-  // (v2 of pdf-parse used pdfjs-dist v5 which fails in serverless environments)
-  const pdfParse = (await import('pdf-parse')).default
+  // Import from the lib path to skip pdf-parse v1's self-test which tries to
+  // read ./test/data/05-versions-space.pdf — that file doesn't exist in
+  // serverless environments and causes ENOENT on cold start.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pdfParse = require('pdf-parse/lib/pdf-parse') as (
+    buffer: Buffer
+  ) => Promise<{ text: string; numpages: number; info: Record<string, unknown> }>
   const data = await pdfParse(buffer)
 
   // Extract metadata
