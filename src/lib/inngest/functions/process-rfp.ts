@@ -24,25 +24,26 @@ export const processRfp = inngest.createFunction(
   async ({ event, step }: GetFunctionInput<typeof inngest, 'rfp/process'>) => {
     const { rfpId, organizationId } = event.data
 
-    // Fetch org's BYOK provider config outside of any step so the API key
-    // is never serialized/stored by Inngest's step state.
-    const providerConfig = await (async (): Promise<ProviderConfig> => {
+    // Fetch org's BYOK keys outside of any step so they are never
+    // serialized/stored by Inngest's step state.
+    const { providerConfig, openaiApiKey } = await (async () => {
       const [row] = await db
         .select()
         .from(tenantSettings)
         .where(eq(tenantSettings.organizationId, organizationId))
         .limit(1)
       const provider = (row?.llmProvider ?? 'claude') as ProviderConfig['provider']
-      // Resolve API key: prefer provider-specific columns (set by BYOK UI),
-      // fall back to legacy generic llmApiKeyEncrypted column.
-      const encryptedKey =
+      // Resolve LLM API key: prefer provider-specific column, fall back to legacy
+      const encryptedLlmKey =
         provider === 'claude'
           ? (row?.anthropicApiKeyEncrypted ?? row?.llmApiKeyEncrypted)
           : provider === 'openai'
             ? (row?.openaiApiKeyEncrypted ?? row?.llmApiKeyEncrypted)
             : row?.llmApiKeyEncrypted
-      const apiKey = encryptedKey ? decrypt(encryptedKey) : undefined
-      return { provider, apiKey }
+      const apiKey = encryptedLlmKey ? decrypt(encryptedLlmKey) : undefined
+      // Always fetch OpenAI key for embeddings (used regardless of LLM provider)
+      const openaiKey = row?.openaiApiKeyEncrypted ? decrypt(row.openaiApiKeyEncrypted) : undefined
+      return { providerConfig: { provider, apiKey } as ProviderConfig, openaiApiKey: openaiKey }
     })()
 
     // Step 1: Fetch RFP and update status to processing (parallel)
@@ -128,7 +129,7 @@ export const processRfp = inngest.createFunction(
       // Fetch knowledge context, learnings, and customer settings in parallel
       const customerId = rfp.customerId ?? undefined
       const [knowledgeContext, orgLearnings, customerResults] = await Promise.all([
-        searchSimilar(rfp.name, organizationId, 10, customerId).then((results) =>
+        searchSimilar(rfp.name, organizationId, 10, customerId, openaiApiKey).then((results) =>
           results.map((r) => ({
             content: r.content,
             relevanceScore: r.similarity,

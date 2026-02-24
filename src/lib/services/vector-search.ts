@@ -13,14 +13,20 @@ export async function searchSimilar(
   organizationId: string,
   limit: number = 10,
   customerId?: string,
+  openaiApiKey?: string
 ): Promise<KnowledgeEntryWithSimilarity[]> {
-  const queryEmbedding = await generateEmbedding(query)
+  // If no OpenAI key is available, embeddings won't work — skip silently
+  if (!openaiApiKey && !process.env.OPENAI_API_KEY) return []
+
+  let queryEmbedding: number[]
+  try {
+    queryEmbedding = await generateEmbedding(query, openaiApiKey)
+  } catch {
+    return []
+  }
 
   const customerFilter = customerId
-    ? or(
-        eq(knowledgeEntries.customerId, customerId),
-        isNull(knowledgeEntries.customerId)
-      )
+    ? or(eq(knowledgeEntries.customerId, customerId), isNull(knowledgeEntries.customerId))
     : isNull(knowledgeEntries.customerId)
 
   const results = await db
@@ -34,7 +40,10 @@ export async function searchSimilar(
       metadata: knowledgeEntries.metadata,
       createdAt: knowledgeEntries.createdAt,
       updatedAt: knowledgeEntries.updatedAt,
-      similarity: sql<number>`1 - (${knowledgeEntries.embedding} <=> ${JSON.stringify(queryEmbedding)}::vector)`.as('similarity'),
+      similarity:
+        sql<number>`1 - (${knowledgeEntries.embedding} <=> ${JSON.stringify(queryEmbedding)}::vector)`.as(
+          'similarity'
+        ),
     })
     .from(knowledgeEntries)
     .where(
