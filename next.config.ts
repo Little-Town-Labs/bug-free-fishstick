@@ -12,6 +12,10 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // Prevent pdfjs-dist and pdf-parse from being bundled into server chunks.
+  // pdfjs-dist uses DOMMatrix (a browser API) at module-init time, which
+  // crashes Inngest and other server-side routes in Node.js.
+  serverExternalPackages: ['pdfjs-dist', 'pdf-parse'],
   webpack: (config) => {
     // pdfjs-dist requires canvas to be aliased away in server/edge builds
     config.resolve.alias.canvas = false

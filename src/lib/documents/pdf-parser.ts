@@ -28,30 +28,24 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedPdfResult> {
     throw new Error('File size exceeds 50MB limit')
   }
 
-  // Dynamic import to avoid DOMMatrix/canvas issues at build time
-  const { PDFParse } = await import('pdf-parse')
-
-  const parser = new PDFParse({ data: buffer })
-  const [textResult, infoResult] = await Promise.all([
-    parser.getText(),
-    parser.getInfo(),
-  ])
+  const pdfParse = (await import('pdf-parse')).default
+  const data = await pdfParse(buffer)
 
   // Extract metadata
   const metadata: { title?: string; author?: string } = {}
-  if (infoResult.info?.Title) {
-    metadata.title = infoResult.info.Title as string
+  if (data.info?.Title) {
+    metadata.title = data.info.Title as string
   }
-  if (infoResult.info?.Author) {
-    metadata.author = infoResult.info.Author as string
+  if (data.info?.Author) {
+    metadata.author = data.info.Author as string
   }
 
   // Extract structured fields from text
-  const fields = extractFields(textResult.text)
+  const fields = extractFields(data.text)
 
   return {
-    text: textResult.text,
-    pages: textResult.total,
+    text: data.text,
+    pages: data.numpages,
     metadata,
     fields,
   }
@@ -92,9 +86,14 @@ function extractFields(text: string): ParsedPdfResult['fields'] {
     }
 
     // Pattern 2: Paragraph field - "N. Please provide/describe..." followed by empty line
-    const paragraphMatch = line.match(/^\d+\.\s+(Please provide|Describe|Please describe|Provide|Explain).+?[:.?]?$/i)
+    const paragraphMatch = line.match(
+      /^\d+\.\s+(Please provide|Describe|Please describe|Provide|Explain).+?[:.?]?$/i
+    )
     if (paragraphMatch && nextLine === '') {
-      const question = line.replace(/^\d+\.\s+/, '').replace(/[:.?]*$/, '').trim()
+      const question = line
+        .replace(/^\d+\.\s+/, '')
+        .replace(/[:.?]*$/, '')
+        .trim()
       fields.push({
         id: generateFieldId(fields.length),
         type: 'paragraph',
