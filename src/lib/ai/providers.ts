@@ -19,7 +19,7 @@ export function getLanguageModel(config: ProviderConfig): LanguageModel {
       const anthropic = createAnthropic({
         apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
       })
-      return anthropic('claude-sonnet-4-5-20250929')
+      return anthropic('claude-haiku-4-5-20251001')
     }
     case 'openai': {
       const openai = createOpenAI({

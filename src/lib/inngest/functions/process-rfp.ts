@@ -33,7 +33,15 @@ export const processRfp = inngest.createFunction(
         .where(eq(tenantSettings.organizationId, organizationId))
         .limit(1)
       const provider = (row?.llmProvider ?? 'claude') as ProviderConfig['provider']
-      const apiKey = row?.llmApiKeyEncrypted ? decrypt(row.llmApiKeyEncrypted) : undefined
+      // Resolve API key: prefer provider-specific columns (set by BYOK UI),
+      // fall back to legacy generic llmApiKeyEncrypted column.
+      const encryptedKey =
+        provider === 'claude'
+          ? (row?.anthropicApiKeyEncrypted ?? row?.llmApiKeyEncrypted)
+          : provider === 'openai'
+            ? (row?.openaiApiKeyEncrypted ?? row?.llmApiKeyEncrypted)
+            : row?.llmApiKeyEncrypted
+      const apiKey = encryptedKey ? decrypt(encryptedKey) : undefined
       return { provider, apiKey }
     })()
 
