@@ -47,7 +47,13 @@ export async function getLanguageModelForOrg(orgId: string): Promise<LanguageMod
     .limit(1)
 
   const provider = (row?.llmProvider ?? 'claude') as LlmProvider
-  const apiKey = row?.llmApiKeyEncrypted ? decrypt(row.llmApiKeyEncrypted) : undefined
+  const encryptedKey =
+    provider === 'claude'
+      ? (row?.anthropicApiKeyEncrypted ?? row?.llmApiKeyEncrypted)
+      : provider === 'openai'
+        ? (row?.openaiApiKeyEncrypted ?? row?.llmApiKeyEncrypted)
+        : row?.llmApiKeyEncrypted
+  const apiKey = encryptedKey ? decrypt(encryptedKey) : undefined
 
   return getLanguageModel({ provider, apiKey })
 }
