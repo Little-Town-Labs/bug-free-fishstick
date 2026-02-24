@@ -6,7 +6,7 @@ import type { ProviderConfig } from '@/lib/ai/providers'
 export const classificationSchema = z.object({
   rfpType: z.enum(['technical', 'commercial', 'compliance', 'mixed']),
   complexity: z.enum(['simple', 'medium', 'complex']),
-  industryTags: z.array(z.string()).max(5),
+  industryTags: z.array(z.string()),
 })
 
 export type RfpClassification = z.infer<typeof classificationSchema>
