@@ -27,7 +27,7 @@ const questionsSchema = z.object({
       question: z.string(),
       rfpSection: z.string(),
     })
-  ).min(3).max(10),
+  ),
 })
 
 export async function generateClarifyingQuestions(
@@ -35,9 +35,10 @@ export async function generateClarifyingQuestions(
 ): Promise<GenerateClarifyingQuestionsResult> {
   const { rfpFields, rfpSummary, knowledgeTopics, contentLibraryCategories, organizationId } = input
 
-  const fieldsText = rfpFields.length > 0
-    ? rfpFields.map(f => `- [${f.type}] ${f.question}`).join('\n')
-    : '(No structured fields found — use the RFP summary to infer requirements.)'
+  const fieldsText =
+    rfpFields.length > 0
+      ? rfpFields.map((f) => `- [${f.type}] ${f.question}`).join('\n')
+      : '(No structured fields found — use the RFP summary to infer requirements.)'
 
   const model = await getLanguageModelForOrg(organizationId)
 
@@ -66,7 +67,7 @@ ${fieldsText}
 Generate clarifying questions to fill the gaps needed to write a complete proposal.`,
   })
 
-  const questions: ClarifyingQuestion[] = object.questions.map(q => ({
+  const questions: ClarifyingQuestion[] = object.questions.map((q) => ({
     id: q.id,
     question: q.question,
     rfpSection: q.rfpSection,
