@@ -12,18 +12,9 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  // Prevent pdfjs-dist and pdf-parse from being bundled into server chunks.
-  // pdfjs-dist uses DOMMatrix (a browser API) at module-init time, which
-  // crashes Inngest and other server-side routes in Node.js.
-  serverExternalPackages: ['pdfjs-dist', 'pdf-parse'],
-  // Include the pdfjs-dist worker file that Vercel's file tracer misses
-  // (loaded via dynamic import() inside pdfjs-dist for its "fake worker").
-  outputFileTracingIncludes: {
-    '/api/inngest': [
-      './node_modules/pdf-parse/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
-      './node_modules/pdf-parse/node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs',
-    ],
-  },
+  // Prevent pdfjs-dist (used by react-pdf on the client) from being bundled
+  // into server chunks — it references browser APIs (DOMMatrix) at module-init.
+  serverExternalPackages: ['pdfjs-dist'],
   webpack: (config) => {
     // pdfjs-dist requires canvas to be aliased away in server/edge builds
     config.resolve.alias.canvas = false
