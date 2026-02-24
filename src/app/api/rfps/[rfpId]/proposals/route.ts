@@ -38,9 +38,6 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'RFP not found' }, { status: 404 })
     }
     console.error('[proposals POST]', err)
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

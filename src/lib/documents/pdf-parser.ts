@@ -77,7 +77,7 @@ function extractFields(text: string): ParsedPdfResult['fields'] {
     if (textFieldMatch) {
       const question = textFieldMatch[1]!.trim()
       fields.push({
-        id: generateFieldId(fields.length),
+        id: generateFieldId(fields.length, question),
         type: 'text',
         question,
         position: {
@@ -101,7 +101,7 @@ function extractFields(text: string): ParsedPdfResult['fields'] {
         .replace(/[:.?]*$/, '')
         .trim()
       fields.push({
-        id: generateFieldId(fields.length),
+        id: generateFieldId(fields.length, question),
         type: 'paragraph',
         question,
         position: {
@@ -120,7 +120,7 @@ function extractFields(text: string): ParsedPdfResult['fields'] {
     if (checkboxMatch) {
       const question = checkboxMatch[1]!.trim()
       fields.push({
-        id: generateFieldId(fields.length),
+        id: generateFieldId(fields.length, question),
         type: 'checkbox',
         question,
         position: {
@@ -151,7 +151,7 @@ function extractFields(text: string): ParsedPdfResult['fields'] {
       }
 
       fields.push({
-        id: generateFieldId(fields.length),
+        id: generateFieldId(fields.length, question),
         type: 'table',
         question,
         position: {
@@ -169,8 +169,13 @@ function extractFields(text: string): ParsedPdfResult['fields'] {
 }
 
 /**
- * Generate a unique field ID
+ * Generate a deterministic field ID from index and question text.
+ * Deterministic IDs are required for Inngest step replay idempotency.
  */
-function generateFieldId(index: number): string {
-  return `field_${index}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+function generateFieldId(index: number, question: string): string {
+  const hash = question
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .substring(0, 16)
+  return `field_${index}_${hash}`
 }

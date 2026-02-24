@@ -3,7 +3,11 @@ import { rfps, proposalDrafts } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { inngest } from '@/lib/inngest/client'
 import { generateClarifyingQuestions } from '@/lib/ai/agents/proposal-question-generator'
-import type { ProposalDraft, NewProposalDraft, ClarifyingQuestion } from '@/lib/db/schema/proposal-drafts'
+import type {
+  ProposalDraft,
+  NewProposalDraft,
+  ClarifyingQuestion,
+} from '@/lib/db/schema/proposal-drafts'
 
 export { ProposalDraft }
 
@@ -24,10 +28,9 @@ export async function createDraft(
   }
 
   if (!rfp.parsedStructure) {
-    throw Object.assign(
-      new Error('RFP must be processed before generating a proposal'),
-      { statusCode: 422 }
-    )
+    throw Object.assign(new Error('RFP must be processed before generating a proposal'), {
+      statusCode: 422,
+    })
   }
 
   // Generate clarifying questions
@@ -70,21 +73,28 @@ export async function submitAnswers(
     throw Object.assign(new Error('Draft not found'), { statusCode: 404 })
   }
 
-  if (draft.status !== 'awaiting_answers') {
-    throw Object.assign(new Error('Draft is not awaiting answers'), { statusCode: 409 })
-  }
-
   // Merge answers into questions
-  const updatedQuestions: ClarifyingQuestion[] = (draft.clarifyingQuestions ?? []).map(q => {
-    const match = answers.find(a => a.id === q.id)
+  const updatedQuestions: ClarifyingQuestion[] = (draft.clarifyingQuestions ?? []).map((q) => {
+    const match = answers.find((a) => a.id === q.id)
     return match ? { ...q, answer: match.answer } : q
   })
 
+  // Atomic conditional update — status predicate prevents double-submit race condition
   const [updated] = await db
     .update(proposalDrafts)
     .set({ status: 'generating', clarifyingQuestions: updatedQuestions, updatedAt: new Date() })
-    .where(and(eq(proposalDrafts.id, draftId), eq(proposalDrafts.organizationId, orgId)))
+    .where(
+      and(
+        eq(proposalDrafts.id, draftId),
+        eq(proposalDrafts.organizationId, orgId),
+        eq(proposalDrafts.status, 'awaiting_answers')
+      )
+    )
     .returning()
+
+  if (!updated) {
+    throw Object.assign(new Error('Draft is not awaiting answers'), { statusCode: 409 })
+  }
 
   // Fire Inngest event
   await inngest.send({
@@ -96,7 +106,7 @@ export async function submitAnswers(
     },
   })
 
-  return updated!
+  return updated
 }
 
 export async function getDraft(draftId: string, orgId: string): Promise<ProposalDraft | null> {
@@ -127,7 +137,11 @@ export async function updateDraftContent(
     .where(and(eq(proposalDrafts.id, draftId), eq(proposalDrafts.organizationId, orgId)))
     .returning()
 
-  return updated!
+  if (!updated) {
+    throw Object.assign(new Error('Draft not found or already deleted'), { statusCode: 404 })
+  }
+
+  return updated
 }
 
 export async function updateDraft(
@@ -146,7 +160,9 @@ export async function updateDraft(
   }
 
   if (draft.status === 'generating' || draft.status === 'awaiting_answers') {
-    throw Object.assign(new Error('Cannot edit a draft that is still generating'), { statusCode: 409 })
+    throw Object.assign(new Error('Cannot edit a draft that is still generating'), {
+      statusCode: 409,
+    })
   }
 
   const [updated] = await db

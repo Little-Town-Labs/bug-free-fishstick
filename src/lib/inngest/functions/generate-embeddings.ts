@@ -11,23 +11,21 @@ export const generateEmbeddingsFunction = inngest.createFunction(
   { id: 'generate-embeddings' },
   { event: 'rfp/generate-embeddings' },
   async ({ event, step }: GetFunctionInput<typeof inngest, 'rfp/generate-embeddings'>) => {
-    const { knowledgeEntryId, content } = event.data
+    const { knowledgeEntryId, organizationId, content } = event.data
 
-    // Fetch org's OpenAI BYOK key via the knowledge entry's organizationId
+    // Fetch org's OpenAI BYOK key using the organizationId already in the event
     const openaiApiKey = await (async () => {
-      const [entry] = await db
-        .select({ organizationId: knowledgeEntries.organizationId })
-        .from(knowledgeEntries)
-        .where(eq(knowledgeEntries.id, knowledgeEntryId))
-        .limit(1)
-      if (!entry) return undefined
       const [row] = await db
         .select({ openaiApiKeyEncrypted: tenantSettings.openaiApiKeyEncrypted })
         .from(tenantSettings)
-        .where(eq(tenantSettings.organizationId, entry.organizationId))
+        .where(eq(tenantSettings.organizationId, organizationId))
         .limit(1)
       return row?.openaiApiKeyEncrypted ? decrypt(row.openaiApiKeyEncrypted) : undefined
     })()
+
+    if (!openaiApiKey && !process.env.OPENAI_API_KEY) {
+      return { status: 'skipped', reason: 'no_openai_key', knowledgeEntryId }
+    }
 
     // Step 1: Generate embedding from content
     const embedding = await step.run('generate-embedding', async () => {

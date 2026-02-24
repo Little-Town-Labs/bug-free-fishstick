@@ -10,40 +10,56 @@ import { eq, and, isNull } from 'drizzle-orm'
 export const generateContentLibraryEmbedding = inngest.createFunction(
   { id: 'content-library-generate-embedding', name: 'Generate Content Library Entry Embedding' },
   { event: 'content-library/generate-embedding' },
-  async ({ event }: GetFunctionInput<typeof inngest, 'content-library/generate-embedding'>) => {
+  async ({ event, step }: GetFunctionInput<typeof inngest, 'content-library/generate-embedding'>) => {
     const { entryId, organizationId } = event.data
 
-    const [entry] = await db
-      .select()
-      .from(proposalContentLibrary)
-      .where(
-        and(
-          eq(proposalContentLibrary.id, entryId),
-          eq(proposalContentLibrary.organizationId, organizationId)
+    // Step 1: Fetch entry and org API key
+    const { entry, openaiApiKey } = await step.run('fetch-entry-and-key', async () => {
+      const [found] = await db
+        .select()
+        .from(proposalContentLibrary)
+        .where(
+          and(
+            eq(proposalContentLibrary.id, entryId),
+            eq(proposalContentLibrary.organizationId, organizationId)
+          )
         )
-      )
-      .limit(1)
+        .limit(1)
+
+      const [settings] = await db
+        .select({ openaiApiKeyEncrypted: tenantSettings.openaiApiKeyEncrypted })
+        .from(tenantSettings)
+        .where(eq(tenantSettings.organizationId, organizationId))
+        .limit(1)
+
+      const key = settings?.openaiApiKeyEncrypted
+        ? decrypt(settings.openaiApiKeyEncrypted)
+        : undefined
+
+      return { entry: found ?? null, openaiApiKey: key }
+    })
 
     if (!entry) {
       return { status: 'not_found', entryId }
     }
 
-    const [settings] = await db
-      .select({ openaiApiKeyEncrypted: tenantSettings.openaiApiKeyEncrypted })
-      .from(tenantSettings)
-      .where(eq(tenantSettings.organizationId, organizationId))
-      .limit(1)
-    const openaiApiKey = settings?.openaiApiKeyEncrypted
-      ? decrypt(settings.openaiApiKeyEncrypted)
-      : undefined
+    if (!openaiApiKey && !process.env.OPENAI_API_KEY) {
+      return { status: 'skipped', reason: 'no_openai_key', entryId }
+    }
 
-    const textToEmbed = `${entry.category}: ${entry.name}\n\n${entry.content}`
-    const embedding = await generateEmbedding(textToEmbed, openaiApiKey)
+    // Step 2: Generate embedding
+    const embedding = await step.run('generate-embedding', async () => {
+      const textToEmbed = `${entry.category}: ${entry.name}\n\n${entry.content}`
+      return generateEmbedding(textToEmbed, openaiApiKey)
+    })
 
-    await db
-      .update(proposalContentLibrary)
-      .set({ embedding })
-      .where(eq(proposalContentLibrary.id, entryId))
+    // Step 3: Save embedding
+    await step.run('save-embedding', async () => {
+      return db
+        .update(proposalContentLibrary)
+        .set({ embedding })
+        .where(eq(proposalContentLibrary.id, entryId))
+    })
 
     return { status: 'embedded', entryId }
   }

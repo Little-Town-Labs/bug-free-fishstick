@@ -50,7 +50,10 @@ export const processRfp = inngest.createFunction(
     const rfp = await step.run('fetch-rfp', async () => {
       const [results] = await Promise.all([
         db.select().from(rfps).where(eq(rfps.id, rfpId)),
-        db.update(rfps).set({ status: 'processing' }).where(eq(rfps.id, rfpId)),
+        db
+          .update(rfps)
+          .set({ status: 'processing' })
+          .where(and(eq(rfps.id, rfpId), eq(rfps.organizationId, organizationId))),
       ])
 
       if (!results || results.length === 0) {
