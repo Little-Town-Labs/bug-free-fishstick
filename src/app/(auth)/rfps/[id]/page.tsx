@@ -124,7 +124,12 @@ export default function RfpDetailPage() {
           setResponses((prev) =>
             prev.map((r) =>
               r.fieldId === payload.fieldId
-                ? { ...r, responseText: payload.value, version: payload.version, updatedAt: new Date(payload.updatedAt) }
+                ? {
+                    ...r,
+                    responseText: payload.value,
+                    version: payload.version,
+                    updatedAt: new Date(payload.updatedAt),
+                  }
                 : r
             )
           )
@@ -159,7 +164,9 @@ export default function RfpDetailPage() {
       const res = await fetch(`/api/rfps/${rfpId}/proposals`)
       if (!res.ok) return
       const data = await res.json()
-      const draft = data.drafts?.find((d: ProposalDraft) => d.status === 'finalized' || d.status === 'draft')
+      const draft = data.drafts?.find(
+        (d: ProposalDraft) => d.status === 'finalized' || d.status === 'draft'
+      )
       if (draft?.markdownContent) {
         const blob = new Blob([draft.markdownContent], { type: 'text/markdown' })
         const url = URL.createObjectURL(blob)
@@ -180,7 +187,11 @@ export default function RfpDetailPage() {
     return (
       <div className="container mx-auto py-8">
         <p>RFP not found.</p>
-        <Link href="/dashboard"><Button variant="outline" className="mt-4">Back to Dashboard</Button></Link>
+        <Link href="/dashboard">
+          <Button variant="outline" className="mt-4">
+            Back to Dashboard
+          </Button>
+        </Link>
       </div>
     )
   }
@@ -192,18 +203,23 @@ export default function RfpDetailPage() {
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center gap-4 flex-wrap">
         <Link href="/dashboard">
-          <Button variant="outline" size="sm">Back to Dashboard</Button>
+          <Button variant="outline" size="sm">
+            Back to Dashboard
+          </Button>
         </Link>
         <h1 className="text-2xl font-bold">{rfp.name}</h1>
         <div className="ml-auto flex items-center gap-2">
-          {userId && (
-            <PresenceIndicator rfpId={rfpId} currentUserId={userId} />
-          )}
+          {userId && <PresenceIndicator rfpId={rfpId} currentUserId={userId} />}
           {isFinalized && (
             <>
               <OutcomeSelector
-                rfp={{ id: rfp.id, status: rfp.status, outcome: rfp.outcome ?? null, crmDealId: rfp.crmDealId ?? null }}
-                onOutcomeSet={(outcome) => setRfp((prev) => prev ? { ...prev, outcome } : prev)}
+                rfp={{
+                  id: rfp.id,
+                  status: rfp.status,
+                  outcome: rfp.outcome ?? null,
+                  crmDealId: rfp.crmDealId ?? null,
+                }}
+                onOutcomeSet={(outcome) => setRfp((prev) => (prev ? { ...prev, outcome } : prev))}
               />
               <Button
                 variant="default"
@@ -215,7 +231,11 @@ export default function RfpDetailPage() {
                 }}
                 aria-label="Download completed RFP document"
               >
-                {isGenerating ? 'Generating...' : rfp.completedFileError ? 'Generation Failed' : 'Download Completed RFP'}
+                {isGenerating
+                  ? 'Generating...'
+                  : rfp.completedFileError
+                    ? 'Generation Failed'
+                    : 'Download Completed RFP'}
               </Button>
               <Button
                 variant="outline"
@@ -226,9 +246,25 @@ export default function RfpDetailPage() {
               </Button>
             </>
           )}
-          <Link href={`/rfps/${rfpId}/proposal`}>
-            <Button variant="default">Generate Proposal</Button>
-          </Link>
+          {(() => {
+            const bestDraft =
+              drafts.find((d) => d.status === 'draft' || d.status === 'finalized') ??
+              drafts.find((d) => d.status === 'awaiting_answers' || d.status === 'generating') ??
+              drafts[0]
+            return bestDraft ? (
+              <Link href={`/rfps/${rfpId}/proposal?draftId=${bestDraft.id}`}>
+                <Button variant="default">
+                  {bestDraft.status === 'draft' || bestDraft.status === 'finalized'
+                    ? 'View Proposal'
+                    : 'Continue Proposal'}
+                </Button>
+              </Link>
+            ) : (
+              <Link href={`/rfps/${rfpId}/proposal`}>
+                <Button variant="default">Generate Proposal</Button>
+              </Link>
+            )
+          })()}
         </div>
       </div>
 
@@ -259,7 +295,13 @@ export default function RfpDetailPage() {
           totalFields={0}
           completedFields={0}
           automationPercentage={rfp.automationPercentage ?? 0}
-          status={rfp.status === 'submitted' ? 'review' : rfp.status === 'finalized' ? 'completed' : rfp.status as 'draft' | 'processing' | 'approved'}
+          status={
+            rfp.status === 'submitted'
+              ? 'review'
+              : rfp.status === 'finalized'
+                ? 'completed'
+                : (rfp.status as 'draft' | 'processing' | 'approved')
+          }
         />
 
         <RfpEditor
@@ -290,9 +332,7 @@ export default function RfpDetailPage() {
         </section>
       )}
 
-      {!loadingDrafts && (
-        <ProposalDraftPanel rfpId={rfpId} initialDrafts={drafts} />
-      )}
+      {!loadingDrafts && <ProposalDraftPanel rfpId={rfpId} initialDrafts={drafts} />}
     </div>
   )
 }
