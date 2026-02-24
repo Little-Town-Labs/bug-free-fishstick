@@ -1,22 +1,30 @@
 import { inngest } from '@/lib/inngest/client'
 import type { GetFunctionInput } from 'inngest'
 import { db } from '@/lib/db'
-import { rfps, proposalDrafts } from '@/lib/db/schema'
+import { rfps, proposalDrafts, tenantSettings } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { searchSimilar } from '@/lib/services/vector-search'
 import { searchContentLibrary } from '@/lib/services/content-library-search'
 import { listEntries } from '@/lib/services/proposal-content-library'
 import { writeProposal } from '@/lib/ai/agents/proposal-writer'
 import { updateDraftContent } from '@/lib/services/proposal-draft'
+import { decrypt } from '@/lib/services/encryption'
 
 export const generateProposal = inngest.createFunction(
   { id: 'generate-proposal', name: 'Generate Proposal Draft' },
   { event: 'proposal/generate' },
-  async ({
-    event,
-    step,
-  }: GetFunctionInput<typeof inngest, 'proposal/generate'>) => {
+  async ({ event, step }: GetFunctionInput<typeof inngest, 'proposal/generate'>) => {
     const { draftId, rfpId, organizationId } = event.data
+
+    // Fetch org's OpenAI BYOK key outside steps so it's never serialized by Inngest
+    const openaiApiKey = await (async () => {
+      const [row] = await db
+        .select({ openaiApiKeyEncrypted: tenantSettings.openaiApiKeyEncrypted })
+        .from(tenantSettings)
+        .where(eq(tenantSettings.organizationId, organizationId))
+        .limit(1)
+      return row?.openaiApiKeyEncrypted ? decrypt(row.openaiApiKeyEncrypted) : undefined
+    })()
 
     try {
       // Step 1: Fetch draft and RFP
@@ -24,7 +32,9 @@ export const generateProposal = inngest.createFunction(
         const [d] = await db
           .select()
           .from(proposalDrafts)
-          .where(and(eq(proposalDrafts.id, draftId), eq(proposalDrafts.organizationId, organizationId)))
+          .where(
+            and(eq(proposalDrafts.id, draftId), eq(proposalDrafts.organizationId, organizationId))
+          )
           .limit(1)
 
         const [r] = await db
@@ -43,23 +53,23 @@ export const generateProposal = inngest.createFunction(
       // Step 2: Search knowledge base for relevant context
       const knowledgeContext = await step.run('search-knowledge-base', async () => {
         const rfpText = rfp.name
-        return searchSimilar(rfpText, organizationId, 10)
+        return searchSimilar(rfpText, organizationId, 10, undefined, openaiApiKey)
       })
 
       // Step 3: Search content library using semantic search (fallback to listing all)
       const contentLibraryEntries = await step.run('fetch-content-library', async () => {
         const query = rfp.name
-        const results = await searchContentLibrary(query, organizationId, 5)
+        const results = await searchContentLibrary(query, organizationId, 5, openaiApiKey)
         if (results.length > 0) return results
 
         // Fallback to listing all entries if no semantic results
         const all = await listEntries(organizationId)
-        return all.slice(0, 10).map(e => ({ ...e, similarity: 0 }))
+        return all.slice(0, 10).map((e) => ({ ...e, similarity: 0 }))
       })
 
       // Step 4: Build RFP sections from parsed structure
       const rfpSections = rfp.parsedStructure
-        ? rfp.parsedStructure.fields.map(f => ({
+        ? rfp.parsedStructure.fields.map((f) => ({
             title: f.question,
             content: f.question,
           }))
@@ -69,11 +79,11 @@ export const generateProposal = inngest.createFunction(
       const { markdownContent } = await step.run('generate-proposal-content', async () => {
         return writeProposal({
           rfpSections,
-          knowledgeContext: knowledgeContext.map(k => ({
+          knowledgeContext: knowledgeContext.map((k) => ({
             content: k.content,
             source: k.title ?? 'knowledge base',
           })),
-          contentLibraryEntries: contentLibraryEntries.map(e => ({
+          contentLibraryEntries: contentLibraryEntries.map((e) => ({
             id: e.id,
             name: e.name,
             category: e.category,
@@ -97,7 +107,9 @@ export const generateProposal = inngest.createFunction(
       await db
         .update(proposalDrafts)
         .set({ status: 'error', generationError: errorMessage, updatedAt: new Date() })
-        .where(and(eq(proposalDrafts.id, draftId), eq(proposalDrafts.organizationId, organizationId)))
+        .where(
+          and(eq(proposalDrafts.id, draftId), eq(proposalDrafts.organizationId, organizationId))
+        )
 
       return { draftId, status: 'error', error: errorMessage }
     }

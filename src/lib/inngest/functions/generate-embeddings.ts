@@ -2,7 +2,9 @@ import { inngest } from '@/lib/inngest/client'
 import type { GetFunctionInput } from 'inngest'
 import { db } from '@/lib/db'
 import { knowledgeEntries } from '@/lib/db/schema/knowledge-entries'
+import { tenantSettings } from '@/lib/db/schema'
 import { generateEmbedding } from '@/lib/ai/embeddings'
+import { decrypt } from '@/lib/services/encryption'
 import { eq } from 'drizzle-orm'
 
 export const generateEmbeddingsFunction = inngest.createFunction(
@@ -11,9 +13,25 @@ export const generateEmbeddingsFunction = inngest.createFunction(
   async ({ event, step }: GetFunctionInput<typeof inngest, 'rfp/generate-embeddings'>) => {
     const { knowledgeEntryId, content } = event.data
 
+    // Fetch org's OpenAI BYOK key via the knowledge entry's organizationId
+    const openaiApiKey = await (async () => {
+      const [entry] = await db
+        .select({ organizationId: knowledgeEntries.organizationId })
+        .from(knowledgeEntries)
+        .where(eq(knowledgeEntries.id, knowledgeEntryId))
+        .limit(1)
+      if (!entry) return undefined
+      const [row] = await db
+        .select({ openaiApiKeyEncrypted: tenantSettings.openaiApiKeyEncrypted })
+        .from(tenantSettings)
+        .where(eq(tenantSettings.organizationId, entry.organizationId))
+        .limit(1)
+      return row?.openaiApiKeyEncrypted ? decrypt(row.openaiApiKeyEncrypted) : undefined
+    })()
+
     // Step 1: Generate embedding from content
     const embedding = await step.run('generate-embedding', async () => {
-      return await generateEmbedding(content)
+      return await generateEmbedding(content, openaiApiKey)
     })
 
     // Step 2: Update knowledge entry with the generated embedding

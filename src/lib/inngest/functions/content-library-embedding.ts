@@ -2,7 +2,9 @@ import { inngest } from '@/lib/inngest/client'
 import type { GetFunctionInput } from 'inngest'
 import { db } from '@/lib/db'
 import { proposalContentLibrary } from '@/lib/db/schema/proposal-content-library'
+import { tenantSettings } from '@/lib/db/schema'
 import { generateEmbedding } from '@/lib/ai/embeddings'
+import { decrypt } from '@/lib/services/encryption'
 import { eq, and, isNull } from 'drizzle-orm'
 
 export const generateContentLibraryEmbedding = inngest.createFunction(
@@ -26,8 +28,17 @@ export const generateContentLibraryEmbedding = inngest.createFunction(
       return { status: 'not_found', entryId }
     }
 
+    const [settings] = await db
+      .select({ openaiApiKeyEncrypted: tenantSettings.openaiApiKeyEncrypted })
+      .from(tenantSettings)
+      .where(eq(tenantSettings.organizationId, organizationId))
+      .limit(1)
+    const openaiApiKey = settings?.openaiApiKeyEncrypted
+      ? decrypt(settings.openaiApiKeyEncrypted)
+      : undefined
+
     const textToEmbed = `${entry.category}: ${entry.name}\n\n${entry.content}`
-    const embedding = await generateEmbedding(textToEmbed)
+    const embedding = await generateEmbedding(textToEmbed, openaiApiKey)
 
     await db
       .update(proposalContentLibrary)
@@ -61,7 +72,7 @@ export const batchEmbedContentLibrary = inngest.createFunction(
     }
 
     await step.run('fan-out-embeddings', async () => {
-      const events = unembedded.map(entry => ({
+      const events = unembedded.map((entry) => ({
         name: 'content-library/generate-embedding' as const,
         data: { entryId: entry.id, organizationId },
       }))

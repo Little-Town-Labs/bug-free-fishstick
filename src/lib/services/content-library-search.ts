@@ -12,6 +12,7 @@ export async function searchContentLibrary(
   query: string,
   organizationId: string,
   limit: number = 5,
+  openaiApiKey?: string
 ): Promise<ContentLibraryEntryWithSimilarity[]> {
   // Check if any entries have embeddings
   const embeddedCount = await db
@@ -30,7 +31,17 @@ export async function searchContentLibrary(
     return fallbackCategorySearch(organizationId, limit)
   }
 
-  const queryEmbedding = await generateEmbedding(query)
+  // If no OpenAI key is available, skip semantic search and use fallback
+  if (!openaiApiKey && !process.env.OPENAI_API_KEY) {
+    return fallbackCategorySearch(organizationId, limit)
+  }
+
+  let queryEmbedding: number[]
+  try {
+    queryEmbedding = await generateEmbedding(query, openaiApiKey)
+  } catch {
+    return fallbackCategorySearch(organizationId, limit)
+  }
 
   const results = await db
     .select({
@@ -42,7 +53,10 @@ export async function searchContentLibrary(
       createdBy: proposalContentLibrary.createdBy,
       createdAt: proposalContentLibrary.createdAt,
       updatedAt: proposalContentLibrary.updatedAt,
-      similarity: sql<number>`1 - (${proposalContentLibrary.embedding} <=> ${JSON.stringify(queryEmbedding)}::vector)`.as('similarity'),
+      similarity:
+        sql<number>`1 - (${proposalContentLibrary.embedding} <=> ${JSON.stringify(queryEmbedding)}::vector)`.as(
+          'similarity'
+        ),
     })
     .from(proposalContentLibrary)
     .where(
@@ -59,7 +73,7 @@ export async function searchContentLibrary(
 
 async function fallbackCategorySearch(
   organizationId: string,
-  limit: number,
+  limit: number
 ): Promise<ContentLibraryEntryWithSimilarity[]> {
   const results = await db
     .select({
@@ -76,13 +90,13 @@ async function fallbackCategorySearch(
     .where(eq(proposalContentLibrary.organizationId, organizationId))
     .limit(limit)
 
-  return results.map(r => ({ ...r, similarity: 0 }))
+  return results.map((r) => ({ ...r, similarity: 0 }))
 }
 
 export async function searchContentLibraryByCategory(
   organizationId: string,
   category: string,
-  limit: number = 10,
+  limit: number = 10
 ): Promise<ProposalContentLibraryEntry[]> {
   return db
     .select()
