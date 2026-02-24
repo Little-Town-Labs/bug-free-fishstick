@@ -1,7 +1,7 @@
 import { inngest } from '@/lib/inngest/client'
 import type { GetFunctionInput } from 'inngest'
 import { db } from '@/lib/db'
-import { rfps } from '@/lib/db/schema/rfps'
+import { rfps, tenantSettings } from '@/lib/db/schema'
 import { rfpResponses } from '@/lib/db/schema/rfp-responses'
 import { learnings } from '@/lib/db/schema'
 import { downloadFile } from '@/lib/storage/blob'
@@ -13,6 +13,8 @@ import { checkQuality } from '@/lib/ai/agents/quality-checker'
 import { searchSimilar } from '@/lib/services/vector-search'
 import { classifyRfp } from '@/lib/ai/agents/rfp-classifier'
 import { suggestAssignee } from '@/lib/services/rfp-classifier'
+import { decrypt } from '@/lib/services/encryption'
+import type { ProviderConfig } from '@/lib/ai/providers'
 import { eq, and } from 'drizzle-orm'
 import { customers } from '@/lib/db/schema/customers'
 
@@ -21,6 +23,19 @@ export const processRfp = inngest.createFunction(
   { event: 'rfp/process' },
   async ({ event, step }: GetFunctionInput<typeof inngest, 'rfp/process'>) => {
     const { rfpId, organizationId } = event.data
+
+    // Fetch org's BYOK provider config outside of any step so the API key
+    // is never serialized/stored by Inngest's step state.
+    const providerConfig = await (async (): Promise<ProviderConfig> => {
+      const [row] = await db
+        .select()
+        .from(tenantSettings)
+        .where(eq(tenantSettings.organizationId, organizationId))
+        .limit(1)
+      const provider = (row?.llmProvider ?? 'claude') as ProviderConfig['provider']
+      const apiKey = row?.llmApiKeyEncrypted ? decrypt(row.llmApiKeyEncrypted) : undefined
+      return { provider, apiKey }
+    })()
 
     // Step 1: Fetch RFP and update status to processing (parallel)
     const rfp = await step.run('fetch-rfp', async () => {
@@ -63,7 +78,7 @@ export const processRfp = inngest.createFunction(
       return await analyzeDocument({
         text: parsedDoc.text,
         pages: 'pages' in parsedDoc ? parsedDoc.pages : 1,
-        providerConfig: { provider: 'claude' },
+        providerConfig,
       })
     })
 
@@ -73,24 +88,25 @@ export const processRfp = inngest.createFunction(
         const result = await classifyRfp({
           documentText: parsedDoc.text,
           fieldCount: analyzed.fields.length,
-          fieldTypes: analyzed.fields.map(f => f.type),
-          providerConfig: { provider: 'claude' },
+          fieldTypes: analyzed.fields.map((f) => f.type),
+          providerConfig,
         })
 
         // Suggest assignee based on classification
         // For now, use existing assigned user as the only candidate
-        const suggested = await suggestAssignee(
-          organizationId,
-          result.rfpType,
-          [rfp.assignedUserId],
-        )
+        const suggested = await suggestAssignee(organizationId, result.rfpType, [
+          rfp.assignedUserId,
+        ])
 
-        await db.update(rfps).set({
-          rfpType: result.rfpType,
-          complexity: result.complexity,
-          industryTags: result.industryTags,
-          suggestedAssigneeId: suggested,
-        }).where(eq(rfps.id, rfpId))
+        await db
+          .update(rfps)
+          .set({
+            rfpType: result.rfpType,
+            complexity: result.complexity,
+            industryTags: result.industryTags,
+            suggestedAssigneeId: suggested,
+          })
+          .where(eq(rfps.id, rfpId))
 
         return result
       } catch {
@@ -105,22 +121,29 @@ export const processRfp = inngest.createFunction(
       const customerId = rfp.customerId ?? undefined
       const [knowledgeContext, orgLearnings, customerResults] = await Promise.all([
         searchSimilar(rfp.name, organizationId, 10, customerId).then((results) =>
-          results.map((r) => ({ content: r.content, relevanceScore: r.similarity, source: r.title }))
+          results.map((r) => ({
+            content: r.content,
+            relevanceScore: r.similarity,
+            source: r.title,
+          }))
         ),
         db.select().from(learnings).where(eq(learnings.organizationId, organizationId)),
         customerId
-          ? db.select().from(customers).where(
-              and(eq(customers.id, customerId), eq(customers.organizationId, organizationId))
-            )
+          ? db
+              .select()
+              .from(customers)
+              .where(
+                and(eq(customers.id, customerId), eq(customers.organizationId, organizationId))
+              )
           : Promise.resolve([]),
       ])
 
       // Prioritize customer-specific learnings
-      const customerLearnings = orgLearnings.filter(l => l.customerId === customerId)
-      const orgOnlyLearnings = orgLearnings.filter(l => !l.customerId)
+      const customerLearnings = orgLearnings.filter((l) => l.customerId === customerId)
+      const orgOnlyLearnings = orgLearnings.filter((l) => !l.customerId)
       const learningsContext = [
-        ...customerLearnings.map(l => l.content),
-        ...orgOnlyLearnings.map(l => l.content),
+        ...customerLearnings.map((l) => l.content),
+        ...orgOnlyLearnings.map((l) => l.content),
       ]
 
       // Build customer context from settings
@@ -134,7 +157,7 @@ export const processRfp = inngest.createFunction(
         : undefined
 
       return await generateResponses({
-        fields: analyzed.fields.map(f => ({
+        fields: analyzed.fields.map((f) => ({
           id: f.id,
           type: f.type,
           question: f.question,
@@ -142,36 +165,42 @@ export const processRfp = inngest.createFunction(
         knowledgeContext,
         learningsContext,
         customerContext,
-        providerConfig: { provider: 'claude' },
+        providerConfig,
       })
     })
 
     // Step 6: Check quality
     const qualityResults = await step.run('check-quality', async () => {
-      const fieldMap = new Map(analyzed.fields.map(f => [f.id, f]))
+      const fieldMap = new Map(analyzed.fields.map((f) => [f.id, f]))
       return await checkQuality({
-        responses: generatedResponses.responses.map(r => ({
+        responses: generatedResponses.responses.map((r) => ({
           fieldId: r.fieldId,
           question: fieldMap.get(r.fieldId)?.question || '',
           fieldType: fieldMap.get(r.fieldId)?.type || 'text',
           responseText: r.responseText,
           confidenceScore: r.confidenceScore,
         })),
-        providerConfig: { provider: 'claude' },
+        providerConfig,
       })
     })
 
     // Step 7: Save responses
     await step.run('save-responses', async () => {
-      const fieldMap = new Map(analyzed.fields.map(f => [f.id, f]))
-      const qualityMap = new Map(qualityResults.results.map(q => [q.fieldId, q]))
-      const responseValues = generatedResponses.responses.map(r => {
+      const fieldMap = new Map(analyzed.fields.map((f) => [f.id, f]))
+      const qualityMap = new Map(qualityResults.results.map((q) => [q.fieldId, q]))
+      const responseValues = generatedResponses.responses.map((r) => {
         const field = fieldMap.get(r.fieldId)
         const quality = qualityMap.get(r.fieldId)
         return {
           rfpId,
           fieldId: r.fieldId,
-          fieldType: (field?.type || 'text') as 'text' | 'paragraph' | 'checkbox' | 'table' | 'date' | 'number',
+          fieldType: (field?.type || 'text') as
+            | 'text'
+            | 'paragraph'
+            | 'checkbox'
+            | 'table'
+            | 'date'
+            | 'number',
           question: field?.question || '',
           responseText: r.responseText,
           confidenceScore: quality?.adjustedConfidence ?? r.confidenceScore,
@@ -183,22 +212,17 @@ export const processRfp = inngest.createFunction(
           },
         }
       })
-      return await db
-        .insert(rfpResponses)
-        .values(responseValues)
-        .returning()
+      return await db.insert(rfpResponses).values(responseValues).returning()
     })
 
     // Step 8: Update RFP with final status and metadata
     await step.run('update-rfp', async () => {
       const fields = analyzed.fields || []
       const autoFilledCount = generatedResponses.responses.filter(
-        r => r.status === 'auto_filled'
+        (r) => r.status === 'auto_filled'
       ).length
       const automationPercentage =
-        fields.length > 0
-          ? Math.round((autoFilledCount / fields.length) * 100)
-          : 0
+        fields.length > 0 ? Math.round((autoFilledCount / fields.length) * 100) : 0
 
       return await db
         .update(rfps)
@@ -206,7 +230,7 @@ export const processRfp = inngest.createFunction(
           status: 'draft' as const,
           parsedStructure: {
             pages: 'pages' in parsedDoc ? parsedDoc.pages : 1,
-            fields: fields.map(f => ({
+            fields: fields.map((f) => ({
               id: f.id,
               type: f.type as 'text' | 'paragraph' | 'checkbox' | 'table',
               question: f.question,
