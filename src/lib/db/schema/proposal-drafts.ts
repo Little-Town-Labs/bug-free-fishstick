@@ -17,6 +17,20 @@ export interface ClarifyingQuestion {
   answer: string | null
 }
 
+export interface CoverageRequirement {
+  requirementId: string
+  question: string
+  addressed: boolean
+  evidence: string | null
+  gap: string | null
+}
+
+export interface CoverageReport {
+  coverageScore: number
+  evaluatedAt: string
+  requirements: CoverageRequirement[]
+}
+
 export const proposalDrafts = pgTable(
   'proposal_drafts',
   {
@@ -32,6 +46,7 @@ export const proposalDrafts = pgTable(
     markdownContent: text('markdown_content'),
     generationError: text('generation_error'),
     version: integer('version').notNull().default(1),
+    coverageReport: jsonb('coverage_report').$type<CoverageReport>(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

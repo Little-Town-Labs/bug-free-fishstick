@@ -43,6 +43,7 @@ const mockDraftWithContent = {
   markdownContent: '# My Proposal\n\nThis is the proposal content.',
   generationError: null,
   version: 1,
+  coverageReport: null,
   createdAt: now,
   updatedAt: now,
 }
