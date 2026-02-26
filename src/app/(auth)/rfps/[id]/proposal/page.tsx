@@ -18,6 +18,11 @@ const ProposalEditor = dynamic(
   { ssr: false }
 )
 
+const CoverageReportPanel = dynamic(
+  () => import('@/components/rfp/CoverageReportPanel').then((m) => m.CoverageReportPanel),
+  { ssr: false }
+)
+
 const POLL_INTERVAL_MS = 3000
 
 type Step = 'creating' | 'answering' | 'viewing'
@@ -317,6 +322,12 @@ export default function ProposalWizardPage() {
                 initialContent={draft.markdownContent}
                 status={draft.status as 'draft' | 'finalized'}
                 onSaved={setDraft}
+              />
+              <CoverageReportPanel
+                coverageReport={draft.coverageReport ?? null}
+                rfpId={rfpId}
+                draftId={draft.id}
+                onUpdated={(report) => setDraft({ ...draft, coverageReport: report })}
               />
             </div>
           )}
