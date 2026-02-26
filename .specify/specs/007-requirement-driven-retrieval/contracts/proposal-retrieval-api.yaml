@@ -1,0 +1,445 @@
+openapi: 3.0.0
+info:
+  title: Proposal Retrieval Module — Internal Function Contracts
+  version: 1.0.0
+  description: |
+    Internal TypeScript function signatures for the proposal-retrieval service module
+    (src/lib/services/proposal-retrieval.ts). This is NOT a REST API. These contracts
+    document the TypeScript call interface consumed by the F8 pipeline.
+
+    All functions are async, read-only, and stateless.
+    All functions enforce organizationId tenant isolation at the query level.
+    All functions return defined values (empty arrays or null) — they never throw to the caller.
+
+# ------------------------------------------------------------------------------
+# TYPE DEFINITIONS (represented as OpenAPI schemas for documentation clarity)
+# ------------------------------------------------------------------------------
+
+components:
+  schemas:
+
+    RequirementField:
+      type: object
+      description: |
+        One parsed RFP requirement field. Source: Rfp.parsedStructure.fields[].
+        F7 uses only the `question` property for embedding generation.
+      required:
+        - id
+        - question
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the field within the RFP.
+        question:
+          type: string
+          description: The question text used as the semantic search query.
+        type:
+          type: string
+          enum: [text, paragraph, checkbox, table]
+          description: Field type; accepted for forward compatibility, not used for filtering.
+
+    KnowledgeEntryWithSimilarity:
+      type: object
+      description: |
+        A knowledge base entry with a cosine-similarity score appended.
+        Reuses the type exported from vector-search.ts (Omit<KnowledgeEntry, 'embedding'>
+        & { similarity: number }).
+        The `embedding` column is excluded from all query SELECT lists.
+
+        IMPORTANT — Column selection note: The existing searchSimilar function in
+        vector-search.ts uses an explicit, narrow SELECT that omits tags, chunkIndex,
+        totalChunks, sectionHeading, sourceEntryId, and processingStatus. The
+        searchByRequirements implementation in F7 must use a full SELECT (db.select().from())
+        to include all columns (especially tags) in its results, or explicitly add tags to
+        the select list. The TypeScript type KnowledgeEntryWithSimilarity includes tags via
+        Omit<KnowledgeEntry, 'embedding'>, so the runtime SELECT must match.
+      required:
+        - id
+        - organizationId
+        - type
+        - title
+        - content
+        - similarity
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+          nullable: true
+        type:
+          type: string
+          enum: [past_rfp, case_study, certification, company_doc, manual_entry]
+        title:
+          type: string
+        content:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+          description: Freeform JSONB metadata. For past_rfp entries, may contain outcome field.
+          properties:
+            outcome:
+              type: string
+              enum: [won, lost]
+              description: |
+                Winning/losing outcome for past_rfp entries, stored at ingestion time.
+                Used by fetchTypedSupplierContext to filter wonPastRfps group.
+        similarity:
+          type: number
+          format: float
+          description: Cosine similarity score in range [0, 1]. Higher = more similar.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    KnowledgeEntry:
+      type: object
+      description: |
+        A knowledge base entry without similarity score.
+        Used for typed supplier context groups (direct DB queries, no vector search).
+        Same fields as KnowledgeEntryWithSimilarity except no `similarity` property.
+      required:
+        - id
+        - organizationId
+        - type
+        - title
+        - content
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+          nullable: true
+        type:
+          type: string
+          enum: [past_rfp, case_study, certification, company_doc, manual_entry]
+        title:
+          type: string
+        content:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TypedSupplierContext:
+      type: object
+      description: |
+        Four distinct, labelled groups of knowledge entries returned by
+        fetchTypedSupplierContext. Each group contains only entries of the
+        corresponding type. Groups are never merged.
+      required:
+        - companyDocs
+        - certifications
+        - caseStudies
+        - wonPastRfps
+      properties:
+        companyDocs:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeEntry'
+          description: Entries of type `company_doc` for the organisation.
+        certifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeEntry'
+          description: Entries of type `certification` for the organisation.
+        caseStudies:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeEntry'
+          description: Entries of type `case_study` for the organisation.
+        wonPastRfps:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeEntry'
+          description: |
+            Entries of type `past_rfp` where metadata->>'outcome' = 'won'.
+            When industryTags is provided, further filtered to entries whose
+            tags array overlaps with the provided industryTags (Postgres ?| operator).
+
+    CustomerContext:
+      type: object
+      nullable: true
+      description: |
+        The customer's configured settings object, or null if the customer does not exist
+        in the organisation. All fields are optional — a customer may exist with no
+        settings configured.
+      properties:
+        preferredTone:
+          type: string
+          enum: [formal, casual, technical]
+          description: Customer's preferred proposal writing tone.
+        industryContext:
+          type: string
+          description: Free-text industry context for the customer.
+        customInstructions:
+          type: string
+          description: Customer-specific proposal writing instructions.
+
+    Learning:
+      type: object
+      description: |
+        A single learning entry from the learnings table.
+        Directly mirrors the Drizzle-inferred Learning type from
+        src/lib/db/schema/learnings.ts. All columns are included.
+      required:
+        - id
+        - organizationId
+        - content
+        - sourceType
+        - createdBy
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Set when this learning applies to a specific customer; null for org-wide.
+        content:
+          type: string
+        sourceType:
+          type: string
+          enum: [rfp_approval, user_correction, manual_entry, accept_signal, edit_correction, reject_signal]
+        createdBy:
+          type: string
+        fieldId:
+          type: string
+          nullable: true
+        questionType:
+          type: string
+          nullable: true
+          description: The question type context for this learning (from learnings.question_type).
+        confidence:
+          type: number
+          format: float
+          nullable: true
+        sourceMetadata:
+          type: object
+          nullable: true
+          description: JSONB metadata referencing the source RFP, field, and text corrections.
+          properties:
+            rfpId:
+              type: string
+            fieldId:
+              type: string
+            originalText:
+              type: string
+            correctedText:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+
+# ------------------------------------------------------------------------------
+# FUNCTION CONTRACTS (documented as pseudo-paths for discoverability)
+# ------------------------------------------------------------------------------
+
+paths:
+
+  /fn/searchByRequirements:
+    post:
+      summary: searchByRequirements
+      description: |
+        Generates one embedding per requirement field (up to REQUIREMENT_SEARCH_CAP = 10),
+        executes concurrent similarity searches against knowledge_entries, merges results,
+        and deduplicates by entry ID (highest similarity wins).
+
+        TypeScript signature:
+          async function searchByRequirements(
+            fields: RequirementField[],
+            orgId: string,
+            openaiApiKey?: string
+          ): Promise<KnowledgeEntryWithSimilarity[]>
+
+        Behaviour:
+        - fields.length === 0 → returns [] immediately, no API calls made
+        - fields.length > 10 → only fields[0..9] are queried; remainder silently skipped
+        - openaiApiKey absent and OPENAI_API_KEY env absent → returns []
+        - Individual embedding call throws → that requirement contributes no results; others continue
+        - Per-requirement DB result limit: RESULTS_PER_REQUIREMENT = 5
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fields:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/RequirementField'
+                orgId:
+                  type: string
+                openaiApiKey:
+                  type: string
+                  description: Optional; falls back to OPENAI_API_KEY env var.
+      responses:
+        '200':
+          description: Deduplicated array of knowledge entries with similarity scores.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KnowledgeEntryWithSimilarity'
+
+  /fn/fetchTypedSupplierContext:
+    post:
+      summary: fetchTypedSupplierContext
+      description: |
+        Performs four direct DB queries (no embeddings) to retrieve knowledge entries
+        grouped by type. The past_rfp group is further filtered to won entries and
+        optionally by industry tag overlap.
+
+        TypeScript signature:
+          async function fetchTypedSupplierContext(
+            orgId: string,
+            industryTags?: string[] | null,
+            rfpType?: string | null,
+            openaiApiKey?: string
+          ): Promise<TypedSupplierContext>
+
+        Behaviour:
+        - rfpType parameter accepted but NOT used for filtering in F7 (forward-compat only)
+        - industryTags null/undefined/[] → no tag filter on wonPastRfps
+        - industryTags non-empty → Postgres ?| operator filters past_rfp entries by tag overlap
+        - past_rfp group: metadata->>'outcome' = 'won' is always applied
+        - openaiApiKey parameter accepted for signature consistency; not used (no embeddings)
+        - Any group query failure → that group returns []; other groups unaffected
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orgId:
+                  type: string
+                industryTags:
+                  type: array
+                  items:
+                    type: string
+                  nullable: true
+                rfpType:
+                  type: string
+                  nullable: true
+                  description: Accepted but not used for filtering in F7.
+      responses:
+        '200':
+          description: Four labelled groups of knowledge entries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TypedSupplierContext'
+
+  /fn/fetchCustomerContext:
+    post:
+      summary: fetchCustomerContext
+      description: |
+        Loads the customer settings object for a specific customer scoped to the organisation.
+
+        TypeScript signature:
+          async function fetchCustomerContext(
+            customerId: string,
+            orgId: string
+          ): Promise<CustomerContext>
+
+        Behaviour:
+        - Customer exists with settings → returns settings object (may have no fields)
+        - Customer exists, settings column is null → returns null (treated as "no context")
+        - Customer not found or belongs to different org → returns null
+        - Query always includes AND organization_id = $orgId (tenant isolation enforced at DB level)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customerId, orgId]
+              properties:
+                customerId:
+                  type: string
+                  format: uuid
+                orgId:
+                  type: string
+      responses:
+        '200':
+          description: Customer settings or null.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerContext'
+
+  /fn/fetchLearnings:
+    post:
+      summary: fetchLearnings
+      description: |
+        Loads all learnings for the organisation, with customer-specific entries ordered first.
+
+        TypeScript signature:
+          async function fetchLearnings(
+            orgId: string,
+            customerId?: string
+          ): Promise<Learning[]>
+
+        Behaviour:
+        - customerId provided → all learnings for org returned; customer-matching entries ordered first
+        - customerId not provided → only org-wide learnings (customer_id IS NULL) returned
+        - No learnings exist → returns []
+        - Ordering SQL: CASE WHEN customer_id = $customerId THEN 0 ELSE 1 END ASC
+        - Query always includes AND organization_id = $orgId (tenant isolation enforced at DB level)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orgId]
+              properties:
+                orgId:
+                  type: string
+                customerId:
+                  type: string
+                  format: uuid
+                  description: Optional. When provided, customer-specific learnings are ordered first.
+      responses:
+        '200':
+          description: Array of learnings, customer-specific first when customerId is provided.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Learning'
