@@ -1,0 +1,243 @@
+openapi: 3.0.3
+info:
+  title: Company Profile Settings API
+  description: |
+    Multi-tenant Company Profile management endpoint for RFP Automator.
+    Enables organizations to store and retrieve markdown/plaintext company descriptions
+    used in proposal preambles.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Development
+
+paths:
+  /api/settings/company-profile:
+    get:
+      operationId: getCompanyProfile
+      summary: Get current company profile
+      description: |
+        Retrieve the organization's company profile text.
+        Available to any authenticated organization member.
+        Returns `null` if no profile has been set.
+      tags:
+        - Settings
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Company profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCompanyProfileResponse'
+              examples:
+                withProfile:
+                  summary: Profile text is set
+                  value:
+                    companyProfile: |
+                      # ACME Corp Solutions
+
+                      Founded in 2015, ACME specializes in enterprise software solutions
+                      for Fortune 500 companies across healthcare, finance, and manufacturing.
+
+                      ## Core Competencies
+                      - Cloud infrastructure modernization
+                      - Custom API development
+                      - 24/7 managed services
+
+                      **Average project value:** $250K–$500K
+                empty:
+                  summary: No profile set (null)
+                  value:
+                    companyProfile: null
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Authentication required
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Internal server error
+
+    patch:
+      operationId: updateCompanyProfile
+      summary: Update company profile
+      description: |
+        Replace the organization's company profile text.
+        **Requires admin role.**
+        Pass `null` to clear the profile. Empty string is valid.
+        Maximum 10,000 characters enforced.
+      tags:
+        - Settings
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCompanyProfileRequest'
+            examples:
+              setText:
+                summary: Set profile text
+                value:
+                  companyProfile: |
+                    # TechCorp
+                    Enterprise software leaders since 2012.
+              clearProfile:
+                summary: Clear profile (set to null)
+                value:
+                  companyProfile: null
+              emptyString:
+                summary: Set empty string (valid)
+                value:
+                  companyProfile: ""
+      responses:
+        '200':
+          description: Company profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCompanyProfileResponse'
+              example:
+                success: true
+        '400':
+          description: Invalid request (malformed JSON body)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid JSON body
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Authentication required
+        '403':
+          description: Authorization failed (non-admin user)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Admin access required
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              example:
+                error: Validation failed
+                details:
+                  - field: companyProfile
+                    message: String must contain at most 10000 character(s)
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Internal server error
+
+components:
+  schemas:
+    GetCompanyProfileResponse:
+      type: object
+      required:
+        - companyProfile
+      properties:
+        companyProfile:
+          type:
+            - string
+            - 'null'
+          maxLength: 10000
+          description: |
+            Current company profile markdown/plaintext.
+            May be `null` if not yet set. Empty string `""` is valid and distinct from `null`.
+
+    UpdateCompanyProfileRequest:
+      type: object
+      required:
+        - companyProfile
+      properties:
+        companyProfile:
+          type:
+            - string
+            - 'null'
+          maxLength: 10000
+          description: |
+            New company profile text to store.
+            Pass `null` to clear. Empty string `""` is valid.
+
+    UpdateCompanyProfileResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: Authentication required
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - error
+        - details
+      properties:
+        error:
+          type: string
+          example: Validation failed
+        details:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - field
+              - message
+            properties:
+              field:
+                type: string
+                description: Dot-notation path to the invalid field
+                example: companyProfile
+              message:
+                type: string
+                description: Zod validation error message
+                example: String must contain at most 10000 character(s)
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Clerk session bearer token.
+        All requests require valid authentication.
+        PATCH additionally requires `org:admin` role.
+
+tags:
+  - name: Settings
+    description: Tenant-level configuration endpoints
