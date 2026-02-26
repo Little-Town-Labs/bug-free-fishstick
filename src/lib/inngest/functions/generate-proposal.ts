@@ -16,11 +16,12 @@ import {
 import { parseScopeLines } from '@/lib/services/scope-line-parser'
 import { computePricingEstimate } from '@/lib/services/pricing-computation'
 import { writeProposal } from '@/lib/ai/agents/proposal-writer'
+import { checkCoverage } from '@/lib/ai/agents/proposal-coverage-checker'
 import { updateDraftContent } from '@/lib/services/proposal-draft'
 
 // ─── Private helpers ────────────────────────────────────────────────────────
 
-function generateCoverageReportStub(rfp: { parsedStructure?: { fields: Array<{ id: string; question: string }> } | null }): CoverageReport {
+function generateCoverageReportFallback(rfp: { parsedStructure?: { fields: Array<{ id: string; question: string }> } | null }): CoverageReport {
   return {
     coverageScore: 0,
     evaluatedAt: new Date().toISOString(),
@@ -29,7 +30,7 @@ function generateCoverageReportStub(rfp: { parsedStructure?: { fields: Array<{ i
       question: f.question,
       addressed: false,
       evidence: null,
-      gap: 'Coverage check pending — re-evaluate after F9 is implemented',
+      gap: 'Coverage evaluation failed — use Re-check Coverage to retry',
     })) ?? [],
   }
 }
@@ -177,9 +178,22 @@ export const generateProposal = inngest.createFunction(
         })
       })
 
-      // Step 9: Coverage check (STUB — F9 replaces this)
+      // Step 9: Coverage check
       const coverageReport = await step.run('check-requirement-coverage', async () => {
-        return generateCoverageReportStub(rfp)
+        const allTemplates = [...requiredTemplates, ...situationalTemplates]
+        const evaluateCoverageTemplates = allTemplates
+          .filter((t) => t.evaluateCoverage)
+          .map((t) => ({ title: t.title, content: t.content }))
+        try {
+          return await checkCoverage({
+            requirements: rfp.parsedStructure?.fields.map((f) => ({ id: f.id, question: f.question })) ?? [],
+            proposalMarkdown: markdownContent,
+            evaluateCoverageTemplates,
+            organizationId,
+          })
+        } catch {
+          return generateCoverageReportFallback(rfp)
+        }
       })
 
       // Step 10: Inject templates verbatim post-LLM

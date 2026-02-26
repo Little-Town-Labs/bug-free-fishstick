@@ -64,6 +64,17 @@ vi.mock('@/lib/services/encryption', () => ({
   decrypt: vi.fn().mockReturnValue('decrypted-key'),
 }))
 
+vi.mock('@/lib/ai/agents/proposal-coverage-checker', () => ({
+  checkCoverage: vi.fn().mockResolvedValue({
+    coverageScore: 50,
+    evaluatedAt: '2026-02-26T12:00:00.000Z',
+    requirements: [
+      { requirementId: 'f1', question: 'Company background?', addressed: true, evidence: 'Acme Corp...', gap: null },
+      { requirementId: 'f2', question: 'Security certifications?', addressed: false, evidence: null, gap: 'Not addressed' },
+    ],
+  }),
+}))
+
 // ─── Imports ────────────────────────────────────────────────────────────────
 
 import { db } from '@/lib/db'
@@ -76,6 +87,7 @@ import {
 import { parseScopeLines } from '@/lib/services/scope-line-parser'
 import { computePricingEstimate } from '@/lib/services/pricing-computation'
 import { writeProposal } from '@/lib/ai/agents/proposal-writer'
+import { checkCoverage } from '@/lib/ai/agents/proposal-coverage-checker'
 import { updateDraftContent } from '@/lib/services/proposal-draft'
 import { generateProposal } from '@/lib/inngest/functions/generate-proposal'
 
@@ -335,7 +347,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
       expect(markdownArg).toContain(REQUIRED_TEMPLATE_CONTENT)
     })
 
-    it('calls updateDraftContent with 4 args including CoverageReport', async () => {
+    it('calls updateDraftContent with 4 args including CoverageReport from agent', async () => {
       setupSuccessPath()
       const step = createMockStep()
       await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
@@ -345,7 +357,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
         'org-1',
         expect.any(String),
         expect.objectContaining({
-          coverageScore: 0,
+          coverageScore: 50,
           evaluatedAt: expect.any(String),
         }),
       )
@@ -379,6 +391,56 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
 
       const markdownArg = vi.mocked(updateDraftContent).mock.calls[0]![2] as string
       expect(markdownArg).not.toContain(SITUATIONAL_NON_MATCHING_CONTENT)
+    })
+  })
+
+  describe('coverage checker integration (F9)', () => {
+    it('calls checkCoverage with requirements and proposal markdown', async () => {
+      setupSuccessPath()
+      const step = createMockStep()
+      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+
+      expect(checkCoverage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requirements: [
+            { id: 'f1', question: 'Company background?' },
+            { id: 'f2', question: 'Security certifications?' },
+          ],
+          proposalMarkdown: '# Proposal\n\nGenerated content.',
+          organizationId: 'org-1',
+        }),
+      )
+    })
+
+    it('passes evaluateCoverage templates to checkCoverage', async () => {
+      setupSuccessPath()
+      const step = createMockStep()
+      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+
+      // All templates have evaluateCoverage: false in fixtures, so array should be empty
+      expect(checkCoverage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          evaluateCoverageTemplates: [],
+        }),
+      )
+    })
+
+    it('falls back to fallback report when checkCoverage throws', async () => {
+      setupSuccessPath()
+      vi.mocked(checkCoverage).mockRejectedValueOnce(new Error('LLM timeout'))
+      const step = createMockStep()
+      const result = await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+
+      // Pipeline should still complete successfully with fallback
+      expect(result).toEqual({ draftId: 'draft-1', status: 'draft' })
+      expect(updateDraftContent).toHaveBeenCalledWith(
+        'draft-1',
+        'org-1',
+        expect.any(String),
+        expect.objectContaining({
+          coverageScore: 0,
+        }),
+      )
     })
   })
 
