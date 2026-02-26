@@ -24,6 +24,7 @@ export interface RateCardRole {
 export interface RateCard {
   mode: 'blended' | 'by_role'
   blendedRate: number | null
+  blendedRateUnit: 'hour' | 'day' | 'fixed' | null  // required when mode=blended; null when by_role
   roles: RateCardRole[]
   defaultMarginPct: number
   currency: string

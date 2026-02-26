@@ -46,6 +46,7 @@ describe('RateCard TypeScript interface', () => {
     const rc: RateCard = {
       mode: 'by_role',
       blendedRate: null,
+      blendedRateUnit: null,
       roles: [{ name: 'Senior Engineer', unit: 'hour', rate: 195 }],
       defaultMarginPct: 0.2,
       currency: 'USD',
@@ -59,6 +60,7 @@ describe('RateCard TypeScript interface', () => {
     const rc: RateCard = {
       mode: 'blended',
       blendedRate: 150,
+      blendedRateUnit: 'hour',
       roles: [],
       defaultMarginPct: 0.15,
       currency: 'USD',
@@ -78,6 +80,7 @@ describe('RateCard TypeScript interface', () => {
     const rc: RateCard = {
       mode: 'by_role',
       blendedRate: null,
+      blendedRateUnit: null,
       roles: [{ name: 'PM', unit: 'day', rate: 1200 }],
       defaultMarginPct: 0.2,
       currency: 'USD',

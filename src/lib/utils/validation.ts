@@ -173,6 +173,10 @@ export const rateCardDiscountSchema = z.object({
     (d) => d.type !== 'percentage' || d.value <= 1,
     { message: 'Percentage discount value must be a decimal fraction ≤ 1 (e.g. 0.15 for 15%)', path: ['value'] }
   )
+  .refine(
+    (d) => d.customerIds === null || d.customerIds.length > 0,
+    { message: 'customerIds must be null (universal) or a non-empty array; empty array is not valid', path: ['customerIds'] }
+  )
 
 export type RateCardDiscountInput = z.infer<typeof rateCardDiscountSchema>
 
@@ -183,6 +187,7 @@ export type RateCardDiscountInput = z.infer<typeof rateCardDiscountSchema>
 export const rateCardSchema = z.object({
   mode: z.enum(['blended', 'by_role']),
   blendedRate: z.number().positive().nullable(),
+  blendedRateUnit: z.enum(['hour', 'day', 'fixed']).nullable(),
   roles: z.array(rateCardRoleSchema),
   defaultMarginPct: z.number().min(0).max(1),
   currency: z.string().regex(/^[A-Z]{3}$/, 'currency must be a 3-letter ISO 4217 code (e.g. USD)'),
@@ -191,6 +196,10 @@ export const rateCardSchema = z.object({
   .refine(
     (d) => d.mode !== 'blended' || (d.blendedRate !== null && d.blendedRate > 0),
     { message: 'blendedRate is required and must be positive when mode is blended', path: ['blendedRate'] }
+  )
+  .refine(
+    (d) => d.mode !== 'blended' || d.blendedRateUnit !== null,
+    { message: 'blendedRateUnit is required when mode is blended', path: ['blendedRateUnit'] }
   )
   .refine(
     (d) => d.mode !== 'by_role' || d.roles.length > 0,
@@ -210,6 +219,17 @@ export const proposalDefaultsSchema = z.object({
 }).strict()
 
 export type ProposalDefaultsInput = z.infer<typeof proposalDefaultsSchema>
+
+/**
+ * Schema for the PATCH /api/settings/rate-card request body.
+ * Both rateCard and proposalDefaults are required (full replacement semantics).
+ */
+export const createRateCardPatchSchema = z.object({
+  rateCard: rateCardSchema,
+  proposalDefaults: proposalDefaultsSchema,
+})
+
+export type CreateRateCardPatchInput = z.infer<typeof createRateCardPatchSchema>
 
 /**
  * Schema for updating tenant settings.

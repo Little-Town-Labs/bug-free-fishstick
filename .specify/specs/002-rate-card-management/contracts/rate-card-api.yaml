@@ -1,0 +1,629 @@
+openapi: "3.0.0"
+
+info:
+  title: RFP Automator — Rate Card Management API
+  version: "1.0.0"
+  description: |
+    API contract for reading and updating an organization's rate card configuration
+    within the RFP Automator multi-tenant platform.
+
+    Authentication is handled externally by Clerk middleware before any route handler
+    executes. All data access is automatically scoped to the authenticated organization;
+    the `organizationId` is never accepted as a request parameter.
+
+    **Access control summary:**
+    - `GET /api/settings/rate-card` — any authenticated org member
+    - `PATCH /api/settings/rate-card` — org admin only (`orgRole === "org:admin"`)
+
+servers:
+  - url: /api
+    description: Next.js App Router API prefix
+
+tags:
+  - name: Rate Card
+    description: Organization rate card and proposal defaults configuration
+
+paths:
+  /settings/rate-card:
+    get:
+      operationId: getRateCard
+      summary: Retrieve the organization rate card
+      description: |
+        Returns the current rate card and proposal defaults for the authenticated
+        organization. When no rate card has been configured yet, both fields are
+        returned as `null`.
+
+        Accessible by any authenticated org member.
+      tags:
+        - Rate Card
+      responses:
+        "200":
+          description: Rate card retrieved successfully (may be null if not yet configured)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetRateCardResponse"
+              examples:
+                notConfigured:
+                  summary: No rate card configured yet
+                  value:
+                    rateCard: null
+                    proposalDefaults: null
+                blendedMode:
+                  summary: Blended rate card
+                  value:
+                    rateCard:
+                      mode: blended
+                      blendedRate: 150.00
+                      roles: []
+                      defaultMarginPct: 0.20
+                      currency: USD
+                      discounts:
+                        - name: Preferred Partner Discount
+                          type: percentage
+                          value: 0.05
+                          appliesTo: total
+                          customerIds: null
+                    proposalDefaults:
+                      pricingModel: time_and_materials
+                      paymentTermsDays: 30
+                      warrantyPeriodDays: 90
+                byRoleMode:
+                  summary: By-role rate card
+                  value:
+                    rateCard:
+                      mode: by_role
+                      blendedRate: null
+                      roles:
+                        - name: Senior Engineer
+                          unit: hour
+                          rate: 200.00
+                        - name: Project Manager
+                          unit: day
+                          rate: 1200.00
+                      defaultMarginPct: 0.25
+                      currency: USD
+                      discounts: []
+                    proposalDefaults:
+                      pricingModel: fixed_price
+                      paymentTermsDays: 45
+                      warrantyPeriodDays: 180
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    patch:
+      operationId: updateRateCard
+      summary: Replace the organization rate card
+      description: |
+        Atomically replaces the complete rate card and proposal defaults for the
+        authenticated organization.
+
+        This is a full-replacement operation — callers must submit the entire
+        `rateCard` and `proposalDefaults` objects. Partial updates within those
+        objects are not supported.
+
+        **Org admin role required.** Non-admin members receive 403.
+
+        **Mode-specific validation:**
+        - When `mode` is `"blended"`, `blendedRate` must be provided and positive.
+          The `roles` array is accepted but ignored for pricing; it may be submitted
+          as an empty array.
+        - When `mode` is `"by_role"`, `roles` must contain at least one entry and
+          `blendedRate` must be `null`.
+
+        **Discount validation:**
+        - Percentage discount `value` must be a decimal fraction in `[0, 1]`.
+          A value of `0.10` represents a 10% discount.
+        - Fixed discount `value` must be `>= 0`.
+        - `customerIds: null` creates a universal discount applied to all proposals.
+        - `customerIds: []` (empty array) is rejected — provide `null` for universal
+          or a non-empty array for customer-scoped discounts.
+      tags:
+        - Rate Card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRateCardRequest"
+            examples:
+              blendedRate:
+                summary: Save a blended rate card
+                value:
+                  rateCard:
+                    mode: blended
+                    blendedRate: 150.00
+                    roles: []
+                    defaultMarginPct: 0.20
+                    currency: USD
+                    discounts:
+                      - name: Q1 Promotional
+                        type: percentage
+                        value: 0.10
+                        appliesTo: subtotal
+                        customerIds: null
+                  proposalDefaults:
+                    pricingModel: time_and_materials
+                    paymentTermsDays: 30
+                    warrantyPeriodDays: 90
+              byRoleRateCard:
+                summary: Save a by-role rate card with a scoped discount
+                value:
+                  rateCard:
+                    mode: by_role
+                    blendedRate: null
+                    roles:
+                      - name: Senior Engineer
+                        unit: hour
+                        rate: 200.00
+                      - name: Business Analyst
+                        unit: day
+                        rate: 900.00
+                    defaultMarginPct: 0.25
+                    currency: USD
+                    discounts:
+                      - name: Acme Corp VIP
+                        type: fixed
+                        value: 500.00
+                        appliesTo: total
+                        customerIds:
+                          - cust_acme_001
+                  proposalDefaults:
+                    pricingModel: fixed_price
+                    paymentTermsDays: 45
+                    warrantyPeriodDays: 180
+      responses:
+        "200":
+          description: Rate card saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationSuccessResponse"
+              example:
+                success: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  schemas:
+
+    # -------------------------------------------------------------------------
+    # Core domain schemas
+    # -------------------------------------------------------------------------
+
+    RateCardRole:
+      type: object
+      description: A named billable role with its unit of work and rate.
+      required:
+        - name
+        - unit
+        - rate
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: >
+            Human-readable role label (e.g. "Senior Engineer"). Must be
+            non-empty and unique within the rate card's roles array.
+          example: Senior Engineer
+        unit:
+          type: string
+          enum:
+            - hour
+            - day
+            - fixed
+          description: >
+            Billing unit for this role.
+            - `hour` — rate is per hour
+            - `day` — rate is per working day
+            - `fixed` — rate is a one-time flat amount
+          example: hour
+        rate:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+          description: >
+            Billing rate in the organization's configured currency. Must be
+            strictly positive; zero is not a valid rate.
+          example: 200.00
+
+    RateCardDiscount:
+      type: object
+      description: >
+        A discount rule applied during proposal pricing computation. Rules are
+        stored in an ordered array; order determines the sequence in which they
+        are applied.
+      required:
+        - name
+        - type
+        - value
+        - appliesTo
+        - customerIds
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Human-readable label for this discount rule (e.g. "Preferred Partner 5%").
+          example: Preferred Partner Discount
+        type:
+          type: string
+          enum:
+            - percentage
+            - fixed
+          description: >
+            Discount calculation method.
+            - `percentage` — value is a decimal fraction of the base amount
+            - `fixed` — value is a flat currency amount removed from the base
+          example: percentage
+        value:
+          type: number
+          format: double
+          minimum: 0
+          description: >
+            Discount magnitude. Interpretation depends on `type`:
+            - `percentage`: decimal fraction in [0, 1]. `0.10` = 10% off.
+              Values greater than 1 are rejected.
+            - `fixed`: non-negative currency amount (e.g. 500.00 = $500 off).
+          example: 0.05
+        appliesTo:
+          type: string
+          enum:
+            - subtotal
+            - total
+          description: >
+            The pricing stage to which this discount is applied.
+            - `subtotal` — applied before margin is added
+            - `total` — applied after margin is added
+          example: total
+        customerIds:
+          description: >
+            Scope of the discount.
+            - `null` — universal discount applied to all proposals regardless of customer
+            - Non-empty string array — discount applied only when the proposal's
+              customer ID is in this list.
+
+            An empty array `[]` is invalid and will be rejected with a 422 response.
+          nullable: true
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                minLength: 1
+              minItems: 1
+          example: null
+
+    RateCard:
+      type: object
+      description: >
+        Complete rate card configuration for an organization. Defines how work is
+        priced, the default margin, the billing currency, and any discount rules.
+      required:
+        - mode
+        - blendedRate
+        - roles
+        - defaultMarginPct
+        - currency
+        - discounts
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+          enum:
+            - blended
+            - by_role
+          description: >
+            Billing mode for this rate card.
+            - `blended` — all work is billed at a single uniform rate
+            - `by_role` — each role has an individual rate; proposals list roles separately
+          example: blended
+        blendedRate:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+          nullable: true
+          description: >
+            The single blended rate value. **Required and must be positive when
+            `mode` is `"blended"`**. Must be `null` when `mode` is `"by_role"`.
+
+            Note: the billing unit for the blended rate is set on each role entry
+            when a blended rate card has a representative role; otherwise it is
+            treated as an hourly rate.
+          example: 150.00
+        roles:
+          type: array
+          description: >
+            List of named roles with their individual rates.
+            **Must contain at least one entry when `mode` is `"by_role"`**.
+            Accepted (and may be empty) when `mode` is `"blended"`.
+            Role names must be unique within this array.
+          items:
+            $ref: "#/components/schemas/RateCardRole"
+          example: []
+        defaultMarginPct:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: >
+            Default profit margin applied to cost before presenting a price.
+            Stored and transmitted as a decimal fraction in [0, 1].
+            `0.20` = 20% margin. This value is applied by the pricing engine (F5).
+          example: 0.20
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: >
+            ISO 4217 three-letter uppercase currency code for all rates in this
+            card (e.g. `"USD"`, `"EUR"`, `"GBP"`). The system does not validate
+            that the code corresponds to a real currency beyond the format check.
+          example: USD
+        discounts:
+          type: array
+          description: >
+            Ordered list of discount rules applied during pricing computation.
+            An empty array means no discounts are configured. The array order
+            determines the sequence of discount application.
+          items:
+            $ref: "#/components/schemas/RateCardDiscount"
+          example: []
+
+    ProposalDefaults:
+      type: object
+      description: >
+        Default commercial terms applied to newly generated proposals. These values
+        are pre-populated in the proposal and may be overridden per-proposal.
+      required:
+        - pricingModel
+        - paymentTermsDays
+        - warrantyPeriodDays
+      additionalProperties: false
+      properties:
+        pricingModel:
+          type: string
+          enum:
+            - time_and_materials
+            - fixed_price
+            - cost_plus
+          description: >
+            Default pricing model used in new proposals.
+            - `time_and_materials` — client billed for actual hours/days consumed
+            - `fixed_price` — client billed a fixed total regardless of effort
+            - `cost_plus` — client billed actual cost plus the configured margin
+          example: time_and_materials
+        paymentTermsDays:
+          type: integer
+          minimum: 0
+          description: >
+            Default payment terms expressed as the number of days after invoice
+            (e.g. `30` for Net 30). Must be a non-negative integer.
+          example: 30
+        warrantyPeriodDays:
+          type: integer
+          minimum: 0
+          description: >
+            Default post-delivery warranty period in calendar days. Must be a
+            non-negative integer. `0` means no warranty period.
+          example: 90
+
+    # -------------------------------------------------------------------------
+    # Request / response envelopes
+    # -------------------------------------------------------------------------
+
+    GetRateCardResponse:
+      type: object
+      description: Response envelope for GET /api/settings/rate-card.
+      required:
+        - rateCard
+        - proposalDefaults
+      properties:
+        rateCard:
+          nullable: true
+          description: >
+            Current rate card for the organization, or `null` if no rate card
+            has been configured.
+          oneOf:
+            - $ref: "#/components/schemas/RateCard"
+            - type: "null"
+        proposalDefaults:
+          nullable: true
+          description: >
+            Current proposal defaults for the organization, or `null` if no
+            rate card has been configured (defaults are stored together with
+            the rate card).
+          oneOf:
+            - $ref: "#/components/schemas/ProposalDefaults"
+            - type: "null"
+
+    UpdateRateCardRequest:
+      type: object
+      description: >
+        Full replacement payload for PATCH /api/settings/rate-card.
+        Both `rateCard` and `proposalDefaults` are required. The entire
+        rate card is replaced atomically — partial updates are not supported.
+      required:
+        - rateCard
+        - proposalDefaults
+      additionalProperties: false
+      properties:
+        rateCard:
+          $ref: "#/components/schemas/RateCard"
+        proposalDefaults:
+          $ref: "#/components/schemas/ProposalDefaults"
+
+    MutationSuccessResponse:
+      type: object
+      description: Generic success envelope returned by mutation endpoints.
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+          description: Always `true` when the operation completed successfully.
+          example: true
+
+    # -------------------------------------------------------------------------
+    # Error schemas
+    # -------------------------------------------------------------------------
+
+    ErrorResponse:
+      type: object
+      description: >
+        Error envelope returned for all 4xx and 5xx responses. The `error` field
+        contains a human-readable message. Sensitive business data (rates, margins,
+        discount amounts) is never included in error messages.
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable description of the error.
+          example: Admin access required
+
+    ValidationErrorResponse:
+      type: object
+      description: >
+        Returned for 422 Unprocessable Entity. Contains the top-level error message
+        and an array of per-field validation issues to help the client surface
+        actionable feedback.
+      required:
+        - error
+        - details
+      properties:
+        error:
+          type: string
+          description: Summary error message.
+          example: Validation failed
+        details:
+          type: array
+          description: Per-field validation errors.
+          items:
+            $ref: "#/components/schemas/ValidationErrorDetail"
+          example:
+            - field: rateCard.blendedRate
+              message: blendedRate must be a positive number when mode is "blended"
+            - field: rateCard.discounts[1].customerIds
+              message: customerIds must be null or a non-empty array; empty arrays are not permitted
+
+    ValidationErrorDetail:
+      type: object
+      description: A single field-level validation failure.
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          description: >
+            Dot-notation path to the invalid field, relative to the request body
+            (e.g. `"rateCard.roles[0].rate"`).
+          example: rateCard.blendedRate
+        message:
+          type: string
+          description: Human-readable explanation of why the value was rejected.
+          example: Must be a positive number
+
+  # ---------------------------------------------------------------------------
+  # Reusable responses
+  # ---------------------------------------------------------------------------
+
+  responses:
+    Unauthorized:
+      description: >
+        The request did not include a valid Clerk session. The caller must
+        authenticate before retrying.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Unauthorized
+
+    Forbidden:
+      description: >
+        The authenticated user does not have the `org:admin` role. Only org
+        admins may modify the rate card.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Admin access required
+
+    UnprocessableEntity:
+      description: >
+        The request body failed schema or business-rule validation. The `details`
+        array contains per-field messages that can be surfaced directly in the UI.
+
+        Common causes:
+        - `blendedRate` is null or <= 0 when `mode` is `"blended"`
+        - `roles` is empty when `mode` is `"by_role"`
+        - A percentage discount `value` is greater than 1
+        - A discount `customerIds` is an empty array (must be null or non-empty)
+        - `currency` does not match `^[A-Z]{3}$`
+        - `defaultMarginPct` is outside [0, 1]
+        - `paymentTermsDays` or `warrantyPeriodDays` is negative or non-integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorResponse"
+          examples:
+            blendedRateMissing:
+              summary: blendedRate required in blended mode
+              value:
+                error: Validation failed
+                details:
+                  - field: rateCard.blendedRate
+                    message: blendedRate must be a positive number when mode is "blended"
+            emptyRoles:
+              summary: No roles provided in by_role mode
+              value:
+                error: Validation failed
+                details:
+                  - field: rateCard.roles
+                    message: At least one role is required when mode is "by_role"
+            emptyCustomerIds:
+              summary: Discount customerIds is an empty array
+              value:
+                error: Validation failed
+                details:
+                  - field: rateCard.discounts[0].customerIds
+                    message: customerIds must be null (universal) or a non-empty array; an empty array is not permitted
+            percentageDiscountTooLarge:
+              summary: Percentage discount value exceeds 1
+              value:
+                error: Validation failed
+                details:
+                  - field: rateCard.discounts[0].value
+                    message: Percentage discount value must be a decimal fraction between 0 and 1 (e.g. 0.10 for 10%)
+            currencyInvalid:
+              summary: Currency code does not match ISO 4217 format
+              value:
+                error: Validation failed
+                details:
+                  - field: rateCard.currency
+                    message: currency must be a 3-letter uppercase ISO 4217 code (e.g. USD)
+
+    InternalServerError:
+      description: >
+        An unexpected server-side error occurred. The error message intentionally
+        omits sensitive business data. Retry after a brief delay; if the problem
+        persists, check server logs.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Internal server error

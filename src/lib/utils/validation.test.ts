@@ -8,6 +8,7 @@ import {
   coverageReportSchema,
   createProposalTemplateSchema,
   updateProposalTemplateSchema,
+  createRateCardPatchSchema,
 } from './validation'
 
 // ---------------------------------------------------------------------------
@@ -211,6 +212,42 @@ describe('rateCardDiscountSchema', () => {
       })
     ).not.toThrow()
   })
+
+  it('rejects customerIds as empty array (must be null or non-empty)', () => {
+    expect(() =>
+      rateCardDiscountSchema.parse({
+        name: 'Volume discount',
+        type: 'percentage',
+        value: 0.1,
+        appliesTo: 'subtotal',
+        customerIds: [],
+      })
+    ).toThrow(/customerIds/)
+  })
+
+  it('accepts customerIds as null (universal discount)', () => {
+    expect(() =>
+      rateCardDiscountSchema.parse({
+        name: 'Universal discount',
+        type: 'percentage',
+        value: 0.05,
+        appliesTo: 'total',
+        customerIds: null,
+      })
+    ).not.toThrow()
+  })
+
+  it('accepts customerIds as non-empty array (customer-scoped discount)', () => {
+    expect(() =>
+      rateCardDiscountSchema.parse({
+        name: 'Scoped discount',
+        type: 'fixed',
+        value: 500,
+        appliesTo: 'total',
+        customerIds: ['cust-1', 'cust-2'],
+      })
+    ).not.toThrow()
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -221,6 +258,7 @@ describe('rateCardSchema', () => {
   const validByRole = {
     mode: 'by_role' as const,
     blendedRate: null,
+    blendedRateUnit: null as null,
     roles: [
       { name: 'Senior Engineer', unit: 'hour' as const, rate: 195 },
       { name: 'Project Manager', unit: 'day' as const, rate: 1200 },
@@ -235,6 +273,7 @@ describe('rateCardSchema', () => {
   const validBlended = {
     mode: 'blended' as const,
     blendedRate: 150,
+    blendedRateUnit: 'hour' as const,
     roles: [],
     defaultMarginPct: 0.15,
     currency: 'USD',
@@ -306,6 +345,43 @@ describe('rateCardSchema', () => {
   it('rejects unknown mode value', () => {
     expect(() =>
       rateCardSchema.parse({ ...validByRole, mode: 'hourly' })
+    ).toThrow()
+  })
+
+  // blendedRateUnit field (Task 1.1 — these tests define the NEW field requirement)
+  it('accepts blended mode with blendedRateUnit=hour', () => {
+    expect(() =>
+      rateCardSchema.parse({ ...validBlended, blendedRateUnit: 'hour' })
+    ).not.toThrow()
+  })
+
+  it('accepts blended mode with blendedRateUnit=day', () => {
+    expect(() =>
+      rateCardSchema.parse({ ...validBlended, blendedRateUnit: 'day' })
+    ).not.toThrow()
+  })
+
+  it('accepts blended mode with blendedRateUnit=fixed', () => {
+    expect(() =>
+      rateCardSchema.parse({ ...validBlended, blendedRateUnit: 'fixed' })
+    ).not.toThrow()
+  })
+
+  it('rejects blended mode with blendedRateUnit=null (required when blended)', () => {
+    expect(() =>
+      rateCardSchema.parse({ ...validBlended, blendedRateUnit: null })
+    ).toThrow(/blendedRateUnit/)
+  })
+
+  it('accepts by_role mode with blendedRateUnit=null', () => {
+    expect(() =>
+      rateCardSchema.parse({ ...validByRole, blendedRateUnit: null })
+    ).not.toThrow()
+  })
+
+  it('rejects blendedRateUnit with invalid value (not in enum)', () => {
+    expect(() =>
+      rateCardSchema.parse({ ...validBlended, blendedRateUnit: 'week' })
     ).toThrow()
   })
 })
@@ -795,6 +871,66 @@ describe('updateProposalTemplateSchema', () => {
   it('rejects negative sortOrder when sortOrder is provided', () => {
     expect(() =>
       updateProposalTemplateSchema.parse({ sortOrder: -1 })
+    ).toThrow()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// createRateCardPatchSchema (Task 1.1 — PATCH /api/settings/rate-card body)
+// ---------------------------------------------------------------------------
+
+describe('createRateCardPatchSchema', () => {
+  const validRateCard = {
+    mode: 'blended' as const,
+    blendedRate: 150,
+    blendedRateUnit: 'hour' as const,
+    roles: [],
+    defaultMarginPct: 0.2,
+    currency: 'USD',
+    discounts: [],
+  }
+
+  const validProposalDefaults = {
+    pricingModel: 'time_and_materials' as const,
+    paymentTermsDays: 30,
+    warrantyPeriodDays: 90,
+  }
+
+  it('accepts valid blended rate card with proposalDefaults', () => {
+    expect(() =>
+      createRateCardPatchSchema.parse({
+        rateCard: validRateCard,
+        proposalDefaults: validProposalDefaults,
+      })
+    ).not.toThrow()
+  })
+
+  it('accepts valid by_role rate card with proposalDefaults', () => {
+    expect(() =>
+      createRateCardPatchSchema.parse({
+        rateCard: {
+          mode: 'by_role' as const,
+          blendedRate: null,
+          blendedRateUnit: null,
+          roles: [{ name: 'Senior Engineer', unit: 'hour' as const, rate: 195 }],
+          defaultMarginPct: 0.15,
+          currency: 'GBP',
+          discounts: [],
+        },
+        proposalDefaults: validProposalDefaults,
+      })
+    ).not.toThrow()
+  })
+
+  it('rejects payload missing proposalDefaults', () => {
+    expect(() =>
+      createRateCardPatchSchema.parse({ rateCard: validRateCard })
+    ).toThrow()
+  })
+
+  it('rejects payload missing rateCard', () => {
+    expect(() =>
+      createRateCardPatchSchema.parse({ proposalDefaults: validProposalDefaults })
     ).toThrow()
   })
 })
