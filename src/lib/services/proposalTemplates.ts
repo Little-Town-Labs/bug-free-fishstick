@@ -116,7 +116,8 @@ export async function createProposalTemplate(
       })
       .returning()
 
-    return created!
+    if (!created) throw new Error('Insert failed to return created template')
+    return created
   })
 }
 

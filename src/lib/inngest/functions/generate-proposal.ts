@@ -13,6 +13,9 @@ import {
   fetchCustomerContext,
   fetchLearnings,
 } from '@/lib/services/proposal-retrieval'
+import type { CustomerContext, TypedSupplierContext } from '@/lib/services/proposal-retrieval'
+import type { KnowledgeEntryWithSimilarity } from '@/lib/services/vector-search'
+import type { Learning } from '@/lib/db/schema/learnings'
 import { parseScopeLines } from '@/lib/services/scope-line-parser'
 import { computePricingEstimate } from '@/lib/services/pricing-computation'
 import { writeProposal } from '@/lib/ai/agents/proposal-writer'
@@ -140,11 +143,17 @@ export const generateProposal = inngest.createFunction(
               .where(and(eq(proposalTemplates.organizationId, organizationId), eq(proposalTemplates.isRequired, false)))
           } catch { return [] }
         }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Inngest step.run returns Jsonify<T> (Date→string); cast back
-      ]) as any
+      // Inngest step.run returns Jsonify<T> which converts Date→string; cast back to original types
+      ]) as unknown as [
+        CustomerContext,
+        KnowledgeEntryWithSimilarity[],
+        { supplierContext: TypedSupplierContext; learnings: Learning[]; companyProfile: string | null },
+        ProposalTemplate[],
+        ProposalTemplate[],
+      ]
 
       // Filter situational templates (OR logic)
-      const situationalTemplates = allSituationalTemplates.filter((t: ProposalTemplate) =>
+      const situationalTemplates = allSituationalTemplates.filter((t) =>
         matchesSituational(t, rfp.rfpType, rfp.industryTags as string[] | null),
       )
 

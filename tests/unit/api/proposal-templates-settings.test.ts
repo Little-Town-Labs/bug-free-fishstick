@@ -72,12 +72,6 @@ const validReorderBody = {
 // Request helpers
 // ---------------------------------------------------------------------------
 
-function createGetRequest(): NextRequest {
-  return new NextRequest('http://localhost/api/settings/proposal-templates', {
-    method: 'GET',
-  })
-}
-
 function createPostRequest(body: unknown): NextRequest {
   return new NextRequest('http://localhost/api/settings/proposal-templates', {
     method: 'POST',
