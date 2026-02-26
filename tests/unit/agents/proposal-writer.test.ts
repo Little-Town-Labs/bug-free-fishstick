@@ -32,7 +32,7 @@ const baseInput: WriteProposalInput = {
       totalChunks: null,
       sectionHeading: null,
       sourceEntryId: null,
-      processingStatus: 'completed',
+      processingStatus: 'complete',
       createdAt: new Date(),
       updatedAt: new Date(),
       similarity: 0.9,

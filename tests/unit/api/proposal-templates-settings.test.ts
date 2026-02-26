@@ -129,7 +129,7 @@ beforeEach(() => {
 
 describe('GET /api/settings/proposal-templates', () => {
   it('returns 200 with templates array when authenticated', async () => {
-    const res = await GET(createGetRequest())
+    const res = await GET()
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.templates).toBeInstanceOf(Array)
@@ -141,26 +141,26 @@ describe('GET /api/settings/proposal-templates', () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
     vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
 
-    const res = await GET(createGetRequest())
+    const res = await GET()
     expect(res.status).toBe(403)
   })
 
   it('returns 500 on unexpected error', async () => {
     vi.mocked(requireAdmin).mockRejectedValue(new Error('DB connection refused'))
 
-    const res = await GET(createGetRequest())
+    const res = await GET()
     expect(res.status).toBe(500)
   })
 
   it('calls listProposalTemplates with orgId from session', async () => {
-    await GET(createGetRequest())
+    await GET()
     expect(vi.mocked(listProposalTemplates)).toHaveBeenCalledWith('org_test')
   })
 
   it('returns empty array when no templates exist', async () => {
     vi.mocked(listProposalTemplates).mockResolvedValue([])
 
-    const res = await GET(createGetRequest())
+    const res = await GET()
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.templates).toEqual([])

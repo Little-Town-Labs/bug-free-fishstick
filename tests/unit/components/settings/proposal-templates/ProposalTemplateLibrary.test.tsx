@@ -194,7 +194,7 @@ describe('ProposalTemplateLibrary', () => {
       render(<ProposalTemplateLibrary isAdmin={true} />)
 
       const addBtn = await screen.findAllByRole('button', { name: /add template/i })
-      fireEvent.click(addBtn[0])
+      fireEvent.click(addBtn[0]!)
 
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })

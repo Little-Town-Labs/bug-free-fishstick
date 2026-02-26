@@ -16,10 +16,11 @@ function isValid(schema: { safeParse: (v: unknown) => { success: boolean } }, va
 }
 
 /** Returns the error paths from a failed Zod parse. */
-function errorPaths(schema: { safeParse: (v: unknown) => { success: boolean; error?: { errors: { path: (string | number)[] }[] } } }, value: unknown): (string | number)[][] {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function errorPaths(schema: { safeParse: (v: unknown) => any }, value: unknown): (string | number)[][] {
   const result = schema.safeParse(value)
   if (result.success) return []
-  return result.error?.errors.map((e) => e.path) ?? []
+  return result.error?.issues?.map((e: { path: (string | number)[] }) => e.path) ?? []
 }
 
 // Builds a string of exactly `n` characters.

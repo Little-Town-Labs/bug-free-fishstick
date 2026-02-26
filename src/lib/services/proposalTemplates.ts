@@ -116,7 +116,7 @@ export async function createProposalTemplate(
       })
       .returning()
 
-    return created
+    return created!
   })
 }
 

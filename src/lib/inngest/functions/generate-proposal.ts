@@ -140,10 +140,11 @@ export const generateProposal = inngest.createFunction(
               .where(and(eq(proposalTemplates.organizationId, organizationId), eq(proposalTemplates.isRequired, false)))
           } catch { return [] }
         }),
-      ])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Inngest step.run returns Jsonify<T> (Date→string); cast back
+      ]) as any
 
       // Filter situational templates (OR logic)
-      const situationalTemplates = allSituationalTemplates.filter((t) =>
+      const situationalTemplates = allSituationalTemplates.filter((t: ProposalTemplate) =>
         matchesSituational(t, rfp.rfpType, rfp.industryTags as string[] | null),
       )
 
