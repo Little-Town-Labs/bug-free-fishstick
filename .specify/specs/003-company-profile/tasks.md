@@ -14,19 +14,38 @@
 | Total Tasks | 13 |
 | Phases | 4 + 1 quality gate phase |
 | Estimated Effort | ~14 hours |
-| Critical Path | 1.1 → 1.2 → 2.1 → 2.2 → 3.1 → 3.2 → 4.1 → 4.2 → QG.1 |
-| Parallelization | Tasks 1.1 and 2.1 can be written in parallel (service tests alongside schema addition) |
+| Critical Path | 1.1 → 1.3 → 2.2 → QG.1 → 3.2 → QG.2 → 4.2 → QG.3 |
+| Parallelization | Tasks 1.1 and 1.2 can run in parallel (both are 🟡 Ready with no dependencies) |
 
 ---
 
 ## Critical Path
 
 ```
-1.1 (schema) → 1.2 (service tests) → 1.3 (service impl)
-                    → 2.1 (route tests) → 2.2 (route impl)
-                                              → 3.1 (component tests) → 3.2 (component impl)
-                                                                             → 4.1 (page) → 4.2 (nav)
-                                                                                                 → QG.1 (security) → QG.2 (code review)
+Phase 1 (parallel start):
+  1.1 (schema) ─────────────────────────────────────────────────────────┐
+  1.2 (service tests) → 1.3 (service impl)                              │
+                              │                                          │
+                              ▼                                          ▼
+Phase 2:               2.1 (route tests) ← requires 1.1 ─→ 2.2 (route impl)
+                                                                    │
+                                                                    ▼
+                                                             QG.1 (security review)
+                                                                    │
+                                                                    ▼
+Phase 3:                                        3.0 (install react-markdown)
+                                                        │
+                                                        ▼
+                                               3.1 (component tests) → 3.2 (component impl)
+                                                                               │
+                                                                               ▼
+                                                                        QG.2 (code review)
+                                                                               │
+                                                                               ▼
+Phase 4:                                                            4.1 (page route) → 4.2 (nav tab)
+                                                                                               │
+                                                                                               ▼
+                                                                                        QG.3 (full suite)
 ```
 
 ---
@@ -41,7 +60,7 @@
 **Status:** 🟡 Ready
 **Effort:** 0.5h
 **Dependencies:** None
-**Parallel with:** Can be done alongside Task 2.1 (route tests, which reference the schema)
+**Parallel with:** Task 1.2 (service tests have no dependency on the schema)
 
 **Description:**
 Add a dedicated Zod schema for the company-profile PATCH endpoint. `companyProfile` already exists in `updateTenantSettingsSchema` as `.nullable().optional()`. This task adds a purpose-built schema with `.nullable()` only (no `.optional()` — null explicitly clears the profile) used exclusively by the company-profile route.
@@ -384,10 +403,11 @@ Write comprehensive tests for `CompanyProfileForm`. Follow `src/components/setti
 - Preview renders `**bold**` as `<strong>`
 - Preview renders `# Heading` as heading element
 
-*7.6 Edge Case Tests (3 cases):*
+*7.6 Edge Case Tests (4 cases):*
 - Can save a profile of exactly 10,000 characters
 - Cannot save a profile of 10,001 characters (client-side validation error before fetch)
 - Can save empty profile (clears existing)
+- PATCH returns 401 (session expiry, EC-7): error message shown, textarea content is retained (not cleared)
 
 *7.7 Accessibility Tests (5 cases):*
 - Textarea has accessible label
@@ -409,7 +429,7 @@ server.use(
 ```
 
 **Acceptance Criteria:**
-- [ ] All 34 test cases written across 7 categories
+- [ ] All 35 test cases written across 7 categories (34 original + EC-7 session expiry test)
 - [ ] Tests confirmed to **FAIL** (component does not exist yet)
 - [ ] MSW server handlers set up correctly
 - [ ] `vi.useFakeTimers()` used for success message auto-clear test
@@ -486,7 +506,7 @@ const [fieldErrors, setFieldErrors] = useState<Array<{ field: string; message: s
 - Save button keyboard-accessible (default `<Button>` behavior)
 
 **Acceptance Criteria:**
-- [ ] All 34 tests from Task 3.1 pass
+- [ ] All 35 tests from Task 3.1 pass
 - [ ] `react-markdown` used for preview (not `dangerouslySetInnerHTML`)
 - [ ] Loading state shown during initial fetch
 - [ ] `aria-describedby="profile-count"` on textarea
@@ -582,6 +602,8 @@ Add "Company Profile" to the settings navigation so users can reach the new page
 
 **Description:**
 Run the full test suite to confirm no regressions and that all new tests pass.
+
+> **Note on E2E / pipeline integration (Constitution VII):** The spec success metric "Empty profile does not cause proposal generation errors (verified by pipeline tests)" is explicitly deferred to Feature 8 (Revised Proposal Pipeline), which reads the saved profile and injects it as supplier context. F3's responsibility ends at the API boundary. No E2E pipeline test is required here.
 
 **Command:**
 ```bash
