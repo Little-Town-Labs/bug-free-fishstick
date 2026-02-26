@@ -136,7 +136,7 @@ export function CoverageReportPanel({ coverageReport, rfpId, draftId, onUpdated 
             {loading ? 'Checking…' : 'Check Coverage'}
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground">Not yet evaluated. Click "Check Coverage" to analyze.</p>
+        <p className="text-sm text-muted-foreground">Not yet evaluated. Click &quot;Check Coverage&quot; to analyze.</p>
       </div>
     )
   }
