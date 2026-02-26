@@ -44,6 +44,93 @@ function Spinner() {
   )
 }
 
+const WIZARD_STEPS = [
+  { id: 1, label: 'Prepare' },
+  { id: 2, label: 'Answer Questions' },
+  { id: 3, label: 'Generate' },
+  { id: 4, label: 'Review' },
+] as const
+
+function deriveStepNumber(step: Step, draftStatus?: string): number {
+  if (step === 'creating') return 1
+  if (step === 'answering') return 2
+  if (step === 'viewing' && draftStatus === 'generating') return 3
+  return 4
+}
+
+function StepIndicator({ step, draftStatus }: { step: Step; draftStatus?: string }) {
+  const current = deriveStepNumber(step, draftStatus)
+  const failed = step === 'viewing' && draftStatus === 'error'
+
+  return (
+    <nav aria-label="Proposal generation progress" className="w-full">
+      <ol className="flex items-center gap-0">
+        {WIZARD_STEPS.map((s, index) => {
+          const isComplete = s.id < current
+          const isActive = s.id === current
+          const isFailed = isActive && failed
+          const isLast = index === WIZARD_STEPS.length - 1
+
+          return (
+            <li key={s.id} className="flex items-center flex-1 min-w-0">
+              <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                <div
+                  className={[
+                    'flex items-center justify-center w-8 h-8 rounded-full border-2 text-sm font-semibold shrink-0 transition-colors',
+                    isFailed
+                      ? 'border-red-500 bg-red-50 text-red-600'
+                      : isComplete
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : isActive
+                          ? 'border-primary bg-background text-primary'
+                          : 'border-muted-foreground/30 bg-background text-muted-foreground/50',
+                  ].join(' ')}
+                  aria-current={isActive ? 'step' : undefined}
+                >
+                  {isFailed ? (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : isComplete ? (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    s.id
+                  )}
+                </div>
+                <span
+                  className={[
+                    'text-xs font-medium text-center truncate w-full px-1',
+                    isFailed
+                      ? 'text-red-600'
+                      : isActive
+                        ? 'text-foreground'
+                        : isComplete
+                          ? 'text-foreground'
+                          : 'text-muted-foreground/50',
+                  ].join(' ')}
+                >
+                  {s.label}
+                </span>
+              </div>
+              {!isLast && (
+                <div
+                  className={[
+                    'h-0.5 flex-1 mx-2 mb-5 transition-colors',
+                    isComplete ? 'bg-primary' : 'bg-muted-foreground/20',
+                  ].join(' ')}
+                  aria-hidden="true"
+                />
+              )}
+            </li>
+          )
+        })}
+      </ol>
+    </nav>
+  )
+}
+
 export default function ProposalWizardPage() {
   const params = useParams<{ id: string }>()
   const rfpId = params.id
@@ -165,6 +252,8 @@ export default function ProposalWizardPage() {
         </Link>
         <h1 className="text-2xl font-bold">Generate Proposal</h1>
       </div>
+
+      <StepIndicator step={step} draftStatus={draft?.status} />
 
       {error && (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">

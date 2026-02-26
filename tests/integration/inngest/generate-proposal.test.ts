@@ -114,10 +114,17 @@ function mockSelectSequence(responses: Array<{ type: 'limited' | 'multi'; rows: 
 describe('generate-proposal Inngest function', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Provide a default update mock so the catch-path error update doesn't throw
+    vi.mocked(db.update).mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    } as any)
   })
 
   const twoCallSequence = (libraryRows = mockContentLibraryEntries) => {
     mockSelectSequence([
+      { type: 'limited', rows: [{ openaiApiKeyEncrypted: null }] }, // tenant settings lookup (added)
       { type: 'limited', rows: [mockDraft] },
       { type: 'limited', rows: [mockRfp] },
     ])

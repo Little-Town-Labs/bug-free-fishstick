@@ -58,6 +58,8 @@ describe('searchContentLibrary', () => {
     vi.clearAllMocks()
     selectCallCount = 0
     mockResults.length = 0
+    // Required so the service doesn't short-circuit to fallbackCategorySearch
+    process.env.OPENAI_API_KEY = 'test-key'
   })
 
   it('falls back to category search when no embeddings exist', async () => {

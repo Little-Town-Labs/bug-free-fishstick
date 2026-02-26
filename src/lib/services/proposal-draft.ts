@@ -3,11 +3,13 @@ import { rfps, proposalDrafts } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { inngest } from '@/lib/inngest/client'
 import { generateClarifyingQuestions } from '@/lib/ai/agents/proposal-question-generator'
+import { getRateCard } from '@/lib/services/rate-card'
 import type {
   ProposalDraft,
   NewProposalDraft,
   ClarifyingQuestion,
 } from '@/lib/db/schema/proposal-drafts'
+import type { ProposalDefaults } from '@/lib/db/schema/tenant-settings'
 
 export { ProposalDraft }
 
@@ -33,6 +35,17 @@ export async function createDraft(
     })
   }
 
+  // FR-016: Fetch pricing model from rate card settings with graceful degradation.
+  // If the settings read fails, pricingModel remains null → T&M fallback in the agent.
+  let pricingModel: ProposalDefaults['pricingModel'] | null = null
+  try {
+    const { proposalDefaults } = await getRateCard(orgId)
+    pricingModel = proposalDefaults?.pricingModel ?? null
+  } catch (err) {
+    // Settings read failure → T&M fallback; do not propagate (no orgId or settings data logged)
+    console.warn('[createDraft] Could not read rate card for pricing model; defaulting to T&M', (err as Error).message)
+  }
+
   // Generate clarifying questions
   const { questions } = await generateClarifyingQuestions({
     rfpFields: rfp.parsedStructure.fields,
@@ -40,6 +53,7 @@ export async function createDraft(
     knowledgeTopics: [],
     contentLibraryCategories: [],
     organizationId: orgId,
+    pricingModel,
   })
 
   // Persist draft

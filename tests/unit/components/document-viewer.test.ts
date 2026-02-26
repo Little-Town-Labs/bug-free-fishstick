@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 
-// Mock react-pdf
+// Mock react-pdf — must include `pdfjs` since DocumentViewer.tsx accesses
+// pdfjs.GlobalWorkerOptions at module load time.
 vi.mock('react-pdf', () => ({
   Document: ({ onLoadSuccess, children, loading }: any) => {
     // Simulate loaded state
@@ -11,9 +12,13 @@ vi.mock('react-pdf', () => ({
   },
   Page: ({ pageNumber }: any) =>
     createElement('div', { 'data-testid': `pdf-page-${pageNumber}` }, `Page ${pageNumber}`),
+  pdfjs: {
+    version: '3.0.0',
+    GlobalWorkerOptions: { workerSrc: '' },
+  },
 }))
 
-// Mock pdfjs-dist
+// Mock pdfjs-dist (belt-and-suspenders in case it's imported directly)
 vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: { workerSrc: '' },
 }))

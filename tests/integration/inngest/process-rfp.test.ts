@@ -147,9 +147,17 @@ function createMockQualityResults(fieldIds: string[] = ['1', '2']) {
 
 // Standard mock DB setup
 function setupStandardDbMocks(mockRfp: Record<string, unknown>) {
-  // First select: RFP fetch -> [mockRfp]
-  // Second select: learnings fetch -> []
+  // First select: tenant settings lookup (BYOK key resolution) -> needs .limit()
+  // Second select: RFP fetch -> [mockRfp]
+  // Third+ select: learnings fetch -> []
   vi.mocked(db.select)
+    .mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+        }),
+      }),
+    } as unknown as ReturnType<typeof db.select>)
     .mockReturnValueOnce({
       from: vi.fn().mockReturnThis(),
       where: vi.fn().mockResolvedValue([mockRfp]),
@@ -292,10 +300,18 @@ describe('process-rfp Inngest workflow', () => {
       ])
       const mockQuality = createMockQualityResults(['1'])
 
-      vi.mocked(db.select).mockReturnValue({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([mockRfp]),
-      } as unknown as ReturnType<typeof db.select>)
+      vi.mocked(db.select)
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+            }),
+          }),
+        } as unknown as ReturnType<typeof db.select>)
+        .mockReturnValue({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([mockRfp]),
+        } as unknown as ReturnType<typeof db.select>)
 
       const setMock = vi.fn().mockReturnThis()
       const whereMock = vi.fn().mockReturnThis()
@@ -548,10 +564,18 @@ describe('process-rfp Inngest workflow', () => {
 
       const insertMock = vi.fn().mockResolvedValue([{ id: 'response-1' }])
 
-      vi.mocked(db.select).mockReturnValue({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([mockRfp]),
-      } as unknown as ReturnType<typeof db.select>)
+      vi.mocked(db.select)
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+            }),
+          }),
+        } as unknown as ReturnType<typeof db.select>)
+        .mockReturnValue({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([mockRfp]),
+        } as unknown as ReturnType<typeof db.select>)
 
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn().mockReturnThis(),
@@ -604,10 +628,18 @@ describe('process-rfp Inngest workflow', () => {
           automationPercentage: 100,
         }])
 
-      vi.mocked(db.select).mockReturnValue({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([mockRfp]),
-      } as unknown as ReturnType<typeof db.select>)
+      vi.mocked(db.select)
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+            }),
+          }),
+        } as unknown as ReturnType<typeof db.select>)
+        .mockReturnValue({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([mockRfp]),
+        } as unknown as ReturnType<typeof db.select>)
 
       vi.mocked(db.update).mockReturnValue({
         set: setMock,
@@ -645,10 +677,18 @@ describe('process-rfp Inngest workflow', () => {
       const rfpId = 'rfp-nonexistent'
       const organizationId = 'org-456'
 
-      vi.mocked(db.select).mockReturnValue({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([]),
-      } as unknown as ReturnType<typeof db.select>)
+      vi.mocked(db.select)
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+            }),
+          }),
+        } as unknown as ReturnType<typeof db.select>)
+        .mockReturnValue({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([]),
+        } as unknown as ReturnType<typeof db.select>)
 
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn().mockReturnThis(),
@@ -714,10 +754,18 @@ describe('process-rfp Inngest workflow', () => {
 
       const setMock = vi.fn().mockReturnThis()
 
-      vi.mocked(db.select).mockReturnValue({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([mockRfp]),
-      } as unknown as ReturnType<typeof db.select>)
+      vi.mocked(db.select)
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+            }),
+          }),
+        } as unknown as ReturnType<typeof db.select>)
+        .mockReturnValue({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([mockRfp]),
+        } as unknown as ReturnType<typeof db.select>)
 
       vi.mocked(db.update).mockReturnValue({
         set: setMock,
@@ -784,10 +832,18 @@ describe('process-rfp Inngest workflow', () => {
           automationPercentage: 0,
         }])
 
-      vi.mocked(db.select).mockReturnValue({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([mockRfp]),
-      } as unknown as ReturnType<typeof db.select>)
+      vi.mocked(db.select)
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+            }),
+          }),
+        } as unknown as ReturnType<typeof db.select>)
+        .mockReturnValue({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([mockRfp]),
+        } as unknown as ReturnType<typeof db.select>)
 
       vi.mocked(db.update).mockReturnValue({
         set: setMock,

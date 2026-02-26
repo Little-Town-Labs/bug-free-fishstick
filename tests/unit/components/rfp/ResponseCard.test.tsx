@@ -44,21 +44,21 @@ describe('ResponseCard', () => {
       render(<ResponseCard {...defaultProps} confidenceScore={0.9} />)
 
       const indicator = screen.getByTestId('confidence-indicator')
-      expect(indicator).toHaveClass('text-green-600')
+      expect(indicator).toHaveClass('text-[color:var(--confidence-high)]')
     })
 
     it('displays medium confidence indicator (yellow) for scores > 0.5 and <= 0.8', () => {
       render(<ResponseCard {...defaultProps} confidenceScore={0.65} />)
 
       const indicator = screen.getByTestId('confidence-indicator')
-      expect(indicator).toHaveClass('text-yellow-600')
+      expect(indicator).toHaveClass('text-[color:var(--confidence-medium)]')
     })
 
     it('displays low confidence indicator (red) for scores <= 0.5', () => {
       render(<ResponseCard {...defaultProps} confidenceScore={0.4} />)
 
       const indicator = screen.getByTestId('confidence-indicator')
-      expect(indicator).toHaveClass('text-red-600')
+      expect(indicator).toHaveClass('text-[color:var(--confidence-low)]')
     })
 
     it('shows confidence score percentage', () => {
@@ -240,28 +240,28 @@ describe('ResponseCard', () => {
       render(<ResponseCard {...defaultProps} confidenceScore={0.9} />)
 
       const card = screen.getByTestId('response-card')
-      expect(card).toHaveClass('border-green-200')
+      expect(card).toHaveClass('border-[color:var(--confidence-high)]')
     })
 
     it('applies medium confidence styling for scores > 0.5 and <= 0.8', () => {
       render(<ResponseCard {...defaultProps} confidenceScore={0.7} />)
 
       const card = screen.getByTestId('response-card')
-      expect(card).toHaveClass('border-yellow-200')
+      expect(card).toHaveClass('border-[color:var(--confidence-medium)]')
     })
 
     it('applies low confidence styling for scores <= 0.5', () => {
       render(<ResponseCard {...defaultProps} confidenceScore={0.3} />)
 
       const card = screen.getByTestId('response-card')
-      expect(card).toHaveClass('border-red-200')
+      expect(card).toHaveClass('border-[color:var(--confidence-low)]')
     })
 
     it('applies neutral styling when confidence score is null', () => {
       render(<ResponseCard {...defaultProps} confidenceScore={null} />)
 
       const card = screen.getByTestId('response-card')
-      expect(card).toHaveClass('border-gray-200')
+      expect(card).toHaveClass('border-border')
     })
   })
 
@@ -296,14 +296,14 @@ describe('ResponseCard', () => {
       render(<ResponseCard {...defaultProps} confidenceScore={0.8} />)
 
       const indicator = screen.getByTestId('confidence-indicator')
-      expect(indicator).toHaveClass('text-yellow-600')
+      expect(indicator).toHaveClass('text-[color:var(--confidence-medium)]')
     })
 
     it('handles confidence score of exactly 0.5 as low confidence', () => {
       render(<ResponseCard {...defaultProps} confidenceScore={0.5} />)
 
       const indicator = screen.getByTestId('confidence-indicator')
-      expect(indicator).toHaveClass('text-red-600')
+      expect(indicator).toHaveClass('text-[color:var(--confidence-low)]')
     })
   })
 })

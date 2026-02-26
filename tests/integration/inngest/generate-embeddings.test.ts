@@ -3,6 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Mock all dependencies before imports
 vi.mock('@/lib/db', () => ({
   db: {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => Promise.resolve([{ openaiApiKeyEncrypted: null }])),
+      })),
+    })),
     update: vi.fn(() => ({
       set: vi.fn(() => ({
         where: vi.fn(() => ({

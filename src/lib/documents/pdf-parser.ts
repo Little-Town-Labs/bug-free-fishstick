@@ -28,13 +28,15 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedPdfResult> {
     throw new Error('File size exceeds 50MB limit')
   }
 
-  // Import from the lib path to skip pdf-parse v1's self-test which tries to
-  // read ./test/data/05-versions-space.pdf — that file doesn't exist in
-  // serverless environments and causes ENOENT on cold start.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require('pdf-parse/lib/pdf-parse') as (
-    buffer: Buffer
-  ) => Promise<{ text: string; numpages: number; info: Record<string, unknown> }>
+  // Dynamic import from the lib path to skip pdf-parse v1's self-test which
+  // tries to read ./test/data/05-versions-space.pdf — that file doesn't exist
+  // in serverless environments and causes ENOENT on cold start.
+  // Using import() (vs require()) also allows Vitest to intercept the module
+  // in unit tests.
+  const pdfParseModule = await import('pdf-parse/lib/pdf-parse')
+  const pdfParse = (
+    pdfParseModule.default ?? pdfParseModule
+  ) as (buffer: Buffer) => Promise<{ text: string; numpages: number; info: Record<string, unknown> }>
   const data = await pdfParse(buffer)
 
   // Extract metadata

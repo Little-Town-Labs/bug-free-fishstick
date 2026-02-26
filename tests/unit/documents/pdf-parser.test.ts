@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock the PDFParse class from pdf-parse v2
-const mockGetText = vi.fn()
-const mockGetInfo = vi.fn()
+// The implementation uses require('pdf-parse/lib/pdf-parse') — mock at that path.
+// Vite's CJS-to-ESM interop exposes `default` when require() is used, so we
+// mock the default export as a function that returns { text, numpages, info }.
+const mockPdfParseFn = vi.hoisted(() => vi.fn())
 
-vi.mock('pdf-parse', () => ({
-  PDFParse: vi.fn().mockImplementation(() => ({
-    getText: mockGetText,
-    getInfo: mockGetInfo,
-  })),
+vi.mock('pdf-parse/lib/pdf-parse', () => ({
+  default: mockPdfParseFn,
 }))
 
 import { parsePdf } from '@/lib/documents/pdf-parser'
@@ -20,14 +18,12 @@ describe('PDF Parser', () => {
 
   function setupMock(options: {
     text?: string
-    total?: number
+    numpages?: number
     info?: Record<string, unknown>
   }) {
-    mockGetText.mockResolvedValue({
+    mockPdfParseFn.mockResolvedValue({
       text: options.text ?? '',
-      total: options.total ?? 1,
-    })
-    mockGetInfo.mockResolvedValue({
+      numpages: options.numpages ?? 1,
       info: options.info ?? {},
     })
   }
@@ -36,7 +32,7 @@ describe('PDF Parser', () => {
     it('should parse a valid PDF and return text content', async () => {
       setupMock({
         text: 'Section 1: Company Overview\nPlease describe your company.\n\nSection 2: Technical Approach\nDescribe your technical solution.',
-        total: 3,
+        numpages: 3,
         info: { Title: 'Test RFP', Author: 'Test Corp' },
       })
 
@@ -49,7 +45,7 @@ describe('PDF Parser', () => {
     })
 
     it('should return page count from parsed PDF', async () => {
-      setupMock({ text: 'Page content', total: 12 })
+      setupMock({ text: 'Page content', numpages: 12 })
 
       const buffer = Buffer.from('fake-pdf-content')
       const result = await parsePdf(buffer)
@@ -60,7 +56,7 @@ describe('PDF Parser', () => {
     it('should return metadata from parsed PDF', async () => {
       setupMock({
         text: 'RFP content',
-        total: 1,
+        numpages: 1,
         info: { Title: 'Government RFP 2026', Author: 'City of Springfield' },
       })
 
@@ -83,7 +79,7 @@ describe('PDF Parser', () => {
           'Table 1: Pricing Schedule',
           '| Item | Quantity | Unit Price | Total |',
         ].join('\n'),
-        total: 2,
+        numpages: 2,
       })
 
       const buffer = Buffer.from('fake-pdf-content')
@@ -102,7 +98,7 @@ describe('PDF Parser', () => {
     it('should assign unique IDs to each extracted field', async () => {
       setupMock({
         text: '1. Name: ___\n2. Address: ___\n3. Description:',
-        total: 1,
+        numpages: 1,
       })
 
       const buffer = Buffer.from('fake-pdf-content')
@@ -116,7 +112,7 @@ describe('PDF Parser', () => {
     it('should include field position information', async () => {
       setupMock({
         text: '1. Company Name: ___________',
-        total: 1,
+        numpages: 1,
       })
 
       const buffer = Buffer.from('fake-pdf-content')
@@ -135,7 +131,7 @@ describe('PDF Parser', () => {
     it('should include the question text for each field', async () => {
       setupMock({
         text: '1. Describe your company history:\n\n2. Annual revenue: ___',
-        total: 1,
+        numpages: 1,
       })
 
       const buffer = Buffer.from('fake-pdf-content')
@@ -152,7 +148,7 @@ describe('PDF Parser', () => {
     it('should handle multi-page PDFs correctly', async () => {
       setupMock({
         text: 'Page 1 content\n\nPage 2 content\n\nPage 3 content\n\nPage 4 content\n\nPage 5 content',
-        total: 5,
+        numpages: 5,
       })
 
       const buffer = Buffer.from('fake-pdf-content')
@@ -166,8 +162,7 @@ describe('PDF Parser', () => {
 
   describe('error handling', () => {
     it('should throw on corrupted PDF data', async () => {
-      mockGetText.mockRejectedValue(new Error('Invalid PDF structure'))
-      mockGetInfo.mockRejectedValue(new Error('Invalid PDF structure'))
+      mockPdfParseFn.mockRejectedValue(new Error('Invalid PDF structure'))
 
       const buffer = Buffer.from('not-a-pdf')
 
@@ -175,10 +170,7 @@ describe('PDF Parser', () => {
     })
 
     it('should throw on password-protected PDF', async () => {
-      mockGetText.mockRejectedValue(
-        new Error('PasswordException: Incorrect Password')
-      )
-      mockGetInfo.mockRejectedValue(
+      mockPdfParseFn.mockRejectedValue(
         new Error('PasswordException: Incorrect Password')
       )
 
@@ -202,7 +194,7 @@ describe('PDF Parser', () => {
 
   describe('edge cases', () => {
     it('should handle PDF with no extractable text', async () => {
-      setupMock({ text: '', total: 1 })
+      setupMock({ text: '', numpages: 1 })
 
       const buffer = Buffer.from('scanned-image-pdf')
       const result = await parsePdf(buffer)
@@ -215,7 +207,7 @@ describe('PDF Parser', () => {
     it('should handle PDF with no form fields (plain text)', async () => {
       setupMock({
         text: 'This is a plain text document with no questions or fields to fill in. It contains only narrative content about the project requirements and scope.',
-        total: 2,
+        numpages: 2,
       })
 
       const buffer = Buffer.from('plain-text-pdf')
@@ -226,7 +218,7 @@ describe('PDF Parser', () => {
     })
 
     it('should handle missing metadata gracefully', async () => {
-      setupMock({ text: 'Some content', total: 1, info: {} })
+      setupMock({ text: 'Some content', numpages: 1, info: {} })
 
       const buffer = Buffer.from('fake-pdf')
       const result = await parsePdf(buffer)

@@ -1,6 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
+// jsdom's File does not implement arrayBuffer(); polyfill it so route handlers
+// that call file.arrayBuffer() don't throw in tests (parsers are mocked anyway).
+if (!File.prototype.arrayBuffer) {
+  Object.defineProperty(File.prototype, 'arrayBuffer', {
+    value(): Promise<ArrayBuffer> {
+      return Promise.resolve(new ArrayBuffer(0))
+    },
+    writable: true,
+    configurable: true,
+  })
+}
+
 // Mock next/server's after() — not available outside a real Next.js request scope
 vi.mock('next/server', async (importOriginal) => {
   const actual = await importOriginal<typeof import('next/server')>()
@@ -104,17 +116,22 @@ function createMockRequest(
   return new NextRequest(url, init as any)
 }
 
-// Helper to create mock FormData request
+// Helper to create mock FormData request.
+// In the jsdom/Node test environment, Request does not auto-set the
+// Content-Type boundary when body is FormData, so request.formData() would
+// throw. Override formData() directly to bypass the Content-Type check.
 function createMockFormDataRequest(
   method: string,
   url: string,
   formData: FormData
 ): NextRequest {
-  const init: RequestInit = {
-    method,
-    body: formData,
-  }
-  return new NextRequest(url, init as any)
+  const request = new NextRequest(url, { method })
+  Object.defineProperty(request, 'formData', {
+    value: () => Promise.resolve(formData),
+    writable: true,
+    configurable: true,
+  })
+  return request
 }
 
 describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {

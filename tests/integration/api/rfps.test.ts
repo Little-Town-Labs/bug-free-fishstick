@@ -107,17 +107,22 @@ function createMockRequest(
   return new NextRequest(url, init as any)
 }
 
-// Helper to create mock FormData request
+// Helper to create mock FormData request.
+// In the jsdom/Node test environment, Request does not auto-set the
+// Content-Type boundary when body is FormData, so request.formData() would
+// throw. Override formData() directly to bypass the Content-Type check.
 function createMockFormDataRequest(
   method: string,
   url: string,
   formData: FormData
 ): NextRequest {
-  const init: RequestInit = {
-    method,
-    body: formData,
-  }
-  return new NextRequest(url, init as any)
+  const request = new NextRequest(url, { method })
+  Object.defineProperty(request, 'formData', {
+    value: () => Promise.resolve(formData),
+    writable: true,
+    configurable: true,
+  })
+  return request
 }
 
 describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {

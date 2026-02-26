@@ -18,9 +18,14 @@ vi.mock('@/lib/ai/agents/proposal-question-generator', () => ({
   generateClarifyingQuestions: vi.fn(),
 }))
 
+vi.mock('@/lib/services/rate-card', () => ({
+  getRateCard: vi.fn(),
+}))
+
 import { db } from '@/lib/db'
 import { inngest } from '@/lib/inngest/client'
 import { generateClarifyingQuestions } from '@/lib/ai/agents/proposal-question-generator'
+import { getRateCard } from '@/lib/services/rate-card'
 import {
   createDraft,
   submitAnswers,
@@ -165,6 +170,70 @@ describe('proposal-draft service', () => {
         expect.objectContaining({ organizationId: 'org-1' })
       )
     })
+
+    // -----------------------------------------------------------------------
+    // Task 3.1–3.3: pricing model forwarding tests
+    // -----------------------------------------------------------------------
+    describe('createDraft — pricing model forwarding', () => {
+      function mockRfpSelect() {
+        vi.mocked(db.select).mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([mockRfp]),
+            }),
+          }),
+        } as any)
+      }
+
+      it('passes pricingModel from rate card settings to generateClarifyingQuestions', async () => {
+        mockRfpSelect()
+        vi.mocked(getRateCard).mockResolvedValue({
+          rateCard: null,
+          proposalDefaults: {
+            pricingModel: 'fixed_price',
+            paymentTermsDays: 30,
+            warrantyPeriodDays: 90,
+          },
+        })
+        vi.mocked(generateClarifyingQuestions).mockResolvedValue({ questions: mockQuestions })
+        mockInsertReturns(mockDraft)
+
+        await createDraft('rfp-1', 'org-1', 'user-1')
+
+        expect(generateClarifyingQuestions).toHaveBeenCalledWith(
+          expect.objectContaining({ pricingModel: 'fixed_price' })
+        )
+      })
+
+      it('passes pricingModel: null when proposalDefaults is null', async () => {
+        mockRfpSelect()
+        vi.mocked(getRateCard).mockResolvedValue({
+          rateCard: null,
+          proposalDefaults: null,
+        })
+        vi.mocked(generateClarifyingQuestions).mockResolvedValue({ questions: mockQuestions })
+        mockInsertReturns(mockDraft)
+
+        await createDraft('rfp-1', 'org-1', 'user-1')
+
+        expect(generateClarifyingQuestions).toHaveBeenCalledWith(
+          expect.objectContaining({ pricingModel: null })
+        )
+      })
+
+      it('proceeds with pricingModel: null and does not throw when getRateCard rejects', async () => {
+        mockRfpSelect()
+        vi.mocked(getRateCard).mockRejectedValue(new Error('DB timeout'))
+        vi.mocked(generateClarifyingQuestions).mockResolvedValue({ questions: mockQuestions })
+        mockInsertReturns(mockDraft)
+
+        await expect(createDraft('rfp-1', 'org-1', 'user-1')).resolves.toBeDefined()
+
+        expect(generateClarifyingQuestions).toHaveBeenCalledWith(
+          expect.objectContaining({ pricingModel: null })
+        )
+      })
+    })
   })
 
   describe('submitAnswers', () => {
@@ -192,6 +261,14 @@ describe('proposal-draft service', () => {
 
     it('should throw if draft is not in awaiting_answers state', async () => {
       mockSelectReturns([{ ...mockDraft, status: 'generating' }])
+      // Simulate the atomic UPDATE returning 0 rows (status predicate didn't match)
+      vi.mocked(db.update).mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      } as any)
 
       await expect(submitAnswers('draft-1', 'org-1', [])).rejects.toThrow()
     })

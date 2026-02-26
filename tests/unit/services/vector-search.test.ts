@@ -33,6 +33,8 @@ describe('Vector Search Service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // Set OPENAI_API_KEY so searchSimilar doesn't bail out early
+    process.env.OPENAI_API_KEY = 'test-key'
     // Reset the chain for each test
     limitMock.mockResolvedValue([])
     orderByMock.mockReturnValue({ limit: limitMock })
