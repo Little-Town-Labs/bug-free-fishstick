@@ -12,149 +12,135 @@ import { generateText } from 'ai'
 import { writeProposal } from '@/lib/ai/agents/proposal-writer'
 import type { WriteProposalInput } from '@/lib/ai/agents/proposal-writer'
 
+const mockMarkdown = '# Proposal\n\n## Requirements\n\nContent here.'
+
 const baseInput: WriteProposalInput = {
   rfpSections: [
-    { title: 'Pricing and Payment Terms', content: 'Vendor must provide fixed-price bid.' },
-    { title: 'Security Requirements', content: 'SOC 2 Type II required.' },
+    { id: 'f1', title: 'Company Background', content: 'Describe your company.' },
   ],
-  knowledgeContext: [
-    { content: 'We offer fixed-price and T&M engagements.', source: 'capability-statement' },
-    { content: 'We hold SOC 2 Type II and ISO 27001 certifications.', source: 'certifications-doc' },
+  requirementResults: [
+    {
+      id: 'ke-1',
+      organizationId: 'org-1',
+      customerId: null,
+      type: 'company_doc',
+      title: 'About Us',
+      content: 'We are a technology company.',
+      tags: [],
+      metadata: null,
+      chunkIndex: null,
+      totalChunks: null,
+      sectionHeading: null,
+      sourceEntryId: null,
+      processingStatus: 'completed',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      similarity: 0.9,
+    },
   ],
-  contentLibraryEntries: [
-    { id: 'cl-1', name: 'Standard Hourly Rate', category: 'Pricing', content: 'Our standard rate is $150/hour.' },
-  ],
+  supplierContext: {
+    companyDocs: [],
+    certifications: [],
+    caseStudies: [],
+    wonPastRfps: [],
+  },
+  companyProfile: 'Acme Corp is a leading provider.',
+  customerContext: {
+    preferredTone: 'formal',
+    industryContext: 'Government',
+    customInstructions: 'Emphasize security.',
+  },
+  learnings: [],
+  pricingMarkdown: '| Item | Total |\n|---|---|\n| Dev | $10,000 |',
   clarifyingAnswers: [
-    { id: 'q1', question: 'What is your preferred pricing model?', rfpSection: 'Pricing and Payment Terms', answer: 'Fixed price preferred.' },
+    { id: 'q1', question: 'Timeline?', rfpSection: 'Schedule', answer: '6 months' },
   ],
   organizationId: 'org-1',
 }
 
-const mockMarkdown = `# Proposal
-
-## Pricing and Payment Terms
-> *Source: content library — Standard Hourly Rate*
-
-We propose a fixed-price engagement. Our standard rate is $150/hour.
-
-## Security Requirements
-> *Source: knowledge base*
-
-We hold SOC 2 Type II and ISO 27001 certifications.
-`
-
-describe('proposal-writer', () => {
+describe('proposal-writer (F8 interface)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  describe('writeProposal', () => {
-    describe('happy path', () => {
-      it('should return non-empty markdown content', async () => {
-        vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+  it('calls generateText with the new WriteProposalInput shape', async () => {
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
 
-        const result = await writeProposal(baseInput)
+    await writeProposal(baseInput)
 
-        expect(result.markdownContent).toBeTruthy()
-        expect(result.markdownContent.length).toBeGreaterThan(0)
-      })
+    expect(generateText).toHaveBeenCalledTimes(1)
+  })
 
-      it('should incorporate user clarifying answers into the proposal', async () => {
-        vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+  it('system prompt contains "Do NOT generate Terms & Conditions"', async () => {
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
 
-        await writeProposal(baseInput)
+    await writeProposal(baseInput)
 
-        const callArgs = vi.mocked(generateText).mock.calls[0]!
-        const prompt = JSON.stringify(callArgs[0])
-        expect(prompt).toContain('Fixed price preferred')
-      })
+    const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+    expect(args.system).toContain('Do NOT generate Terms & Conditions')
+  })
 
-      it('should incorporate knowledge context into the proposal', async () => {
-        vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+  it('system prompt contains "Do NOT perform any pricing calculations"', async () => {
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
 
-        await writeProposal(baseInput)
+    await writeProposal(baseInput)
 
-        const callArgs = vi.mocked(generateText).mock.calls[0]!
-        const prompt = JSON.stringify(callArgs[0])
-        expect(prompt).toContain('SOC 2 Type II')
-      })
+    const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+    expect(args.system).toContain('Do NOT perform any pricing calculations')
+  })
 
-      it('should incorporate content library entries into the proposal', async () => {
-        vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+  it('prompt includes pricingMarkdown verbatim', async () => {
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
 
-        await writeProposal(baseInput)
+    await writeProposal(baseInput)
 
-        const callArgs = vi.mocked(generateText).mock.calls[0]!
-        const prompt = JSON.stringify(callArgs[0])
-        expect(prompt).toContain('Standard Hourly Rate')
-      })
+    const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+    expect(args.prompt).toContain(baseInput.pricingMarkdown)
+  })
 
-      it('should include > *Source: knowledge base* annotation for knowledge-sourced sections', async () => {
-        vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+  it('omits Company Profile block when companyProfile is null', async () => {
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
 
-        const result = await writeProposal(baseInput)
+    await writeProposal({ ...baseInput, companyProfile: null })
 
-        expect(result.markdownContent).toContain('> *Source: knowledge base*')
-      })
+    const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+    expect(args.prompt).not.toContain('## Company Profile')
+  })
 
-      it('should include > *Source: content library — [entry name]* annotation for library-sourced sections', async () => {
-        vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+  it('includes Company Profile block when companyProfile is non-empty', async () => {
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
 
-        const result = await writeProposal(baseInput)
+    await writeProposal(baseInput)
 
-        expect(result.markdownContent).toContain('> *Source: content library — Standard Hourly Rate*')
-      })
-    })
+    const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+    expect(args.prompt).toContain('Acme Corp is a leading provider.')
+  })
 
-    describe('edge cases', () => {
-      it('should handle empty content library gracefully', async () => {
-        const markdownNoLibrary = `# Proposal\n\n## Pricing\n> *Source: user answer*\n\nFixed price.\n`
-        vi.mocked(generateText).mockResolvedValue({ text: markdownNoLibrary } as any)
+  it('omits Customer Preferences block when customerContext is null', async () => {
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
 
-        const result = await writeProposal({
-          ...baseInput,
-          contentLibraryEntries: [],
-        })
+    await writeProposal({ ...baseInput, customerContext: null })
 
-        expect(result.markdownContent).toBeTruthy()
-      })
+    const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+    expect(args.prompt).not.toContain('## Customer Preferences')
+  })
 
-      it('should handle empty knowledge context gracefully', async () => {
-        const markdownNoKnowledge = `# Proposal\n\n## Pricing\n> *Source: user answer*\n\nFixed price.\n`
-        vi.mocked(generateText).mockResolvedValue({ text: markdownNoKnowledge } as any)
+  it('includes customer tone/industry/instructions when customerContext is provided', async () => {
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
 
-        const result = await writeProposal({
-          ...baseInput,
-          knowledgeContext: [],
-        })
+    await writeProposal(baseInput)
 
-        expect(result.markdownContent).toBeTruthy()
-      })
+    const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+    expect(args.prompt).toContain('formal')
+    expect(args.prompt).toContain('Government')
+    expect(args.prompt).toContain('Emphasize security.')
+  })
 
-      it('should handle skipped (empty) clarifying answers without breaking generation', async () => {
-        vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+  it('returns { markdownContent } matching generateText output', async () => {
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
 
-        const result = await writeProposal({
-          ...baseInput,
-          clarifyingAnswers: [
-            { id: 'q1', question: 'What pricing model?', rfpSection: 'Pricing', answer: '' },
-          ],
-        })
+    const result = await writeProposal(baseInput)
 
-        expect(result.markdownContent).toBeTruthy()
-      })
-
-      it('should propagate LLM timeout errors', async () => {
-        vi.mocked(generateText).mockRejectedValue(new Error('LLM request timed out'))
-
-        await expect(writeProposal(baseInput)).rejects.toThrow('LLM request timed out')
-      })
-
-      it('should handle malformed (non-string) LLM response', async () => {
-        vi.mocked(generateText).mockResolvedValue({ text: null } as any)
-
-        await expect(writeProposal(baseInput)).rejects.toThrow()
-      })
-    })
+    expect(result.markdownContent).toBe(mockMarkdown)
   })
 })

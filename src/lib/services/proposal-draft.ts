@@ -8,6 +8,7 @@ import type {
   ProposalDraft,
   NewProposalDraft,
   ClarifyingQuestion,
+  CoverageReport,
 } from '@/lib/db/schema/proposal-drafts'
 import type { ProposalDefaults } from '@/lib/db/schema/tenant-settings'
 
@@ -143,11 +144,17 @@ export async function listDrafts(rfpId: string, orgId: string): Promise<Proposal
 export async function updateDraftContent(
   draftId: string,
   orgId: string,
-  markdownContent: string
+  markdownContent: string,
+  coverageReport?: CoverageReport,
 ): Promise<ProposalDraft> {
+  const setPayload: Record<string, unknown> = { status: 'draft', markdownContent, updatedAt: new Date() }
+  if (coverageReport !== undefined) {
+    setPayload.coverageReport = coverageReport
+  }
+
   const [updated] = await db
     .update(proposalDrafts)
-    .set({ status: 'draft', markdownContent, updatedAt: new Date() })
+    .set(setPayload)
     .where(and(eq(proposalDrafts.id, draftId), eq(proposalDrafts.organizationId, orgId)))
     .returning()
 

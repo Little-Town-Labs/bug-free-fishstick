@@ -1,23 +1,18 @@
 import { generateText } from 'ai'
 import { getLanguageModelForOrg } from '@/lib/ai/providers'
 import type { ClarifyingQuestion } from '@/lib/db/schema/proposal-drafts'
+import type { KnowledgeEntryWithSimilarity } from '@/lib/services/vector-search'
+import type { TypedSupplierContext, CustomerContext } from '@/lib/services/proposal-retrieval'
+import type { Learning } from '@/lib/db/schema/learnings'
 
 export interface WriteProposalInput {
-  rfpSections: Array<{
-    title: string
-    content: string
-  }>
-  knowledgeContext: Array<{
-    content: string
-    source: string
-  }>
-  contentLibraryEntries: Array<{
-    id: string
-    name: string
-    category: string
-    content: string
-    similarity?: number
-  }>
+  rfpSections: Array<{ id: string; title: string; content: string }>
+  requirementResults: KnowledgeEntryWithSimilarity[]
+  supplierContext: TypedSupplierContext
+  companyProfile: string | null
+  customerContext: CustomerContext
+  learnings: Learning[]
+  pricingMarkdown: string
   clarifyingAnswers: ClarifyingQuestion[]
   organizationId: string
 }
@@ -29,8 +24,12 @@ export interface WriteProposalResult {
 export async function writeProposal(input: WriteProposalInput): Promise<WriteProposalResult> {
   const {
     rfpSections,
-    knowledgeContext,
-    contentLibraryEntries,
+    requirementResults,
+    supplierContext,
+    companyProfile,
+    customerContext,
+    learnings,
+    pricingMarkdown,
     clarifyingAnswers,
     organizationId,
   } = input
@@ -38,55 +37,78 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
   const model = await getLanguageModelForOrg(organizationId)
 
   const sectionsText = rfpSections
-    .map(s => `### ${s.title}\n${s.content}`)
+    .map((s) => `### ${s.title}\n${s.content}`)
     .join('\n\n')
 
-  const knowledgeText = knowledgeContext.length > 0
-    ? knowledgeContext.map(k => `[Source: ${k.source}]\n${k.content}`).join('\n\n')
-    : '(No knowledge base documents available.)'
+  const requirementText = requirementResults.length > 0
+    ? requirementResults.map((r) => `[${r.type}] ${r.title ?? 'Untitled'} (similarity: ${Math.round((r.similarity ?? 0) * 100)}%)\n${r.content}`).join('\n\n')
+    : '(No knowledge base results available.)'
 
-  const libraryText = contentLibraryEntries.length > 0
-    ? contentLibraryEntries.map(e => {
-        const relevance = e.similarity !== undefined ? ` (relevance: ${Math.round(e.similarity * 100)}%)` : ''
-        return `[${e.category}] ${e.name}${relevance}:\n${e.content}`
-      }).join('\n\n')
-    : '(No content library entries available.)'
+  const certsText = supplierContext.certifications.length > 0
+    ? supplierContext.certifications.map((c) => `- ${c.title}: ${c.content}`).join('\n')
+    : '(No certifications available.)'
+
+  const caseStudiesText = supplierContext.caseStudies.length > 0
+    ? supplierContext.caseStudies.map((c) => `- ${c.title}: ${c.content}`).join('\n')
+    : '(No case studies available.)'
+
+  const wonRfpsText = supplierContext.wonPastRfps.length > 0
+    ? supplierContext.wonPastRfps.map((r) => `- ${r.title}: ${r.content}`).join('\n')
+    : '(No past winning proposals available.)'
+
+  const learningsText = learnings.length > 0
+    ? learnings.map((l) => `- [${l.sourceType}] ${l.content}`).join('\n')
+    : '(No learnings available.)'
 
   const answersText = clarifyingAnswers.length > 0
     ? clarifyingAnswers
-        .map(a => `Q (${a.rfpSection}): ${a.question}\nA: ${a.answer || '(skipped)'}`)
+        .map((a) => `Q (${a.rfpSection}): ${a.question}\nA: ${a.answer || '(skipped)'}`)
         .join('\n\n')
     : '(No clarifying answers provided.)'
 
+  // Build prompt sections conditionally
+  const promptBlocks: string[] = []
+
+  promptBlocks.push(`## RFP Requirements\n${sectionsText}`)
+
+  if (companyProfile && companyProfile.trim()) {
+    promptBlocks.push(`## Company Profile\n${companyProfile}`)
+  }
+
+  promptBlocks.push(`## Knowledge Base Context\n${requirementText}`)
+  promptBlocks.push(`## Certifications\n${certsText}`)
+  promptBlocks.push(`## Case Studies\n${caseStudiesText}`)
+  promptBlocks.push(`## Past Winning Proposals\n${wonRfpsText}`)
+
+  if (customerContext) {
+    const parts: string[] = []
+    if (customerContext.preferredTone) parts.push(`Tone: ${customerContext.preferredTone}`)
+    if (customerContext.industryContext) parts.push(`Industry: ${customerContext.industryContext}`)
+    if (customerContext.customInstructions) parts.push(`Instructions: ${customerContext.customInstructions}`)
+    if (parts.length > 0) {
+      promptBlocks.push(`## Customer Preferences\n${parts.join('\n')}`)
+    }
+  }
+
+  promptBlocks.push(`## Learnings\n${learningsText}`)
+  promptBlocks.push(`## Scope & Clarifying Question Answers\n${answersText}`)
+  promptBlocks.push(`## PRE-COMPUTED PRICING SECTION (insert verbatim)\n${pricingMarkdown}`)
+
   const { text } = await generateText({
     model,
-    system: `You are an expert proposal writer. Generate a complete, professional first-pass proposal in markdown format.
+    system: `You are an expert proposal writer generating a complete, professional first-pass proposal.
 
-CRITICAL FORMATTING RULES:
-1. Mirror the structure of the RFP — create one section heading per RFP section.
-2. Immediately after each section heading (## Section Name), add a source annotation blockquote:
-   - If content comes from the knowledge base: \`> *Source: knowledge base*\`
-   - If content comes from a content library entry: \`> *Source: content library — [entry name]*\`
-   - If content comes from a user answer: \`> *Source: user answer*\`
-   - If content is inferred/generated: \`> *Source: generated*\`
-3. If information is missing, add a placeholder: \`[PLACEHOLDER: brief description of what's needed]\`
-4. Use professional proposal language throughout.
-5. The proposal must start with a \`# Proposal\` heading.`,
-    prompt: `Write a complete proposal based on the following:
+IMPORTANT RESTRICTIONS:
+- Do NOT generate Terms & Conditions, Assumptions, Exclusions, Payment Terms, Change Management, IP Ownership, Liability, Force Majeure, or Warranty sections. These will be added separately by the system.
+- Do NOT perform any pricing calculations. The pricing section is pre-computed and provided to you.
 
-## RFP Sections to Address
-${sectionsText}
-
-## Company Knowledge Base
-${knowledgeText}
-
-## Content Library
-${libraryText}
-
-## Clarifying Question Answers
-${answersText}
-
-Generate the full proposal markdown now.`,
+FORMATTING RULES:
+1. Create one section per RFP requirement (## Heading for each).
+2. Immediately after each heading, add a source blockquote: > *Source: [source]*
+3. Insert the pre-computed PRICING SECTION exactly as provided — do not modify it.
+4. Use [PLACEHOLDER: brief description] for any section with insufficient evidence.
+5. Start with # Proposal.`,
+    prompt: `Write a complete proposal based on the following:\n\n${promptBlocks.join('\n\n')}\n\nGenerate the full proposal markdown now.`,
   })
 
   if (!text || typeof text !== 'string') {

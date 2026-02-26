@@ -292,6 +292,44 @@ describe('proposal-draft service', () => {
     })
   })
 
+  describe('updateDraftContent with coverageReport', () => {
+    it('includes coverageReport in DB set payload when 4th arg provided', async () => {
+      const coverageReport = {
+        coverageScore: 85,
+        evaluatedAt: '2026-02-26T00:00:00.000Z',
+        requirements: [
+          { requirementId: 'r1', question: 'Q?', addressed: true, evidence: 'Yes', gap: null },
+        ],
+      }
+      const setMock = vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ ...mockDraft, status: 'draft', markdownContent: '# Test', coverageReport }]),
+        }),
+      })
+      vi.mocked(db.update).mockReturnValue({ set: setMock } as any)
+
+      await updateDraftContent('draft-1', 'org-1', '# Test', coverageReport)
+
+      expect(setMock).toHaveBeenCalledWith(
+        expect.objectContaining({ coverageReport })
+      )
+    })
+
+    it('does NOT include coverageReport in DB set payload when 4th arg omitted', async () => {
+      const setMock = vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ ...mockDraft, status: 'draft', markdownContent: '# Test' }]),
+        }),
+      })
+      vi.mocked(db.update).mockReturnValue({ set: setMock } as any)
+
+      await updateDraftContent('draft-1', 'org-1', '# Test')
+
+      const payload = setMock.mock.calls[0]![0]
+      expect(payload).not.toHaveProperty('coverageReport')
+    })
+  })
+
   describe('getDraft', () => {
     it('should return draft with org scope check', async () => {
       mockSelectReturns([mockDraft])
