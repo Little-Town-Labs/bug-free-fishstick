@@ -159,8 +159,8 @@ export function libraryReducer(state: LibraryState, action: LibraryAction): Libr
       const idx = sectionTemplates.findIndex(t => t.id === action.templateId)
       if (idx <= 0) return state
 
-      const current = sectionTemplates[idx]
-      const previous = sectionTemplates[idx - 1]
+      const current = sectionTemplates[idx]!
+      const previous = sectionTemplates[idx - 1]!
 
       const newTemplates = state.templates.map(t => {
         if (t.id === current.id) return { ...t, sortOrder: previous.sortOrder }
@@ -182,8 +182,8 @@ export function libraryReducer(state: LibraryState, action: LibraryAction): Libr
       const idx = sectionTemplates.findIndex(t => t.id === action.templateId)
       if (idx >= sectionTemplates.length - 1) return state
 
-      const current = sectionTemplates[idx]
-      const next = sectionTemplates[idx + 1]
+      const current = sectionTemplates[idx]!
+      const next = sectionTemplates[idx + 1]!
 
       const newTemplates = state.templates.map(t => {
         if (t.id === current.id) return { ...t, sortOrder: next.sortOrder }

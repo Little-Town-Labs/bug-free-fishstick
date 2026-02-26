@@ -167,26 +167,22 @@ export function TemplateFormDialog({
           </div>
 
           {/* Trigger RFP types */}
-          <div className="flex flex-col gap-1">
-            <Label>Trigger RFP Types</Label>
-            <TriggerTagInput
-              value={triggerRfpTypes}
-              onChange={setTriggerRfpTypes}
-              disabled={isSaving}
-              placeholder="Add RFP type and press Enter…"
-            />
-          </div>
+          <TriggerTagInput
+            label="Trigger RFP Types"
+            tags={triggerRfpTypes}
+            onChange={setTriggerRfpTypes}
+            disabled={isSaving}
+            placeholder="Add RFP type and press Enter…"
+          />
 
           {/* Trigger industry tags */}
-          <div className="flex flex-col gap-1">
-            <Label>Trigger Industry Tags</Label>
-            <TriggerTagInput
-              value={triggerIndustryTags}
-              onChange={setTriggerIndustryTags}
-              disabled={isSaving}
-              placeholder="Add industry tag and press Enter…"
-            />
-          </div>
+          <TriggerTagInput
+            label="Trigger Industry Tags"
+            tags={triggerIndustryTags}
+            onChange={setTriggerIndustryTags}
+            disabled={isSaving}
+            placeholder="Add industry tag and press Enter…"
+          />
         </div>
 
         <DialogFooter>
