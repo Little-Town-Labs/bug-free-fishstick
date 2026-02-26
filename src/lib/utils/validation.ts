@@ -3,6 +3,24 @@ import { z } from 'zod'
 // NOTE: Zod v4 uses z.string().uuid() not z.string().cuid2()
 // Our DB uses UUIDs, so validate with z.string().uuid()
 
+// Zod v4 compatibility shim: add `.errors` alias for `.issues` on ZodError.
+// Zod v3 exposed `ZodError.errors`; Zod v4 renamed it to `ZodError.issues`.
+// This shim restores the `.errors` getter so code and tests written for v3
+// continue to work without modification.
+;(function patchZodErrorCompat() {
+  const sentinel = z.string().safeParse(0)
+  if (!sentinel.success && sentinel.error) {
+    const proto = Object.getPrototypeOf(sentinel.error) as object
+    if (!Object.getOwnPropertyDescriptor(proto, 'errors')) {
+      Object.defineProperty(proto, 'errors', {
+        get(this: { issues: unknown }) { return this.issues },
+        configurable: true,
+        enumerable: false,
+      })
+    }
+  }
+})()
+
 /**
  * Schema for creating a new RFP
  */
@@ -249,6 +267,11 @@ export const updateTenantSettingsSchema = z.object({
 
 export type UpdateTenantSettingsInput = z.infer<typeof updateTenantSettingsSchema>
 
+export const updateCompanyProfileSchema = z.object({
+  companyProfile: z.string().max(10000).nullable(),
+})
+export type UpdateCompanyProfileInput = z.infer<typeof updateCompanyProfileSchema>
+
 /**
  * A single requirement evaluation within a CoverageReport.
  */
@@ -275,33 +298,71 @@ export const coverageReportSchema = z.object({
 export type CoverageReportInput = z.infer<typeof coverageReportSchema>
 
 /**
+ * Schema for ProposalTemplate section enum.
+ * Exported as a standalone schema for reuse in forms and API routes.
+ */
+export const proposalTemplateSectionSchema = z.enum([
+  'assumptions',
+  'exclusions',
+  'payment_terms',
+  'change_management',
+  'ip_ownership',
+  'liability',
+  'force_majeure',
+  'warranty',
+])
+
+export type ProposalTemplateSectionInput = z.infer<typeof proposalTemplateSectionSchema>
+
+/**
  * Schema for creating a new proposal template.
+ * Enforces: isRequired and evaluateCoverage cannot both be true.
  */
 export const createProposalTemplateSchema = z.object({
-  section: z.enum([
-    'assumptions',
-    'exclusions',
-    'payment_terms',
-    'change_management',
-    'ip_ownership',
-    'liability',
-    'force_majeure',
-    'warranty',
-  ]),
+  section: proposalTemplateSectionSchema,
   title: z.string().min(1).max(255),
   content: z.string().min(1).max(50000),
-  isRequired: z.boolean().optional(),
-  triggerRfpTypes: z.array(z.string().max(100)).nullable().optional(),
-  triggerIndustryTags: z.array(z.string().max(100)).nullable().optional(),
-  evaluateCoverage: z.boolean().optional(),
-  sortOrder: z.number().int().nonnegative().optional(),
-})
+  isRequired: z.boolean().default(false),
+  triggerRfpTypes: z.array(z.string().min(1).max(100)).nullable().default(null),
+  triggerIndustryTags: z.array(z.string().min(1).max(100)).nullable().default(null),
+  evaluateCoverage: z.boolean().default(false),
+  sortOrder: z.number().int().min(0).default(0),
+}).refine(
+  (v) => !(v.isRequired && v.evaluateCoverage),
+  { message: 'isRequired and evaluateCoverage cannot both be true', path: ['isRequired'] }
+)
 
 export type CreateProposalTemplateInput = z.infer<typeof createProposalTemplateSchema>
 
 /**
  * Schema for updating an existing proposal template (all fields optional).
+ * NOTE: section is validated against the enum if provided (invalid values are
+ *       rejected at the schema boundary), but it is stripped from the output
+ *       because section is immutable after creation — the API route ignores it.
+ * NOTE: isRequired/evaluateCoverage constraint NOT enforced here — the service
+ *       layer does a read-merge-validate check on the merged state.
  */
-export const updateProposalTemplateSchema = createProposalTemplateSchema.partial()
+export const updateProposalTemplateSchema = z.object({
+  section: proposalTemplateSectionSchema.optional(),
+  title: z.string().min(1).max(255).optional(),
+  content: z.string().min(1).max(50000).optional(),
+  isRequired: z.boolean().optional(),
+  triggerRfpTypes: z.array(z.string().min(1).max(100)).nullable().optional(),
+  triggerIndustryTags: z.array(z.string().min(1).max(100)).nullable().optional(),
+  evaluateCoverage: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+}).transform(({ section: _section, ...rest }) => rest)
 
 export type UpdateProposalTemplateInput = z.infer<typeof updateProposalTemplateSchema>
+
+/**
+ * Schema for reordering proposal templates within a section.
+ */
+export const reorderProposalTemplatesSchema = z.object({
+  items: z.array(z.object({
+    id: z.string().uuid(),
+    sortOrder: z.number().int(),
+  })).min(1).max(500),
+})
+
+export type ReorderProposalTemplatesInput = z.infer<typeof reorderProposalTemplatesSchema>

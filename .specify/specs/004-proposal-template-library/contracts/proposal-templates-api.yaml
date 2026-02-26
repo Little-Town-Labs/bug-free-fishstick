@@ -1,0 +1,1053 @@
+openapi: "3.0.3"
+
+info:
+  title: RFP Automator — Proposal Template Library API
+  version: "1.0.0"
+  description: |
+    API contract for managing an organization's Proposal Template Library within the
+    RFP Automator multi-tenant platform (Feature 004).
+
+    Templates are verbatim contract clauses and boilerplate text categorized by section
+    type. They are injected into generated proposals by Feature 8 (pipeline injection).
+    This API covers library management only — no injection logic is exposed here.
+
+    **Tenant isolation:** All data access is scoped to the organization derived from the
+    authenticated Clerk session (`auth().orgId`). The `organizationId` is never accepted
+    as a request parameter.
+
+    **Access control summary:**
+    - `GET /api/settings/proposal-templates` — any authenticated org member (`requireAuth`)
+    - `POST /api/settings/proposal-templates` — org admin only (`requireAdmin`)
+    - `PATCH /api/settings/proposal-templates/{id}` — org admin only (`requireAdmin`)
+    - `DELETE /api/settings/proposal-templates/{id}` — org admin only (`requireAdmin`)
+    - `POST /api/settings/proposal-templates/reorder` — org admin only (`requireAdmin`)
+
+    **Business constraint — isRequired / evaluateCoverage:**
+    When `isRequired` is `true`, `evaluateCoverage` must be `false`. A template that is
+    unconditionally required in every proposal cannot simultaneously be evaluated for
+    coverage gaps — those two flags are mutually exclusive. This rule is enforced at the
+    API validation layer (Zod) independently of any UI enforcement.
+
+    **Error envelope:** All 4xx / 5xx responses use the shape
+    `{ "error": "<message>", "details"?: [...] }`. Validation failures (400, 422) carry
+    a `details` array of per-field messages (dot-notation field paths, matching the
+    implementation pattern in rate-card and company-profile routes).
+
+    **Reorder atomicity:** The `POST /reorder` endpoint applies all `sortOrder` changes
+    inside a single transaction. If any supplied `id` does not belong to the authenticated
+    organization, the entire operation is rejected with 400 and no rows are modified.
+
+servers:
+  - url: /api
+    description: Next.js App Router API prefix (relative to origin)
+
+tags:
+  - name: Proposal Templates
+    description: CRUD and reorder operations for the organization's clause library.
+
+security:
+  - ClerkSession: []
+
+# =============================================================================
+# PATHS
+# =============================================================================
+
+paths:
+
+  # ---------------------------------------------------------------------------
+  # Collection endpoints
+  # ---------------------------------------------------------------------------
+
+  /settings/proposal-templates:
+
+    get:
+      operationId: listProposalTemplates
+      summary: List all proposal templates for the organization
+      description: |
+        Returns all templates for the authenticated organization as a **flat array**,
+        sorted by `section` (enum order) then by `sortOrder ASC` within each section.
+        An empty library returns `{ "templates": [] }`.
+
+        Accessible by any authenticated org member. Non-admin members may read the
+        library but cannot mutate it.
+
+        The response is intentionally flat (not grouped by section). The client is
+        responsible for grouping by `section` for display. This keeps the contract
+        simple and avoids nested structures that complicate partial updates and cache
+        invalidation. Clients can derive a grouped view in O(n) with a single pass.
+      tags:
+        - Proposal Templates
+      responses:
+        "200":
+          description: Template list retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListTemplatesResponse"
+              examples:
+                emptyLibrary:
+                  summary: No templates configured yet
+                  value:
+                    templates: []
+                populated:
+                  summary: Library with two templates across different sections
+                  value:
+                    templates:
+                      - id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                        section: assumptions
+                        title: Standard Project Assumptions
+                        content: |
+                          This proposal assumes the following:
+
+                          - Client will provide timely access to relevant stakeholders.
+                          - All required third-party licenses are procured by the client.
+                        isRequired: true
+                        triggerRfpTypes: null
+                        triggerIndustryTags: null
+                        evaluateCoverage: false
+                        sortOrder: 0
+                        createdBy: "user_2abc123"
+                        createdAt: "2026-02-26T10:00:00.000Z"
+                        updatedAt: "2026-02-26T10:00:00.000Z"
+                      - id: "7b9e2c41-8312-4a1d-91f7-d4e5b8c3a2f0"
+                        section: exclusions
+                        title: Government Compliance Exclusion
+                        content: |
+                          This engagement does not include advice on regulatory compliance
+                          unless explicitly scoped as a separate workstream.
+                        isRequired: false
+                        triggerRfpTypes:
+                          - compliance
+                          - government
+                        triggerIndustryTags:
+                          - public_sector
+                        evaluateCoverage: true
+                        sortOrder: 0
+                        createdBy: "user_2abc123"
+                        createdAt: "2026-02-26T11:00:00.000Z"
+                        updatedAt: "2026-02-26T11:00:00.000Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      operationId: createProposalTemplate
+      summary: Create a new proposal template
+      description: |
+        Creates a new template in the authenticated organization's library.
+
+        **Required fields:** `section`, `title`, `content`.
+        **Optional fields:** `isRequired`, `triggerRfpTypes`, `triggerIndustryTags`,
+        `evaluateCoverage`, `sortOrder`.
+
+        **Defaults applied when omitted:**
+        - `isRequired` → `false`
+        - `evaluateCoverage` → `false`
+        - `triggerRfpTypes` → `null`
+        - `triggerIndustryTags` → `null`
+        - `sortOrder` → `0`
+
+        **Constraint:** `isRequired: true` combined with `evaluateCoverage: true` is
+        rejected with 400. The two fields are mutually exclusive.
+
+        The `createdBy` field is set server-side from the authenticated user ID and is
+        never accepted from the request body.
+
+        Org admin role required. Non-admin members receive 403.
+      tags:
+        - Proposal Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTemplateRequest"
+            examples:
+              requiredClause:
+                summary: Create a required assumptions clause
+                value:
+                  section: assumptions
+                  title: Standard Project Assumptions
+                  content: |
+                    This proposal assumes the following:
+
+                    - Client will provide timely access to relevant stakeholders.
+                  isRequired: true
+                  evaluateCoverage: false
+                  sortOrder: 0
+              situationalClause:
+                summary: Create a situational exclusion triggered by RFP type
+                value:
+                  section: exclusions
+                  title: Government Compliance Exclusion
+                  content: |
+                    This engagement does not include regulatory compliance advice.
+                  isRequired: false
+                  triggerRfpTypes:
+                    - compliance
+                    - government
+                  triggerIndustryTags:
+                    - public_sector
+                  evaluateCoverage: true
+                  sortOrder: 10
+      responses:
+        "201":
+          description: Template created successfully. Returns the newly created template record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateResponse"
+              example:
+                template:
+                  id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  section: assumptions
+                  title: Standard Project Assumptions
+                  content: "This proposal assumes the following:\n\n- Client will provide timely access.\n"
+                  isRequired: true
+                  triggerRfpTypes: null
+                  triggerIndustryTags: null
+                  evaluateCoverage: false
+                  sortOrder: 0
+                  createdBy: "user_2abc123"
+                  createdAt: "2026-02-26T10:00:00.000Z"
+                  updatedAt: "2026-02-26T10:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ---------------------------------------------------------------------------
+  # Reorder sub-resource (must appear before /{id} to avoid path ambiguity)
+  # ---------------------------------------------------------------------------
+
+  /settings/proposal-templates/reorder:
+
+    post:
+      operationId: reorderProposalTemplates
+      summary: Atomically update sort order for multiple templates
+      description: |
+        Accepts an array of `{ id, sortOrder }` pairs and updates the `sortOrder`
+        field for each identified template in a single atomic database transaction.
+
+        **Atomicity guarantee:** If any supplied `id` is not found within the
+        authenticated organization's library, the entire operation is rejected with
+        400 and **no rows are modified**. Partial updates never occur.
+
+        Templates not mentioned in the request body are unaffected. It is valid to
+        supply only a subset of templates in a section (e.g. to move one item without
+        re-specifying all others). However, callers should be aware that this may
+        produce gaps or duplicate `sortOrder` values — both are acceptable; the
+        system sorts by `sortOrder ASC` with stable ordering on ties.
+
+        Cross-section reordering is accepted but has no effect on proposal output
+        ordering, which groups by section first.
+
+        Org admin role required.
+      tags:
+        - Proposal Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderTemplatesRequest"
+            examples:
+              reorderTwoItems:
+                summary: Swap the sort order of two templates
+                value:
+                  items:
+                    - id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      sortOrder: 1
+                    - id: "7b9e2c41-8312-4a1d-91f7-d4e5b8c3a2f0"
+                      sortOrder: 0
+              reorderFullSection:
+                summary: Reorder all templates within the assumptions section
+                value:
+                  items:
+                    - id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      sortOrder: 0
+                    - id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                      sortOrder: 10
+                    - id: "f9e8d7c6-b5a4-3210-fedc-ba9876543210"
+                      sortOrder: 20
+      responses:
+        "200":
+          description: Sort orders updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationSuccessResponse"
+              example:
+                success: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ---------------------------------------------------------------------------
+  # Item endpoints
+  # ---------------------------------------------------------------------------
+
+  /settings/proposal-templates/{id}:
+
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: UUID of the proposal template to operate on.
+        schema:
+          type: string
+          format: uuid
+        example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+
+    patch:
+      operationId: updateProposalTemplate
+      summary: Update an existing proposal template
+      description: |
+        Partially updates a single template. Only fields present in the request body
+        are modified; omitted fields retain their current values.
+
+        **Constraint:** The `isRequired` / `evaluateCoverage` mutual-exclusion rule is
+        evaluated against the **merged state** (existing values plus submitted patch).
+        Examples:
+        - If the existing record has `isRequired: true` and the patch submits only
+          `evaluateCoverage: true`, the merged state violates the constraint → 400.
+        - If the patch submits `isRequired: true` and `evaluateCoverage: false`
+          together, the constraint is satisfied → accepted.
+
+        The `createdBy` and `createdAt` fields are immutable and ignored if submitted.
+
+        Returns 404 when the template does not exist within the authenticated
+        organization (tenant-scoped lookup — templates owned by other organizations
+        are indistinguishable from non-existent templates).
+
+        Org admin role required.
+      tags:
+        - Proposal Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTemplateRequest"
+            examples:
+              updateTitle:
+                summary: Rename a template
+                value:
+                  title: "Updated Assumptions — Q2 2026"
+              toggleRequired:
+                summary: Mark a template as required and clear evaluateCoverage
+                value:
+                  isRequired: true
+                  evaluateCoverage: false
+              updateContent:
+                summary: Update body text and add a trigger tag
+                value:
+                  content: |
+                    Revised standard assumptions effective Q2 2026.
+                  triggerIndustryTags:
+                    - technology
+                    - saas
+      responses:
+        "200":
+          description: Template updated successfully. Returns the full updated template record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateResponse"
+              example:
+                template:
+                  id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  section: assumptions
+                  title: "Updated Assumptions — Q2 2026"
+                  content: "Revised standard assumptions effective Q2 2026.\n"
+                  isRequired: true
+                  triggerRfpTypes: null
+                  triggerIndustryTags: null
+                  evaluateCoverage: false
+                  sortOrder: 0
+                  createdBy: "user_2abc123"
+                  createdAt: "2026-02-26T10:00:00.000Z"
+                  updatedAt: "2026-02-26T15:30:00.000Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      operationId: deleteProposalTemplate
+      summary: Delete a proposal template
+      description: |
+        Permanently removes a template from the organization's library.
+
+        **Cascade behavior:** Deletion does not modify any existing proposal drafts.
+        Templates are resolved at proposal generation time; there are no foreign key
+        references from `proposal_drafts` to `proposal_templates`. Past proposals
+        retain their generated content unchanged.
+
+        Returns 404 when the template does not exist within the authenticated
+        organization (tenant-scoped lookup).
+
+        Org admin role required.
+      tags:
+        - Proposal Templates
+      responses:
+        "204":
+          description: Template deleted successfully. No response body.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+# =============================================================================
+# COMPONENTS
+# =============================================================================
+
+components:
+
+  securitySchemes:
+    ClerkSession:
+      type: http
+      scheme: bearer
+      bearerFormat: Clerk session token
+      description: >
+        Clerk-issued session token. The Next.js middleware validates this token before
+        any route handler executes. Implementers do not need to verify the token
+        manually — call `requireAuth()` or `requireAdmin()` from `@/lib/utils/auth`.
+
+  # ---------------------------------------------------------------------------
+  # Domain schemas
+  # ---------------------------------------------------------------------------
+
+  schemas:
+
+    SectionType:
+      type: string
+      description: |
+        The section of a proposal in which this template clause appears. Maps directly
+        to the `section` column enum in `proposal_templates`. Eight values are
+        supported; no custom section types are permitted.
+
+        | Value               | Proposal section heading          |
+        |---------------------|-----------------------------------|
+        | `assumptions`       | Assumptions                       |
+        | `exclusions`        | Exclusions                        |
+        | `payment_terms`     | Payment Terms                     |
+        | `change_management` | Change Management                 |
+        | `ip_ownership`      | IP Ownership                      |
+        | `liability`         | Liability                         |
+        | `force_majeure`     | Force Majeure                     |
+        | `warranty`          | Warranty                          |
+      enum:
+        - assumptions
+        - exclusions
+        - payment_terms
+        - change_management
+        - ip_ownership
+        - liability
+        - force_majeure
+        - warranty
+      example: assumptions
+
+    ProposalTemplate:
+      type: object
+      description: |
+        A single clause template stored in the organization's Proposal Template Library.
+        All fields are always present in responses (no optional response fields).
+      required:
+        - id
+        - section
+        - title
+        - content
+        - isRequired
+        - triggerRfpTypes
+        - triggerIndustryTags
+        - evaluateCoverage
+        - sortOrder
+        - createdBy
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Stable unique identifier for this template. Assigned by the server on creation.
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        section:
+          $ref: "#/components/schemas/SectionType"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: >
+            Human-readable label for the clause. Displayed as the heading in the template
+            library and in generated proposals. Must be non-empty.
+          example: Standard Project Assumptions
+        content:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: >
+            The verbatim body text of the clause in Markdown format. Stored exactly as
+            submitted — no sanitization, normalization, or transformation occurs. The
+            50,000-character limit matches the Zod schema enforced at the F1 data model.
+          example: "This proposal assumes the following:\n\n- Client will provide timely access to stakeholders.\n"
+        isRequired:
+          type: boolean
+          description: |
+            When `true`, this template is unconditionally appended to every proposal
+            generated by the organization, regardless of RFP type or industry tags.
+
+            **Mutual exclusion:** `isRequired: true` forces `evaluateCoverage: false`.
+            Submitting `isRequired: true` with `evaluateCoverage: true` is rejected
+            with HTTP 400.
+          example: false
+        triggerRfpTypes:
+          description: |
+            Array of RFP type strings that trigger situational inclusion of this template.
+            When the proposal's `rfpType` matches any entry in this array (case-sensitive
+            string equality), the template is included.
+
+            `null` means no RFP-type trigger is configured. An empty array `[]` is
+            equivalent to `null` and is normalized to `null` on storage.
+
+            Matching uses OR logic across both `triggerRfpTypes` and `triggerIndustryTags` —
+            a match on either dimension is sufficient for inclusion.
+          nullable: true
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 100
+              minItems: 1
+          example: null
+        triggerIndustryTags:
+          description: |
+            Array of industry tag strings that trigger situational inclusion of this template.
+            When any of the proposal's industry tags matches any entry in this array
+            (case-sensitive string equality), the template is included.
+
+            `null` means no industry-tag trigger is configured. An empty array `[]` is
+            equivalent to `null` and is normalized to `null` on storage.
+          nullable: true
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 100
+              minItems: 1
+          example: null
+        evaluateCoverage:
+          type: boolean
+          description: |
+            When `true`, Feature 8 (pipeline injection) will run a coverage evaluation
+            pass against this template's content to check whether the proposal already
+            addresses the clause topic.
+
+            **Mutual exclusion:** Must be `false` whenever `isRequired` is `true`.
+            See `isRequired` for full constraint description.
+          example: false
+        sortOrder:
+          type: integer
+          description: |
+            Controls the display and injection sequence of templates within the same
+            `section`. Lower values appear first. Gaps are permitted and stable; the
+            system sorts by `sortOrder ASC` with stable ordering on tied values
+            (insertion order as tie-breaker).
+
+            Negative values are accepted (allows prepending without renumbering).
+          example: 0
+        createdBy:
+          type: string
+          description: >
+            Clerk user ID of the admin who created this template. Set server-side from
+            the authenticated session at creation time. Immutable after creation.
+          example: "user_2abc123"
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp of record creation.
+          example: "2026-02-26T10:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp of the most recent update.
+          example: "2026-02-26T15:30:00.000Z"
+
+    # -------------------------------------------------------------------------
+    # Request bodies
+    # -------------------------------------------------------------------------
+
+    CreateTemplateRequest:
+      type: object
+      description: |
+        Request body for `POST /api/settings/proposal-templates`.
+
+        Only `section`, `title`, and `content` are required. All other fields are
+        optional and fall back to safe defaults when omitted.
+
+        **Constraint:** `isRequired: true` with `evaluateCoverage: true` is rejected
+        with HTTP 400.
+      required:
+        - section
+        - title
+        - content
+      additionalProperties: false
+      properties:
+        section:
+          $ref: "#/components/schemas/SectionType"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Human-readable clause heading. Must be non-empty.
+          example: Standard Project Assumptions
+        content:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: Verbatim Markdown body text. Must be non-empty. Maximum 50,000 characters.
+          example: "This proposal assumes the following:\n\n- Client access will be available.\n"
+        isRequired:
+          type: boolean
+          default: false
+          description: >
+            Unconditional inclusion flag. Defaults to `false` when omitted.
+            Cannot be `true` when `evaluateCoverage` is also `true`.
+          example: false
+        triggerRfpTypes:
+          description: >
+            RFP type trigger conditions. Null or omitted means no RFP-type trigger.
+            Empty array is treated as null and normalized on storage.
+          nullable: true
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 100
+              minItems: 1
+          example: null
+        triggerIndustryTags:
+          description: >
+            Industry tag trigger conditions. Null or omitted means no industry-tag trigger.
+            Empty array is treated as null and normalized on storage.
+          nullable: true
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 100
+              minItems: 1
+          example: null
+        evaluateCoverage:
+          type: boolean
+          default: false
+          description: >
+            Coverage evaluation flag. Defaults to `false` when omitted.
+            Cannot be `true` when `isRequired` is also `true`.
+          example: false
+        sortOrder:
+          type: integer
+          default: 0
+          description: >
+            Initial sort order within the section. Defaults to `0` when omitted.
+            Negative values are permitted.
+          example: 0
+
+    UpdateTemplateRequest:
+      type: object
+      description: |
+        Request body for `PATCH /api/settings/proposal-templates/{id}`.
+
+        All fields are optional — only supplied fields are modified. The
+        `isRequired` / `evaluateCoverage` constraint is evaluated against the
+        **merged state** (existing persisted values patched with submitted values).
+
+        The fields `id`, `createdBy`, `createdAt`, and `organizationId` are
+        immutable and must not be submitted. Any submitted value for these fields
+        is ignored (they are stripped before processing).
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        section:
+          $ref: "#/components/schemas/SectionType"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: New title. Must be non-empty when supplied.
+          example: "Updated Assumptions — Q2 2026"
+        content:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: New body text. Must be non-empty when supplied. Maximum 50,000 characters.
+          example: "Revised standard assumptions effective Q2 2026.\n"
+        isRequired:
+          type: boolean
+          description: >
+            Update the unconditional inclusion flag. When changing to `true`, ensure
+            `evaluateCoverage` is also set to `false` (either via this patch or already
+            persisted as `false`).
+          example: true
+        triggerRfpTypes:
+          description: >
+            Replace the full list of RFP type triggers. Supply `null` to remove all
+            triggers. Empty array is treated as null.
+          nullable: true
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 100
+              minItems: 1
+          example: null
+        triggerIndustryTags:
+          description: >
+            Replace the full list of industry tag triggers. Supply `null` to remove
+            all triggers. Empty array is treated as null.
+          nullable: true
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 100
+              minItems: 1
+          example: null
+        evaluateCoverage:
+          type: boolean
+          description: >
+            Update the coverage evaluation flag. When changing to `true`, ensure
+            `isRequired` is `false` (either via this patch or already persisted).
+          example: false
+        sortOrder:
+          type: integer
+          description: >
+            New sort order within the section. Negative values are permitted.
+          example: 10
+
+    ReorderTemplatesRequest:
+      type: object
+      description: |
+        Request body for `POST /api/settings/proposal-templates/reorder`.
+
+        Contains a non-empty array of id/sortOrder pairs. All IDs must belong to
+        the authenticated organization. If any ID is not found (wrong org or deleted),
+        the entire operation is rejected and no rows are modified.
+      required:
+        - items
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          minItems: 1
+          description: >
+            Array of sort order updates. Each entry identifies one template by UUID
+            and provides its new `sortOrder` integer. The array must contain at least
+            one entry.
+          items:
+            $ref: "#/components/schemas/ReorderItem"
+          example:
+            - id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+              sortOrder: 0
+            - id: "7b9e2c41-8312-4a1d-91f7-d4e5b8c3a2f0"
+              sortOrder: 10
+
+    ReorderItem:
+      type: object
+      description: A single id/sortOrder assignment within a reorder request.
+      required:
+        - id
+        - sortOrder
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID of the template to reorder.
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        sortOrder:
+          type: integer
+          description: >
+            New sort order for this template within its section. Negative values
+            are permitted. No uniqueness constraint is enforced across items in
+            the same request.
+          example: 0
+
+    # -------------------------------------------------------------------------
+    # Response envelopes
+    # -------------------------------------------------------------------------
+
+    ListTemplatesResponse:
+      type: object
+      description: Response envelope for GET /api/settings/proposal-templates.
+      required:
+        - templates
+      additionalProperties: false
+      properties:
+        templates:
+          type: array
+          description: >
+            Flat array of all templates for the organization, ordered by `section`
+            enum position (assumptions first, warranty last), then by `sortOrder ASC`
+            within each section. An empty array is returned when no templates exist.
+          items:
+            $ref: "#/components/schemas/ProposalTemplate"
+
+    TemplateResponse:
+      type: object
+      description: >
+        Response envelope returned by POST (create) and PATCH (update) operations.
+        Contains the full persisted template record after the operation completes.
+      required:
+        - template
+      additionalProperties: false
+      properties:
+        template:
+          $ref: "#/components/schemas/ProposalTemplate"
+
+    MutationSuccessResponse:
+      type: object
+      description: >
+        Generic success envelope returned by mutation endpoints that do not return
+        a resource body (currently: reorder).
+      required:
+        - success
+      additionalProperties: false
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+          description: Always `true` when the operation completed successfully.
+          example: true
+
+    # -------------------------------------------------------------------------
+    # Error schemas
+    # -------------------------------------------------------------------------
+
+    ErrorResponse:
+      type: object
+      description: |
+        Error envelope returned for all 4xx and 5xx responses. Matches the existing
+        pattern in rate-card and company-profile routes:
+        `{ "error": "<message>", "details"?: [...] }`.
+
+        Sensitive business data (template body content) is never included in error
+        messages. Error messages reference field names and constraint descriptions only.
+      required:
+        - error
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+          description: Human-readable summary of the error condition.
+          example: "Validation failed"
+
+    ValidationErrorResponse:
+      type: object
+      description: |
+        Extended error envelope returned for 400 and 422 responses when per-field
+        detail is available. The `details` array follows the same dot-notation field
+        path convention used in the rate-card and company-profile routes:
+        `parsed.error.issues.map(i => ({ field: i.path.join('.'), message: i.message }))`.
+      required:
+        - error
+        - details
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+          description: Summary error message.
+          example: "Validation failed"
+        details:
+          type: array
+          description: Per-field validation failures.
+          items:
+            $ref: "#/components/schemas/ValidationErrorDetail"
+          example:
+            - field: isRequired
+              message: "isRequired and evaluateCoverage cannot both be true"
+
+    ValidationErrorDetail:
+      type: object
+      description: A single field-level validation failure.
+      required:
+        - field
+        - message
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+          description: >
+            Dot-notation path to the invalid field, relative to the request body root
+            (e.g. `"content"`, `"items[2].id"`, `"triggerRfpTypes[0]"`).
+          example: isRequired
+        message:
+          type: string
+          description: Human-readable explanation of why the value was rejected.
+          example: "isRequired and evaluateCoverage cannot both be true"
+
+  # ---------------------------------------------------------------------------
+  # Reusable responses
+  # ---------------------------------------------------------------------------
+
+  responses:
+
+    BadRequest:
+      description: |
+        The request body failed schema validation or violated a business rule.
+
+        Common causes:
+        - Malformed JSON body (returns plain `{ "error": "Invalid JSON body" }` without details)
+        - `isRequired: true` submitted together with `evaluateCoverage: true`
+        - `section` value not in the allowed enum of eight section types
+        - `title` or `content` is an empty string
+        - `content` exceeds 50,000 characters
+        - Reorder `items` array is empty
+        - One or more reorder `id` values not found in the authenticated organization
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/ValidationErrorResponse"
+              - $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            isRequiredConflict:
+              summary: isRequired and evaluateCoverage both true
+              value:
+                error: Validation failed
+                details:
+                  - field: isRequired
+                    message: "isRequired and evaluateCoverage cannot both be true; set evaluateCoverage to false when isRequired is true"
+            invalidSection:
+              summary: Section type not in allowed enum
+              value:
+                error: Validation failed
+                details:
+                  - field: section
+                    message: "Invalid section type. Must be one of: assumptions, exclusions, payment_terms, change_management, ip_ownership, liability, force_majeure, warranty"
+            contentTooLong:
+              summary: Content exceeds maximum length
+              value:
+                error: Validation failed
+                details:
+                  - field: content
+                    message: "Content must not exceed 50,000 characters"
+            reorderIdNotFound:
+              summary: Reorder contains an ID not owned by the organization
+              value:
+                error: "One or more template IDs were not found in your organization. No sort orders were updated."
+            invalidJson:
+              summary: Malformed JSON body
+              value:
+                error: "Invalid JSON body"
+            emptyReorderItems:
+              summary: Reorder items array is empty
+              value:
+                error: Validation failed
+                details:
+                  - field: items
+                    message: "items must contain at least one entry"
+
+    Unauthorized:
+      description: >
+        The request did not include a valid Clerk session. The caller must authenticate
+        before retrying.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Unauthorized
+
+    Forbidden:
+      description: >
+        The authenticated user does not have the `org:admin` role. Only org admins may
+        create, update, delete, or reorder proposal templates.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Admin access required
+
+    NotFound:
+      description: >
+        No template with the given `id` exists within the authenticated organization.
+        Templates belonging to other organizations are indistinguishable from
+        non-existent templates (no cross-tenant information leakage).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Template not found
+
+    UnprocessableEntity:
+      description: |
+        The request body is syntactically valid JSON and passes basic schema checks, but
+        fails a semantic validation rule that cannot be expressed in the schema alone.
+
+        Currently this status is reserved for future cross-field or async validation
+        rules (e.g. duplicate title within section). The `isRequired` /
+        `evaluateCoverage` conflict is reported as 400 rather than 422 because it is
+        detectable synchronously from the request body alone.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorResponse"
+          example:
+            error: Validation failed
+            details:
+              - field: title
+                message: "A template with this title already exists in the assumptions section"
+
+    InternalServerError:
+      description: >
+        An unexpected server-side error occurred. The error message intentionally omits
+        sensitive business data. Retry after a brief delay; if the problem persists,
+        check server logs tagged with the relevant route prefix
+        (e.g. `[POST /api/settings/proposal-templates]`).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Internal server error

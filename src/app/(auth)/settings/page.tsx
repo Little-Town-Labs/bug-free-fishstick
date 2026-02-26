@@ -11,6 +11,8 @@ const tabs = [
   { label: 'LLM Configuration', href: '/settings/llm' },
   { label: 'Integrations', href: '/settings/integrations' },
   { label: 'Rate Card', href: '/settings/rate-card' },
+  { label: 'Company Profile', href: '/settings/company-profile' },
+  { label: 'Proposal Templates', href: '/settings/proposal-templates' },
 ]
 
 export default function SettingsPage() {
