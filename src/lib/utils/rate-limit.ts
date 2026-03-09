@@ -13,33 +13,29 @@ function getRedis(): Redis {
   return _redis
 }
 
-// Standard rate limit: 60 requests per minute per user
-const standardLimiter = new Ratelimit({
-  redis: getRedis(),
-  limiter: Ratelimit.slidingWindow(60, '1 m'),
-  prefix: 'rl:standard',
-})
-
-// Strict rate limit for expensive operations: 10 per minute per user
-const strictLimiter = new Ratelimit({
-  redis: getRedis(),
-  limiter: Ratelimit.slidingWindow(10, '1 m'),
-  prefix: 'rl:strict',
-})
-
-// Upload rate limit: 20 per minute per user
-const uploadLimiter = new Ratelimit({
-  redis: getRedis(),
-  limiter: Ratelimit.slidingWindow(20, '1 m'),
-  prefix: 'rl:upload',
-})
-
 export type RateLimitTier = 'standard' | 'strict' | 'upload'
 
-const limiters: Record<RateLimitTier, Ratelimit> = {
-  standard: standardLimiter,
-  strict: strictLimiter,
-  upload: uploadLimiter,
+const TIER_CONFIG = {
+  standard: { max: 60, window: '1 m' as const, prefix: 'rl:standard' },
+  strict: { max: 10, window: '1 m' as const, prefix: 'rl:strict' },
+  upload: { max: 20, window: '1 m' as const, prefix: 'rl:upload' },
+} satisfies Record<RateLimitTier, { max: number; window: `${number} ${string}`; prefix: string }>
+
+let _limiters: Record<RateLimitTier, Ratelimit> | null = null
+function getLimiters(): Record<RateLimitTier, Ratelimit> {
+  if (!_limiters) {
+    const redis = getRedis()
+    _limiters = Object.fromEntries(
+      (Object.entries(TIER_CONFIG) as [RateLimitTier, typeof TIER_CONFIG[RateLimitTier]][]).map(
+        ([tier, cfg]) => [tier, new Ratelimit({
+          redis,
+          limiter: Ratelimit.slidingWindow(cfg.max, cfg.window),
+          prefix: cfg.prefix,
+        })]
+      )
+    ) as Record<RateLimitTier, Ratelimit>
+  }
+  return _limiters
 }
 
 /**
@@ -50,7 +46,7 @@ export async function checkRateLimit(
   identifier: string,
   tier: RateLimitTier = 'standard'
 ): Promise<NextResponse | null> {
-  const limiter = limiters[tier]
+  const limiter = getLimiters()[tier]
   const { success, limit, remaining, reset } = await limiter.limit(identifier)
 
   if (!success) {

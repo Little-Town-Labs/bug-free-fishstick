@@ -41,7 +41,7 @@ export async function GET() {
 
     try {
       const cached = await getRedis().get<typeof rfpsList>(cacheKey)
-      if (cached) return NextResponse.json({ rfps: cached }, { status: 200 })
+      if (cached) return NextResponse.json({ rfps: cached.map(decryptRfpPii) }, { status: 200 })
     } catch {
       // KV unavailable in local dev — fall through to DB
     }
