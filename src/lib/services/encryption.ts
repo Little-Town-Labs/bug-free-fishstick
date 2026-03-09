@@ -30,3 +30,26 @@ export function decrypt(ciphertext: string): string {
     decipher.update(Buffer.from(encHex, 'hex')).toString('utf8') + decipher.final('utf8')
   )
 }
+
+/**
+ * Encrypts a JSON-serializable object, storing it as { _encrypted: ciphertext }.
+ * Returns null if input is null/undefined.
+ */
+export function encryptJson<T>(data: T | null | undefined): { _encrypted: string } | null {
+  if (data === null || data === undefined) return null
+  return { _encrypted: encrypt(JSON.stringify(data)) }
+}
+
+/**
+ * Decrypts a value that was encrypted with encryptJson.
+ * Handles both encrypted ({ _encrypted: string }) and legacy plaintext objects.
+ */
+export function decryptJson<T>(data: unknown): T | null {
+  if (data === null || data === undefined) return null
+  if (typeof data === 'object' && data !== null && '_encrypted' in data) {
+    const encrypted = (data as { _encrypted: string })._encrypted
+    return JSON.parse(decrypt(encrypted)) as T
+  }
+  // Legacy unencrypted data — return as-is
+  return data as T
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { clerkClient } from '@clerk/nextjs/server'
 import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
+import { checkRateLimit } from '@/lib/utils/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +10,9 @@ export async function POST(request: NextRequest) {
     if (!isAdmin(auth.orgRole)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
+
+    const rateLimited = await checkRateLimit(auth.userId, 'strict')
+    if (rateLimited) return rateLimited
 
     const body = await request.json()
 

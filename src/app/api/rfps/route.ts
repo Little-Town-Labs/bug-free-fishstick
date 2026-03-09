@@ -4,6 +4,20 @@ import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { eq, and } from 'drizzle-orm'
 import { Redis } from '@upstash/redis'
+import { decryptJson } from '@/lib/services/encryption'
+
+interface ContactInfo {
+  email?: string
+  phone?: string
+  address?: string
+}
+
+function decryptRfpPii<T extends { customerContactInfo?: unknown }>(rfp: T): T {
+  return {
+    ...rfp,
+    customerContactInfo: decryptJson<ContactInfo>(rfp.customerContactInfo),
+  }
+}
 
 let _redis: Redis | null = null
 function getRedis(): Redis {
@@ -44,7 +58,7 @@ export async function GET() {
       // KV unavailable — proceed without caching
     }
 
-    return NextResponse.json({ rfps: rfpsList }, { status: 200 })
+    return NextResponse.json({ rfps: rfpsList.map(decryptRfpPii) }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
