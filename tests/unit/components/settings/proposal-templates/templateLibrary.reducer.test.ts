@@ -268,6 +268,7 @@ describe('CLOSE_DIALOG', () => {
       section: 'assumptions',
       initialValues: template1,
       isSaving: true,
+      saveError: null,
     },
   }
 
@@ -312,6 +313,7 @@ describe('SAVE_SUCCESS (create mode)', () => {
       section: 'assumptions',
       initialValues: null,
       isSaving: true,
+      saveError: null,
     },
   }
 
@@ -357,6 +359,7 @@ describe('SAVE_SUCCESS (edit mode)', () => {
       section: 'assumptions',
       initialValues: template1,
       isSaving: true,
+      saveError: null,
     },
   }
 
@@ -397,6 +400,7 @@ describe('SAVE_ERROR', () => {
       section: 'assumptions',
       initialValues: null,
       isSaving: true,
+      saveError: null,
     },
   }
 

@@ -20,6 +20,9 @@ import {
 describe('Vercel KV Storage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Set env vars so getRedis() returns the mocked client instead of null
+    process.env.UPSTASH_REDIS_REST_URL = 'https://fake.upstash.io'
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'fake-token'
   })
 
   describe('setProcessingStatus', () => {

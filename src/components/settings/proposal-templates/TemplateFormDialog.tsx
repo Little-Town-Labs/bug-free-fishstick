@@ -34,6 +34,7 @@ interface TemplateFormDialogProps {
   section: ProposalTemplateSection | null
   initialValues: Partial<ProposalTemplate> | null
   isSaving: boolean
+  error: string | null
   onSave: (data: TemplateFormData) => void
   onClose: () => void
 }
@@ -48,6 +49,7 @@ export function TemplateFormDialog({
   section: _section,
   initialValues,
   isSaving,
+  error,
   onSave,
   onClose,
 }: TemplateFormDialogProps) {
@@ -185,6 +187,10 @@ export function TemplateFormDialog({
           />
         </div>
 
+        {error && (
+          <p role="alert" className="text-sm text-destructive">{error}</p>
+        )}
+
         <DialogFooter>
           <Button
             type="button"
@@ -195,7 +201,7 @@ export function TemplateFormDialog({
             Cancel
           </Button>
           <Button type="button" onClick={handleSave} disabled={isSaving}>
-            Save
+            {isSaving ? 'Saving…' : 'Save'}
           </Button>
         </DialogFooter>
       </DialogContent>
