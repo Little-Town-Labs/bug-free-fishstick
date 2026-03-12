@@ -11,8 +11,8 @@ const { mockPublish, mockUnsubscribe, mockSubscriber, mockSubscribe } = vi.hoist
   return { mockPublish, mockUnsubscribe, mockSubscriber, mockSubscribe }
 })
 
-vi.mock('@upstash/redis', () => ({
-  Redis: vi.fn().mockImplementation(() => ({
+vi.mock('@/lib/storage/kv', () => ({
+  getRedis: vi.fn(() => ({
     publish: mockPublish,
     subscribe: mockSubscribe,
   })),

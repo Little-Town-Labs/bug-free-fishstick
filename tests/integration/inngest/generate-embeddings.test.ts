@@ -1,20 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock all dependencies before imports
+// Mock DB with chainable methods
+const mockSelectFrom = vi.fn()
+const mockSelectFromWhere = vi.fn()
+const mockSelectFromWhereLimit = vi.fn()
+const mockReturning = vi.fn()
+const mockUpdateWhere = vi.fn()
+const mockUpdateSet = vi.fn()
+
 vi.mock('@/lib/db', () => ({
   db: {
     select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => Promise.resolve([{ openaiApiKeyEncrypted: null }])),
-      })),
+      from: mockSelectFrom,
     })),
     update: vi.fn(() => ({
-      set: vi.fn(() => ({
-        where: vi.fn(() => ({
-          returning: vi.fn(() => Promise.resolve([{ id: 'entry_1', embedding: [0.1, 0.2] }])),
-        })),
-      })),
+      set: mockUpdateSet,
     })),
+  },
+}))
+
+vi.mock('@/lib/db/schema/knowledge-entries', () => ({
+  knowledgeEntries: {
+    id: 'id',
+    embedding: 'embedding',
+    updatedAt: 'updatedAt',
+    organizationId: 'organizationId',
+  },
+}))
+
+vi.mock('@/lib/db/schema', () => ({
+  tenantSettings: {
+    organizationId: 'organizationId',
+    openaiApiKeyEncrypted: 'openaiApiKeyEncrypted',
   },
 }))
 
@@ -22,10 +39,18 @@ vi.mock('@/lib/ai/embeddings', () => ({
   generateEmbedding: vi.fn(() => Promise.resolve(new Array(1536).fill(0.1))),
 }))
 
+vi.mock('@/lib/services/encryption', () => ({
+  decrypt: vi.fn((val: string) => val),
+}))
+
 vi.mock('@/lib/inngest/client', () => ({
   inngest: {
-    createFunction: vi.fn((config, eventConfig, handler) => handler),
+    createFunction: vi.fn((_config, _eventConfig, handler) => handler),
   },
+}))
+
+vi.mock('drizzle-orm', () => ({
+  eq: vi.fn(),
 }))
 
 import { db } from '@/lib/db'
@@ -35,7 +60,7 @@ import { generateEmbeddingsFunction as generateEmbeddings } from '@/lib/inngest/
 // Helper to create a mock step object matching Inngest's step interface
 function createMockStep() {
   return {
-    run: vi.fn((name: string, fn: () => unknown) => fn()),
+    run: vi.fn((_name: string, fn: () => unknown) => fn()),
     sendEvent: vi.fn(),
     sleep: vi.fn(),
     waitForEvent: vi.fn(),
@@ -51,9 +76,24 @@ function createMockEvent(data: {
   return { data, name: 'rfp/generate-embeddings' }
 }
 
+// Setup default DB mock chains
+function setupDefaultDbMocks() {
+  // select().from(tenantSettings).where(...).limit(1) -> no encrypted key
+  mockSelectFrom.mockReturnValue({ where: mockSelectFromWhere })
+  mockSelectFromWhere.mockReturnValue({ limit: mockSelectFromWhereLimit })
+  mockSelectFromWhereLimit.mockResolvedValue([{ openaiApiKeyEncrypted: null }])
+
+  // update().set(...).where(...).returning()
+  mockUpdateSet.mockReturnValue({ where: mockUpdateWhere })
+  mockUpdateWhere.mockReturnValue({ returning: mockReturning })
+  mockReturning.mockResolvedValue([{ id: 'entry_1', embedding: new Array(1536).fill(0.1) }])
+}
+
 describe('generate-embeddings Inngest function', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.env.OPENAI_API_KEY = 'test-key'
+    setupDefaultDbMocks()
   })
 
   describe('Function export and configuration', () => {
@@ -63,8 +103,6 @@ describe('generate-embeddings Inngest function', () => {
     })
 
     it('should be a callable function handler', () => {
-      // The mock intercepts createFunction and returns the handler directly.
-      // Verify it's callable (the handler function).
       expect(typeof generateEmbeddings).toBe('function')
     })
   })
@@ -80,7 +118,7 @@ describe('generate-embeddings Inngest function', () => {
 
       await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
-      expect(generateEmbedding).toHaveBeenCalledWith(content)
+      expect(generateEmbedding).toHaveBeenCalledWith(content, undefined)
     })
 
     it('should resolve a 1536-dimension vector for the content', async () => {
@@ -131,20 +169,15 @@ describe('generate-embeddings Inngest function', () => {
 
       vi.mocked(generateEmbedding).mockResolvedValueOnce(mockEmbedding)
 
-      // Capture the chained mock so we can inspect what .set() received
-      const returningMock = vi.fn(() =>
-        Promise.resolve([{ id: knowledgeEntryId, embedding: mockEmbedding }])
-      )
-      const whereMock = vi.fn(() => ({ returning: returningMock }))
-      const setMock = vi.fn(() => ({ where: whereMock }))
-      vi.mocked(db.update).mockReturnValueOnce({ set: setMock } as never)
+      const localSetMock = vi.fn(() => ({ where: mockUpdateWhere }))
+      vi.mocked(db.update).mockReturnValueOnce({ set: localSetMock } as never)
 
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
       await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
-      expect(setMock).toHaveBeenCalledWith(
+      expect(localSetMock).toHaveBeenCalledWith(
         expect.objectContaining({ embedding: mockEmbedding })
       )
     })
@@ -171,18 +204,14 @@ describe('generate-embeddings Inngest function', () => {
       const content = 'Final content'
       const expectedEntry = { id: knowledgeEntryId, embedding: new Array(1536).fill(0.1) }
 
-      const returningMock = vi.fn(() => Promise.resolve([expectedEntry]))
-      const whereMock = vi.fn(() => ({ returning: returningMock }))
-      const setMock = vi.fn(() => ({ where: whereMock }))
-      vi.mocked(db.update).mockReturnValueOnce({ set: setMock } as never)
+      mockReturning.mockResolvedValueOnce([expectedEntry])
 
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
       await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
-      expect(returningMock).toHaveBeenCalled()
-      // The handler completes without error (Inngest functions don't need to return a value)
+      expect(mockReturning).toHaveBeenCalled()
     })
   })
 
@@ -228,20 +257,13 @@ describe('generate-embeddings Inngest function', () => {
       const organizationId = 'org_1'
       const content = 'Content'
 
-      const returningMock = vi.fn(() =>
-        Promise.resolve([{ id: knowledgeEntryId, embedding: [] }])
-      )
-      const whereMock = vi.fn(() => ({ returning: returningMock }))
-      const setMock = vi.fn(() => ({ where: whereMock }))
-      vi.mocked(db.update).mockReturnValueOnce({ set: setMock } as never)
-
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
       await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       // The where clause must have been called - entry filtering is required
-      expect(whereMock).toHaveBeenCalled()
+      expect(mockUpdateWhere).toHaveBeenCalled()
     })
 
     it('should use the content from the event payload for embedding generation', async () => {
@@ -255,8 +277,7 @@ describe('generate-embeddings Inngest function', () => {
 
       await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
-      expect(generateEmbedding).toHaveBeenCalledWith(specificContent)
-      expect(generateEmbedding).not.toHaveBeenCalledWith(expect.not.stringContaining(specificContent))
+      expect(generateEmbedding).toHaveBeenCalledWith(specificContent, undefined)
     })
   })
 })

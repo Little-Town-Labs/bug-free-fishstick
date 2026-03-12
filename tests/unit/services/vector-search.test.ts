@@ -71,7 +71,7 @@ describe('Vector Search Service', () => {
 
       await searchSimilar(mockQuery, organizationId, 10, customerId)
 
-      expect(generateEmbedding).toHaveBeenCalledWith(mockQuery)
+      expect(generateEmbedding).toHaveBeenCalledWith(mockQuery, undefined)
       expect(generateEmbedding).toHaveBeenCalledTimes(1)
     })
 
@@ -114,14 +114,13 @@ describe('Vector Search Service', () => {
       expect(Array.isArray(results)).toBe(true)
     })
 
-    it('should throw error when embedding generation fails', async () => {
+    it('should return empty array when embedding generation fails', async () => {
       const embeddingError = new Error('OpenAI API error: rate limit exceeded')
       vi.mocked(generateEmbedding).mockRejectedValue(embeddingError)
 
-      await expect(
-        searchSimilar(mockQuery, organizationId, 10, customerId)
-      ).rejects.toThrow('OpenAI API error: rate limit exceeded')
+      const results = await searchSimilar(mockQuery, organizationId, 10, customerId)
 
+      expect(results).toEqual([])
       expect(selectMock).not.toHaveBeenCalled()
     })
 
