@@ -27,6 +27,13 @@ vi.mock('@/lib/db/schema/proposal-content-library', () => ({
   },
 }))
 
+vi.mock('@/lib/db/schema', () => ({
+  tenantSettings: {
+    organizationId: 'organizationId',
+    openaiApiKeyEncrypted: 'openaiApiKeyEncrypted',
+  },
+}))
+
 vi.mock('@/lib/ai/embeddings', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0.1)),
 }))
@@ -38,6 +45,10 @@ vi.mock('@/lib/inngest/client', () => ({
   },
 }))
 
+vi.mock('@/lib/services/encryption', () => ({
+  decrypt: vi.fn((val: string) => val),
+}))
+
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
   and: vi.fn(),
@@ -47,9 +58,24 @@ vi.mock('drizzle-orm', () => ({
 import { generateContentLibraryEmbedding, batchEmbedContentLibrary } from '@/lib/inngest/functions/content-library-embedding'
 import { inngest } from '@/lib/inngest/client'
 
+// Helper to create a mock step object matching Inngest's step interface
+function createMockStep() {
+  return {
+    run: vi.fn((_name: string, fn: () => unknown) => fn()),
+    sendEvent: vi.fn(),
+    sleep: vi.fn(),
+    waitForEvent: vi.fn(),
+  }
+}
+
 describe('generateContentLibraryEmbedding', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // The handler's step.run('fetch-entry-and-key') does two selects:
+    // 1. select().from(proposalContentLibrary).where(...).limit(1) for the entry
+    // 2. select({...}).from(tenantSettings).where(...).limit(1) for the API key
+    // Since we use a single mockDbFrom -> mockDbWhere -> mockDbLimit chain,
+    // we set up sequential calls.
     mockDbFrom.mockReturnValue({ where: mockDbWhere })
     mockDbWhere.mockReturnValue({ limit: mockDbLimit })
     mockDbSet.mockReturnValue({ where: mockDbUpdateWhere })
@@ -57,17 +83,29 @@ describe('generateContentLibraryEmbedding', () => {
   })
 
   it('generates embedding for an existing entry', async () => {
-    mockDbLimit.mockResolvedValueOnce([{
-      id: 'entry-1',
-      category: 'Security',
-      name: 'SOC2 Overview',
-      content: 'Our SOC2 compliance...',
-      organizationId: 'org1',
-    }])
+    // First limit call: entry found; Second limit call: tenant settings (no encrypted key)
+    mockDbLimit
+      .mockResolvedValueOnce([{
+        id: 'entry-1',
+        category: 'Security',
+        name: 'SOC2 Overview',
+        content: 'Our SOC2 compliance...',
+        organizationId: 'org1',
+      }])
+      .mockResolvedValueOnce([{ openaiApiKeyEncrypted: null }])
 
-    const handler = generateContentLibraryEmbedding as unknown as (args: { event: { data: { entryId: string; organizationId: string } } }) => Promise<unknown>
+    // Set OPENAI_API_KEY so the handler doesn't bail
+    process.env.OPENAI_API_KEY = 'test-key'
+
+    const step = createMockStep()
+    const handler = generateContentLibraryEmbedding as unknown as (args: {
+      event: { data: { entryId: string; organizationId: string } }
+      step: typeof step
+    }) => Promise<unknown>
+
     const result = await handler({
       event: { data: { entryId: 'entry-1', organizationId: 'org1' } },
+      step,
     })
 
     expect(result).toEqual({ status: 'embedded', entryId: 'entry-1' })
@@ -75,11 +113,20 @@ describe('generateContentLibraryEmbedding', () => {
   })
 
   it('returns not_found for missing entry', async () => {
-    mockDbLimit.mockResolvedValueOnce([])
+    // First limit call: no entry; Second limit call: tenant settings
+    mockDbLimit
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ openaiApiKeyEncrypted: null }])
 
-    const handler = generateContentLibraryEmbedding as unknown as (args: { event: { data: { entryId: string; organizationId: string } } }) => Promise<unknown>
+    const step = createMockStep()
+    const handler = generateContentLibraryEmbedding as unknown as (args: {
+      event: { data: { entryId: string; organizationId: string } }
+      step: typeof step
+    }) => Promise<unknown>
+
     const result = await handler({
       event: { data: { entryId: 'missing', organizationId: 'org1' } },
+      step,
     })
 
     expect(result).toEqual({ status: 'not_found', entryId: 'missing' })
@@ -94,17 +141,17 @@ describe('batchEmbedContentLibrary', () => {
 
   it('fans out embedding events for unembedded entries', async () => {
     const unembedded = [{ id: 'e1' }, { id: 'e2' }, { id: 'e3' }]
-    // find-unembedded step returns entries, fan-out step sends events
     mockDbWhere.mockResolvedValueOnce(unembedded)
 
+    const step = createMockStep()
     const handler = batchEmbedContentLibrary as unknown as (args: {
       event: { data: { organizationId: string } }
-      step: { run: (name: string, fn: () => Promise<unknown>) => Promise<unknown> }
+      step: typeof step
     }) => Promise<unknown>
 
     const result = await handler({
       event: { data: { organizationId: 'org1' } },
-      step: { run: (_name: string, fn: () => Promise<unknown>) => fn() },
+      step,
     })
 
     expect(result).toEqual({ status: 'queued', count: 3 })
@@ -118,14 +165,15 @@ describe('batchEmbedContentLibrary', () => {
   it('returns no_entries when all are already embedded', async () => {
     mockDbWhere.mockResolvedValueOnce([])
 
+    const step = createMockStep()
     const handler = batchEmbedContentLibrary as unknown as (args: {
       event: { data: { organizationId: string } }
-      step: { run: (name: string, fn: () => Promise<unknown>) => Promise<unknown> }
+      step: typeof step
     }) => Promise<unknown>
 
     const result = await handler({
       event: { data: { organizationId: 'org1' } },
-      step: { run: (_name: string, fn: () => Promise<unknown>) => fn() },
+      step,
     })
 
     expect(result).toEqual({ status: 'no_entries', count: 0 })

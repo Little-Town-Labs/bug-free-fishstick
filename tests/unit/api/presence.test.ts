@@ -7,8 +7,8 @@ const { mockScan, mockMget, mockSet: mockKvSet } = vi.hoisted(() => {
   return { mockScan, mockMget, mockSet }
 })
 
-vi.mock('@upstash/redis', () => ({
-  Redis: vi.fn().mockImplementation(() => ({
+vi.mock('@/lib/storage/kv', () => ({
+  getRedis: vi.fn(() => ({
     scan: mockScan,
     mget: mockMget,
     set: mockKvSet,
