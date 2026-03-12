@@ -5,12 +5,12 @@ import { createElement } from 'react'
 // Mock react-pdf — must include `pdfjs` since DocumentViewer.tsx accesses
 // pdfjs.GlobalWorkerOptions at module load time.
 vi.mock('react-pdf', () => ({
-  Document: ({ onLoadSuccess, children, loading }: any) => {
+  Document: ({ onLoadSuccess, children }: { onLoadSuccess?: (info: { numPages: number }) => void; children?: React.ReactNode }) => {
     // Simulate loaded state
     setTimeout(() => onLoadSuccess?.({ numPages: 3 }), 0)
     return createElement('div', { 'data-testid': 'pdf-document' }, children)
   },
-  Page: ({ pageNumber }: any) =>
+  Page: ({ pageNumber }: { children?: React.ReactNode; [key: string]: unknown }) =>
     createElement('div', { 'data-testid': `pdf-page-${pageNumber}` }, `Page ${pageNumber}`),
   pdfjs: {
     version: '3.0.0',

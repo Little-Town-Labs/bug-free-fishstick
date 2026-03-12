@@ -30,13 +30,12 @@ vi.mock('@/lib/inngest/client', () => ({
 
 import { db } from '@/lib/db'
 import { generateEmbedding } from '@/lib/ai/embeddings'
-import { inngest } from '@/lib/inngest/client'
 import { generateEmbeddingsFunction as generateEmbeddings } from '@/lib/inngest/functions/generate-embeddings'
 
 // Helper to create a mock step object matching Inngest's step interface
 function createMockStep() {
   return {
-    run: vi.fn((name: string, fn: () => any) => fn()),
+    run: vi.fn((name: string, fn: () => unknown) => fn()),
     sendEvent: vi.fn(),
     sleep: vi.fn(),
     waitForEvent: vi.fn(),
@@ -79,7 +78,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await (generateEmbeddings as unknown as Function)({ event, step })
+      await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(generateEmbedding).toHaveBeenCalledWith(content)
     })
@@ -101,7 +100,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await (generateEmbeddings as unknown as Function)({ event, step })
+      await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(step.run).toHaveBeenCalledWith(
         'generate-embedding',
@@ -119,7 +118,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await (generateEmbeddings as unknown as Function)({ event, step })
+      await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(db.update).toHaveBeenCalled()
     })
@@ -138,12 +137,12 @@ describe('generate-embeddings Inngest function', () => {
       )
       const whereMock = vi.fn(() => ({ returning: returningMock }))
       const setMock = vi.fn(() => ({ where: whereMock }))
-      vi.mocked(db.update).mockReturnValueOnce({ set: setMock } as any)
+      vi.mocked(db.update).mockReturnValueOnce({ set: setMock } as never)
 
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await (generateEmbeddings as unknown as Function)({ event, step })
+      await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(setMock).toHaveBeenCalledWith(
         expect.objectContaining({ embedding: mockEmbedding })
@@ -158,7 +157,7 @@ describe('generate-embeddings Inngest function', () => {
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await (generateEmbeddings as unknown as Function)({ event, step })
+      await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(step.run).toHaveBeenCalledWith(
         'update-entry',
@@ -175,12 +174,12 @@ describe('generate-embeddings Inngest function', () => {
       const returningMock = vi.fn(() => Promise.resolve([expectedEntry]))
       const whereMock = vi.fn(() => ({ returning: returningMock }))
       const setMock = vi.fn(() => ({ where: whereMock }))
-      vi.mocked(db.update).mockReturnValueOnce({ set: setMock } as any)
+      vi.mocked(db.update).mockReturnValueOnce({ set: setMock } as never)
 
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      const result = await (generateEmbeddings as unknown as Function)({ event, step })
+      await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(returningMock).toHaveBeenCalled()
       // The handler completes without error (Inngest functions don't need to return a value)
@@ -200,7 +199,7 @@ describe('generate-embeddings Inngest function', () => {
         content: 'Content that triggers an error',
       })
 
-      await expect((generateEmbeddings as unknown as Function)({ event, step })).rejects.toThrow(
+      await expect((generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })).rejects.toThrow(
         'Embedding API unavailable'
       )
     })
@@ -217,7 +216,7 @@ describe('generate-embeddings Inngest function', () => {
         content: 'Content that causes db error',
       })
 
-      await expect((generateEmbeddings as unknown as Function)({ event, step })).rejects.toThrow(
+      await expect((generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })).rejects.toThrow(
         'Database connection lost'
       )
     })
@@ -234,12 +233,12 @@ describe('generate-embeddings Inngest function', () => {
       )
       const whereMock = vi.fn(() => ({ returning: returningMock }))
       const setMock = vi.fn(() => ({ where: whereMock }))
-      vi.mocked(db.update).mockReturnValueOnce({ set: setMock } as any)
+      vi.mocked(db.update).mockReturnValueOnce({ set: setMock } as never)
 
       const step = createMockStep()
       const event = createMockEvent({ knowledgeEntryId, organizationId, content })
 
-      await (generateEmbeddings as unknown as Function)({ event, step })
+      await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       // The where clause must have been called - entry filtering is required
       expect(whereMock).toHaveBeenCalled()
@@ -254,7 +253,7 @@ describe('generate-embeddings Inngest function', () => {
         content: specificContent,
       })
 
-      await (generateEmbeddings as unknown as Function)({ event, step })
+      await (generateEmbeddings as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(generateEmbedding).toHaveBeenCalledWith(specificContent)
       expect(generateEmbedding).not.toHaveBeenCalledWith(expect.not.stringContaining(specificContent))

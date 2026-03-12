@@ -95,7 +95,7 @@ export const processRfp = inngest.createFunction(
     })
 
     // Step 4.5: Classify RFP
-    const classification = await step.run('classify-rfp', async () => {
+    await step.run('classify-rfp', async () => {
       try {
         const result = await classifyRfp({
           documentText: parsedDoc.text,

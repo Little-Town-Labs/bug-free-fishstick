@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { createDraft, listDrafts } from '@/lib/services/proposal-draft'
 
 type Params = { params: Promise<{ rfpId: string }> }
@@ -22,6 +23,10 @@ export async function GET(req: NextRequest, { params }: Params) {
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { userId, orgId } = await requireAuth()
+
+    const rateLimited = await checkRateLimit(userId, 'strict')
+    if (rateLimited) return rateLimited
+
     const { rfpId } = await params
 
     const draft = await createDraft(rfpId, orgId, userId)

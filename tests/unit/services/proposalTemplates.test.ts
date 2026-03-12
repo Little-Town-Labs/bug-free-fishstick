@@ -148,7 +148,7 @@ function wireSelectChain(rows: unknown[]) {
 }
 
 /** Wire select chain that resolves directly after .where() (no orderBy) */
-function wireSelectChainNoOrder(rows: unknown[]) {
+function _wireSelectChainNoOrder(rows: unknown[]) {
   const whereMock = vi.fn().mockResolvedValue(rows)
   const fromMock = vi.fn().mockReturnValue({ where: whereMock })
   mockDb.select = vi.fn().mockReturnValue({ from: fromMock })
@@ -156,7 +156,7 @@ function wireSelectChainNoOrder(rows: unknown[]) {
 }
 
 /** Wire insert().values().returning() → resolves with rows */
-function wireInsertReturning(rows: unknown[]) {
+function _wireInsertReturning(rows: unknown[]) {
   const returningMock = vi.fn().mockResolvedValue(rows)
   const valuesMock = vi.fn().mockReturnValue({ returning: returningMock })
   const insertMock = vi.fn().mockReturnValue({ values: valuesMock })
@@ -165,7 +165,7 @@ function wireInsertReturning(rows: unknown[]) {
 }
 
 /** Wire update().set().where().returning() → resolves with rows */
-function wireUpdateReturning(rows: unknown[]) {
+function _wireUpdateReturning(rows: unknown[]) {
   const returningMock = vi.fn().mockResolvedValue(rows)
   const whereMock = vi.fn().mockReturnValue({ returning: returningMock })
   const setMock = vi.fn().mockReturnValue({ where: whereMock })

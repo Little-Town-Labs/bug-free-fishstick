@@ -10,6 +10,7 @@ export interface LibraryState {
     section: ProposalTemplateSection | null
     initialValues: Partial<ProposalTemplate> | null
     isSaving: boolean
+    saveError: string | null
   }
   deleteConfirm: {
     open: boolean
@@ -46,6 +47,7 @@ export const initialLibraryState: LibraryState = {
     section: null,
     initialValues: null,
     isSaving: false,
+    saveError: null,
   },
   deleteConfirm: {
     open: false,
@@ -74,6 +76,7 @@ export function libraryReducer(state: LibraryState, action: LibraryAction): Libr
           section: action.section,
           initialValues: null,
           isSaving: false,
+          saveError: null,
         },
       }
 
@@ -86,6 +89,7 @@ export function libraryReducer(state: LibraryState, action: LibraryAction): Libr
           section: action.template.section,
           initialValues: action.template,
           isSaving: false,
+          saveError: null,
         },
       }
 
@@ -96,7 +100,7 @@ export function libraryReducer(state: LibraryState, action: LibraryAction): Libr
       }
 
     case 'SAVE_START':
-      return { ...state, dialog: { ...state.dialog, isSaving: true } }
+      return { ...state, dialog: { ...state.dialog, isSaving: true, saveError: null } }
 
     case 'SAVE_SUCCESS': {
       const exists = state.templates.some(t => t.id === action.template.id)
@@ -113,8 +117,7 @@ export function libraryReducer(state: LibraryState, action: LibraryAction): Libr
     case 'SAVE_ERROR':
       return {
         ...state,
-        dialog: { ...state.dialog, isSaving: false },
-        error: action.error,
+        dialog: { ...state.dialog, isSaving: false, saveError: action.error },
       }
 
     case 'OPEN_DELETE':

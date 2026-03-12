@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { eq, and } from 'drizzle-orm'
 import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { validateTransition, WorkflowError } from '@/lib/services/rfp-workflow'
@@ -11,6 +12,9 @@ export async function POST(
 ) {
   try {
     const auth = await requireAuth()
+
+    const rateLimited = await checkRateLimit(auth.userId, 'strict')
+    if (rateLimited) return rateLimited
     const { rfpId } = await params
 
     const [rfp] = await db

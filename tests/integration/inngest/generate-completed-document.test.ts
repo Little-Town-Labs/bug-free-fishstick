@@ -35,7 +35,6 @@ vi.mock('@/lib/documents/word-output', () => ({
 import { db } from '@/lib/db'
 import { downloadFile, uploadRfpDocument } from '@/lib/storage/blob'
 import { generatePdfOutput } from '@/lib/documents/pdf-output'
-import { generateWordOutput } from '@/lib/documents/word-output'
 
 // We'll test the function logic by importing it after mocks are set up
 // The actual Inngest function will be tested via its handler
@@ -88,17 +87,7 @@ describe('generate-completed-document Inngest function', () => {
     })
     vi.mocked(uploadRfpDocument).mockResolvedValue({ url: 'https://blob.example.com/completed.pdf' })
 
-    // Mock step functions
-    const stepResults: Record<string, any> = {}
-    const mockStep = {
-      run: vi.fn(async (name: string, fn: () => Promise<any>) => {
-        const result = await fn()
-        stepResults[name] = result
-        return result
-      }),
-    }
-
-    const dbAny = db as any
+    const dbAny = db as any // eslint-disable-line @typescript-eslint/no-explicit-any
 
     // For fetch-rfp step (select chain)
     dbAny.select.mockReturnValue(dbAny)

@@ -5,34 +5,34 @@ import { http, HttpResponse } from 'msw'
 import { server } from '@/test/setup'
 
 vi.mock('next/link', () => ({
-  default: ({ children, href }: any) => createElement('a', { href }, children),
+  default: ({ children, href }: { children?: React.ReactNode; [key: string]: unknown }) => createElement('a', { href }, children),
 }))
 
 vi.mock('@/components/ui/card', () => ({
-  Card: ({ children, ...props }: any) => createElement('div', { 'data-testid': 'card', ...props }, children),
-  CardHeader: ({ children }: any) => createElement('div', null, children),
-  CardTitle: ({ children }: any) => createElement('h3', null, children),
-  CardContent: ({ children }: any) => createElement('div', null, children),
+  Card: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown } & { children?: React.ReactNode }) => createElement('div', { 'data-testid': 'card', ...props }, children),
+  CardHeader: ({ children }: { children?: React.ReactNode; [key: string]: unknown }) => createElement('div', null, children),
+  CardTitle: ({ children }: { children?: React.ReactNode; [key: string]: unknown }) => createElement('h3', null, children),
+  CardContent: ({ children }: { children?: React.ReactNode; [key: string]: unknown }) => createElement('div', null, children),
 }))
 vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, ...props }: any) => createElement('button', props, children),
+  Button: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown } & { children?: React.ReactNode }) => createElement('button', props, children),
 }))
 vi.mock('@/components/ui/input', () => ({
-  Input: (props: any) => createElement('input', props),
+  Input: (props: { children?: React.ReactNode; [key: string]: unknown }) => createElement('input', props),
 }))
 vi.mock('@/components/ui/label', () => ({
-  Label: ({ children, ...props }: any) => createElement('label', props, children),
+  Label: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown } & { children?: React.ReactNode }) => createElement('label', props, children),
 }))
 vi.mock('@/components/ui/skeleton', () => ({
   Skeleton: () => createElement('div', { 'data-testid': 'skeleton' }),
 }))
 vi.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ children }: any) => createElement('div', null, children),
-  DialogContent: ({ children }: any) => createElement('div', null, children),
-  DialogDescription: ({ children }: any) => createElement('p', null, children),
-  DialogHeader: ({ children }: any) => createElement('div', null, children),
-  DialogTitle: ({ children }: any) => createElement('h2', null, children),
-  DialogTrigger: ({ children }: any) => children,
+  Dialog: ({ children }: { children?: React.ReactNode; [key: string]: unknown }) => createElement('div', null, children),
+  DialogContent: ({ children }: { children?: React.ReactNode; [key: string]: unknown }) => createElement('div', null, children),
+  DialogDescription: ({ children }: { children?: React.ReactNode; [key: string]: unknown }) => createElement('p', null, children),
+  DialogHeader: ({ children }: { children?: React.ReactNode; [key: string]: unknown }) => createElement('div', null, children),
+  DialogTitle: ({ children }: { children?: React.ReactNode; [key: string]: unknown }) => createElement('h2', null, children),
+  DialogTrigger: ({ children }: { children?: React.ReactNode; [key: string]: unknown }) => children,
 }))
 
 import CustomersPage from '@/app/(auth)/customers/page'

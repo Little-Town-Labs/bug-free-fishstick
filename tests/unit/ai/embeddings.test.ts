@@ -28,8 +28,8 @@ describe('Embedding Generation', () => {
       const mockOpenAI = {
         embedding: vi.fn(() => mockEmbeddingModel),
       }
-      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as any)
-      vi.mocked(embed).mockResolvedValue({ embedding: mockEmbedding } as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as never)
+      vi.mocked(embed).mockResolvedValue({ embedding: mockEmbedding } as never)
 
       const text = 'Test document content for embedding generation'
       const result = await generateEmbedding(text)
@@ -48,8 +48,8 @@ describe('Embedding Generation', () => {
       const mockOpenAI = {
         embedding: vi.fn(() => mockEmbeddingModel),
       }
-      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as any)
-      vi.mocked(embed).mockResolvedValue({ embedding: mockEmbedding } as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as never)
+      vi.mocked(embed).mockResolvedValue({ embedding: mockEmbedding } as never)
 
       await generateEmbedding('test text')
 
@@ -62,8 +62,8 @@ describe('Embedding Generation', () => {
       const mockOpenAI = {
         embedding: vi.fn(() => mockEmbeddingModel),
       }
-      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as any)
-      vi.mocked(embed).mockResolvedValue({ embedding: mockEmbedding } as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as never)
+      vi.mocked(embed).mockResolvedValue({ embedding: mockEmbedding } as never)
 
       await generateEmbedding('test text', 'custom-api-key')
 
@@ -79,8 +79,8 @@ describe('Embedding Generation', () => {
       const mockOpenAI = {
         embedding: vi.fn(() => mockEmbeddingModel),
       }
-      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as any)
-      vi.mocked(embed).mockResolvedValue({ embedding: mockEmbedding } as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as never)
+      vi.mocked(embed).mockResolvedValue({ embedding: mockEmbedding } as never)
 
       await generateEmbedding('test text')
 
@@ -95,8 +95,8 @@ describe('Embedding Generation', () => {
       const mockOpenAI = {
         embedding: vi.fn(() => mockEmbeddingModel),
       }
-      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as any)
-      vi.mocked(embed).mockResolvedValue({ embedding: mockEmbedding } as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as never)
+      vi.mocked(embed).mockResolvedValue({ embedding: mockEmbedding } as never)
 
       const result = await generateEmbedding('')
 
@@ -119,8 +119,8 @@ describe('Embedding Generation', () => {
       const mockOpenAI = {
         embedding: vi.fn(() => mockEmbeddingModel),
       }
-      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as any)
-      vi.mocked(embedMany).mockResolvedValue({ embeddings: mockEmbeddings } as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as never)
+      vi.mocked(embedMany).mockResolvedValue({ embeddings: mockEmbeddings } as never)
 
       const texts = [
         'First document content',
@@ -152,8 +152,8 @@ describe('Embedding Generation', () => {
       const mockOpenAI = {
         embedding: vi.fn(() => mockEmbeddingModel),
       }
-      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as any)
-      vi.mocked(embedMany).mockResolvedValue({ embeddings: mockEmbeddings } as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as never)
+      vi.mocked(embedMany).mockResolvedValue({ embeddings: mockEmbeddings } as never)
 
       await generateEmbeddings(['test text'], 'custom-batch-key')
 
@@ -168,8 +168,8 @@ describe('Embedding Generation', () => {
       const mockOpenAI = {
         embedding: vi.fn(() => mockEmbeddingModel),
       }
-      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as any)
-      vi.mocked(embedMany).mockResolvedValue({ embeddings: mockEmbeddings } as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as never)
+      vi.mocked(embedMany).mockResolvedValue({ embeddings: mockEmbeddings } as never)
 
       const result = await generateEmbeddings(['single text'])
 

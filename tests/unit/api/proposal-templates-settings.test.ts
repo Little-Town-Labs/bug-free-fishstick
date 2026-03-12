@@ -20,7 +20,7 @@ vi.mock('@/lib/services/proposalTemplates', () => ({
   reorderProposalTemplates: vi.fn(),
 }))
 
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuth, requireAdmin } from '@/lib/utils/auth'
 import {
   listProposalTemplates,
   createProposalTemplate,

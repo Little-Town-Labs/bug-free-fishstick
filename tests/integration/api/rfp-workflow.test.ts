@@ -58,7 +58,7 @@ function createRequest(method: string, url: string, body?: unknown): NextRequest
     init.body = JSON.stringify(body)
     init.headers = { 'content-type': 'application/json' }
   }
-  return new NextRequest(url, init as any)
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1])
 }
 
 const mockUser = { userId: 'user_1', orgId: 'org_1', orgRole: 'org:member' }
@@ -75,7 +75,7 @@ function mockSelectRfp(rfp: object | null) {
         limit: vi.fn().mockReturnValue(Promise.resolve(rfp ? [rfp] : [])),
       }),
     }),
-  } as any)
+  } as never)
 }
 
 function mockUpdateRfp(rfp: object) {
@@ -85,7 +85,7 @@ function mockUpdateRfp(rfp: object) {
         returning: vi.fn().mockReturnValue(Promise.resolve([rfp])),
       }),
     }),
-  } as any)
+  } as never)
 }
 
 describe('RFP Workflow API Routes', () => {
@@ -330,7 +330,7 @@ describe('RFP Workflow API Routes', () => {
               limit: vi.fn().mockReturnValue(Promise.resolve([mockDraftRfp])),
             }),
           }),
-        } as any)
+        } as never)
         // Second select: fetch versions
         .mockReturnValueOnce({
           from: vi.fn().mockReturnValue({
@@ -347,7 +347,7 @@ describe('RFP Workflow API Routes', () => {
               ])
             ),
           }),
-        } as any)
+        } as never)
 
       const req = createRequest('GET', 'http://localhost/api/rfps/rfp_1/versions')
       const res = await getVersions(req, { params: Promise.resolve({ rfpId: 'rfp_1' }) })

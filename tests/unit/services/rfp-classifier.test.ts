@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const mockSelect = vi.fn()
 const mockFrom = vi.fn()
 const mockWhere = vi.fn()
 const mockLimit = vi.fn()

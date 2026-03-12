@@ -3,6 +3,21 @@ import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { eq, and } from 'drizzle-orm'
+import { encryptJson, decryptJson } from '@/lib/services/encryption'
+import { updateRfpSchema } from '@/lib/utils/validation'
+
+interface ContactInfo {
+  email?: string
+  phone?: string
+  address?: string
+}
+
+function decryptRfpPii<T extends { customerContactInfo?: unknown }>(rfp: T): T {
+  return {
+    ...rfp,
+    customerContactInfo: decryptJson<ContactInfo>(rfp.customerContactInfo),
+  }
+}
 
 export async function GET(
   request: NextRequest,
@@ -22,7 +37,7 @@ export async function GET(
       return NextResponse.json({ error: 'RFP not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ rfp }, { status: 200 })
+    return NextResponse.json({ rfp: decryptRfpPii(rfp) }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
@@ -38,15 +53,32 @@ export async function PUT(
   try {
     const auth = await requireAuth()
     const { rfpId } = await params
-    const body = await request.json()
 
-    if (body.assignedUserId !== undefined && !isAdmin(auth.orgRole)) {
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
+    const parsed = updateRfpSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.message }, { status: 400 })
+    }
+
+    if (parsed.data.assignedUserId !== undefined && !isAdmin(auth.orgRole)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    // Encrypt PII before storage
+    const updateData: Record<string, unknown> = { ...parsed.data, updatedAt: new Date() }
+    if (updateData.customerContactInfo !== undefined) {
+      updateData.customerContactInfo = encryptJson(updateData.customerContactInfo)
     }
 
     const [updatedRfp] = await db
       .update(rfps)
-      .set({ ...body, updatedAt: new Date() })
+      .set(updateData)
       .where(and(eq(rfps.id, rfpId), eq(rfps.organizationId, auth.orgId)))
       .returning()
 
@@ -54,7 +86,7 @@ export async function PUT(
       return NextResponse.json({ error: 'RFP not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ rfp: updatedRfp }, { status: 200 })
+    return NextResponse.json({ rfp: decryptRfpPii(updatedRfp) }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })

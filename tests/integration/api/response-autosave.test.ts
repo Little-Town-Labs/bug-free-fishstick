@@ -45,7 +45,7 @@ function createMockRequest(
   if (body !== undefined) {
     init.body = JSON.stringify(body)
   }
-  return new NextRequest(url, init as any)
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1])
 }
 
 const mockAuthContext = {
@@ -80,7 +80,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
             returning: vi.fn(() => Promise.resolve([mockUpdatedResponse])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('PUT', BASE_URL, {
         responseText: 'My answer',
@@ -142,14 +142,14 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve([mockExistingResponse])),
         })),
-      } as any)
+      } as never)
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn(() => ({
             returning: vi.fn(() => Promise.resolve([mockUpdatedResponse])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('PUT', BASE_URL, {
         responseText: 'New auto-saved answer',
@@ -183,7 +183,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
             returning: vi.fn(() => Promise.resolve([mockUpdatedResponse])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('PUT', BASE_URL, {
         responseText: 'Auto-saved without lastSaved',
@@ -214,7 +214,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve([mockExistingResponse])),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('PUT', BASE_URL, {
         responseText: 'Client answer',
@@ -254,14 +254,14 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve([mockExistingResponse])),
         })),
-      } as any)
+      } as never)
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn(() => ({
             returning: vi.fn(() => Promise.resolve([mockUpdatedResponse])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('PUT', BASE_URL, {
         responseText: 'Updated answer',
@@ -291,7 +291,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
             returning: vi.fn(() => Promise.resolve([mockUpdatedResponse])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('PUT', BASE_URL, {
         responseText: 'Manual save',

@@ -13,14 +13,14 @@ vi.mock('pdf-lib', () => ({
   },
 }))
 
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { generatePdfOutput } from '@/lib/documents/pdf-output'
 import type { PdfOutputOptions, PdfOutputResult } from '@/lib/documents/pdf-output'
 
 describe('PDF Output Generator', () => {
-  let mockPage: any
-  let mockDoc: any
-  let mockFont: any
+  let mockPage: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  let mockDoc: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  let mockFont: any // eslint-disable-line @typescript-eslint/no-explicit-any
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -46,7 +46,7 @@ describe('PDF Output Generator', () => {
     }
 
     // Set up PDFDocument.load to return our mock
-    vi.mocked(PDFDocument.load).mockResolvedValue(mockDoc as any)
+    vi.mocked(PDFDocument.load).mockResolvedValue(mockDoc as never)
   })
 
   describe('Happy Path', () => {
@@ -357,7 +357,7 @@ describe('PDF Output Generator', () => {
 
   describe('Edge Cases', () => {
     it('should handle long text that exceeds field width (wrapping)', async () => {
-      mockFont.widthOfTextAtSize.mockImplementation((text: string, size: number) => {
+      mockFont.widthOfTextAtSize.mockImplementation((text: string, _size: number) => {
         return text.length * 6 // Simulate text width calculation
       })
 

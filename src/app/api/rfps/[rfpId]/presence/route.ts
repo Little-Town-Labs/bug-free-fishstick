@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/utils/auth'
-import { Redis } from '@upstash/redis'
-
-let _redis: Redis | null = null
-function getRedis(): Redis {
-  if (!_redis) {
-    _redis = new Redis({
-      url: process.env.KV_REST_API_URL!,
-      token: process.env.KV_REST_API_TOKEN!,
-    })
-  }
-  return _redis
-}
+import { getRedis } from '@/lib/storage/kv'
 
 const PRESENCE_TTL = 30 // seconds
 const PRESENCE_PREFIX = 'presence:'
@@ -42,18 +31,21 @@ export async function GET(
     const viewers: PresenceEntry[] = []
 
     try {
-      do {
-        const [nextCursor, keys] = await getRedis().scan(cursor, { match: pattern, count: 20 })
-        cursor = Number(nextCursor)
-        if (keys.length > 0) {
-          const values = await getRedis().mget<(PresenceEntry | null)[]>(...keys)
-          for (const v of values) {
-            if (v) viewers.push(typeof v === 'string' ? JSON.parse(v) : v)
+      const redis = getRedis()
+      if (redis) {
+        do {
+          const [nextCursor, keys] = await redis.scan(cursor, { match: pattern, count: 20 })
+          cursor = Number(nextCursor)
+          if (keys.length > 0) {
+            const values = await redis.mget<(PresenceEntry | null)[]>(...keys)
+            for (const v of values) {
+              if (v) viewers.push(typeof v === 'string' ? JSON.parse(v) : v)
+            }
           }
-        }
-      } while (cursor !== 0)
+        } while (cursor !== 0)
+      }
     } catch {
-      // KV unavailable — return empty list
+      // Redis unavailable — return empty list
     }
 
     return NextResponse.json({ viewers }, { status: 200 })
@@ -83,9 +75,10 @@ export async function POST(
     }
 
     try {
-      await getRedis().set(presenceKey(rfpId, auth.userId), JSON.stringify(entry), { ex: PRESENCE_TTL })
+      const redis = getRedis()
+      if (redis) await redis.set(presenceKey(rfpId, auth.userId), JSON.stringify(entry), { ex: PRESENCE_TTL })
     } catch {
-      // KV unavailable — heartbeat is best-effort
+      // Redis unavailable — heartbeat is best-effort
     }
 
     return NextResponse.json({ ok: true }, { status: 200 })

@@ -39,7 +39,8 @@ export interface IntegrationConfigSummary {
 }
 
 function toSummary(config: IntegrationConfig): IntegrationConfigSummary {
-  const { credentialsEncrypted: _redacted, ...rest } = config
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { credentialsEncrypted, ...rest } = config
   return rest
 }
 

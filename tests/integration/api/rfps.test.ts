@@ -20,9 +20,9 @@ vi.mock('@/lib/db', () => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
           limit: vi.fn(() => Promise.resolve([])),
-          then: vi.fn((cb) => cb([])),
+          then: vi.fn((cb: (v: unknown[]) => unknown) => cb([])),
         })),
-        then: vi.fn((cb) => cb([])),
+        then: vi.fn((cb: (v: unknown[]) => unknown) => cb([])),
       })),
     })),
     insert: vi.fn(() => ({
@@ -91,7 +91,7 @@ import { put as blobPut } from '@vercel/blob'
 function createMockRequest(
   method: string,
   url: string = 'http://localhost:3000/api/rfps',
-  body?: any,
+  body?: unknown,
   headers?: Record<string, string>
 ): NextRequest {
   const init: RequestInit = {
@@ -104,7 +104,7 @@ function createMockRequest(
       init.headers = { ...init.headers, 'content-type': 'application/json' }
     }
   }
-  return new NextRequest(url, init as any)
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1])
 }
 
 // Helper to create mock FormData request.
@@ -155,9 +155,9 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve(mockRfps)),
         })),
-      } as any)
+      } as never)
 
-      const request = createMockRequest('GET')
+      createMockRequest('GET')
       const response = await listRfps()
 
       expect(response.status).toBe(200)
@@ -172,7 +172,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         new AuthError('Unauthorized', 401)
       )
 
-      const request = createMockRequest('GET')
+      createMockRequest('GET')
       const response = await listRfps()
 
       expect(response.status).toBe(401)
@@ -196,7 +196,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedRfp])),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('POST', 'http://localhost:3000/api/rfps', {
         name: 'New RFP',
@@ -272,7 +272,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             limit: vi.fn(() => Promise.resolve([mockRfp])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('GET', 'http://localhost:3000/api/rfps/rfp_1')
       const response = await getRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
@@ -291,7 +291,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             limit: vi.fn(() => Promise.resolve([])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('GET', 'http://localhost:3000/api/rfps/nonexistent')
       const response = await getRfp(request, { params: Promise.resolve({ rfpId: 'nonexistent' }) })
@@ -332,7 +332,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             returning: vi.fn(() => Promise.resolve([mockUpdatedRfp])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'PUT',
@@ -355,7 +355,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             returning: vi.fn(() => Promise.resolve([])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'PUT',
@@ -373,7 +373,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('DELETE', 'http://localhost:3000/api/rfps/rfp_1')
       const response = await deleteRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
@@ -385,7 +385,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 0 })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('DELETE', 'http://localhost:3000/api/rfps/nonexistent')
       const response = await deleteRfp(request, { params: Promise.resolve({ rfpId: 'nonexistent' }) })
@@ -459,7 +459,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             ),
           })),
         })),
-      } as any)
+      } as never)
       vi.mocked(inngest.send).mockResolvedValue({ ids: ['event-123'] })
 
       const request = createMockRequest(
@@ -496,7 +496,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             ),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'POST',
@@ -528,7 +528,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             ),
           })),
         })),
-      } as any)
+      } as never)
       // Second call: fetch responses for completion percentage
       vi.mocked(db.select).mockReturnValueOnce({
         from: vi.fn(() => ({
@@ -540,7 +540,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             ])
           ),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'GET',
@@ -581,7 +581,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve(mockResponses)),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'GET',
@@ -613,7 +613,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             returning: vi.fn(() => Promise.resolve([mockUpdatedResponse])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'PUT',
@@ -665,7 +665,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             ),
           })),
         })),
-      } as any)
+      } as never)
 
       // Mock fetch for blob download
       global.fetch = vi.fn(() =>
@@ -701,7 +701,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
             ),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'GET',

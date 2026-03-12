@@ -28,7 +28,7 @@ describe('LLM Provider Abstraction', () => {
     it('should return Claude model for claude provider', () => {
       const mockModel = { type: 'claude-model' }
       const mockAnthropic = vi.fn(() => mockModel)
-      vi.mocked(createAnthropic).mockReturnValue(mockAnthropic as any)
+      vi.mocked(createAnthropic).mockReturnValue(mockAnthropic as never)
 
       const config: ProviderConfig = {
         provider: 'claude',
@@ -47,7 +47,7 @@ describe('LLM Provider Abstraction', () => {
     it('should return OpenAI model for openai provider', () => {
       const mockModel = { type: 'openai-model' }
       const mockOpenAI = vi.fn(() => mockModel)
-      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as never)
 
       const config: ProviderConfig = {
         provider: 'openai',
@@ -67,7 +67,7 @@ describe('LLM Provider Abstraction', () => {
       process.env.AZURE_OPENAI_ENDPOINT = 'https://test.openai.azure.com'
       const mockModel = { type: 'azure-model' }
       const mockAzure = vi.fn(() => mockModel)
-      vi.mocked(createOpenAI).mockReturnValue(mockAzure as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockAzure as never)
 
       const config: ProviderConfig = {
         provider: 'azure',
@@ -88,7 +88,7 @@ describe('LLM Provider Abstraction', () => {
       process.env.ANTHROPIC_API_KEY = 'env-claude-key'
       const mockModel = { type: 'claude-model' }
       const mockAnthropic = vi.fn(() => mockModel)
-      vi.mocked(createAnthropic).mockReturnValue(mockAnthropic as any)
+      vi.mocked(createAnthropic).mockReturnValue(mockAnthropic as never)
 
       const config: ProviderConfig = {
         provider: 'claude',
@@ -105,7 +105,7 @@ describe('LLM Provider Abstraction', () => {
       process.env.OPENAI_API_KEY = 'env-openai-key'
       const mockModel = { type: 'openai-model' }
       const mockOpenAI = vi.fn(() => mockModel)
-      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockOpenAI as never)
 
       const config: ProviderConfig = {
         provider: 'openai',
@@ -123,7 +123,7 @@ describe('LLM Provider Abstraction', () => {
       process.env.AZURE_OPENAI_ENDPOINT = 'https://env.openai.azure.com'
       const mockModel = { type: 'azure-model' }
       const mockAzure = vi.fn(() => mockModel)
-      vi.mocked(createOpenAI).mockReturnValue(mockAzure as any)
+      vi.mocked(createOpenAI).mockReturnValue(mockAzure as never)
 
       const config: ProviderConfig = {
         provider: 'azure',
@@ -149,7 +149,7 @@ describe('LLM Provider Abstraction', () => {
       process.env.ANTHROPIC_API_KEY = 'env-key'
       const mockModel = { type: 'claude-model' }
       const mockAnthropic = vi.fn(() => mockModel)
-      vi.mocked(createAnthropic).mockReturnValue(mockAnthropic as any)
+      vi.mocked(createAnthropic).mockReturnValue(mockAnthropic as never)
 
       const config: ProviderConfig = {
         provider: 'claude',

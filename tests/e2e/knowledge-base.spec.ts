@@ -25,7 +25,7 @@ test.describe('Knowledge Base Management (US2)', () => {
     // Verify search results appear
   })
 
-  test.skip('should delete a knowledge entry', async ({ page }) => {
+  test.skip('should delete a knowledge entry', async ({ page: _page }) => {
     // Navigate to entry, delete, verify removal
   })
 })

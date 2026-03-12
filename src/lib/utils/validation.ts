@@ -351,7 +351,8 @@ export const updateProposalTemplateSchema = z.object({
   triggerIndustryTags: z.array(z.string().min(1).max(100)).nullable().optional(),
   evaluateCoverage: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional(),
-}).transform(({ section: _section, ...rest }) => rest)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+}).transform(({ section, ...rest }) => rest)
 
 export type UpdateProposalTemplateInput = z.infer<typeof updateProposalTemplateSchema>
 

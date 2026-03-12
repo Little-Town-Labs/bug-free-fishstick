@@ -17,7 +17,7 @@ describe('Vercel Blob Storage', () => {
   describe('uploadRfpDocument', () => {
     it('should upload a PDF file and return URL', async () => {
       const mockBlob = { url: 'https://blob.vercel-storage.com/test.pdf' }
-      vi.mocked(put).mockResolvedValue(mockBlob as any)
+      vi.mocked(put).mockResolvedValue(mockBlob as never)
 
       const file = Buffer.from('test pdf content')
       const options = {
@@ -42,7 +42,7 @@ describe('Vercel Blob Storage', () => {
 
     it('should upload a DOCX file with correct content type', async () => {
       const mockBlob = { url: 'https://blob.vercel-storage.com/test.docx' }
-      vi.mocked(put).mockResolvedValue(mockBlob as any)
+      vi.mocked(put).mockResolvedValue(mockBlob as never)
 
       const file = Buffer.from('test docx content')
       const options = {
@@ -66,7 +66,7 @@ describe('Vercel Blob Storage', () => {
 
     it('should generate path with organizationId for tenant isolation', async () => {
       const mockBlob = { url: 'https://blob.vercel-storage.com/test.pdf' }
-      vi.mocked(put).mockResolvedValue(mockBlob as any)
+      vi.mocked(put).mockResolvedValue(mockBlob as never)
 
       const file = Buffer.from('test content')
       const options = {
@@ -86,7 +86,7 @@ describe('Vercel Blob Storage', () => {
 
     it('should work with ReadableStream input', async () => {
       const mockBlob = { url: 'https://blob.vercel-storage.com/test.pdf' }
-      vi.mocked(put).mockResolvedValue(mockBlob as any)
+      vi.mocked(put).mockResolvedValue(mockBlob as never)
 
       const stream = new ReadableStream({
         start(controller) {
@@ -111,7 +111,7 @@ describe('Vercel Blob Storage', () => {
 
   describe('deleteFile', () => {
     it('should delete file by URL', async () => {
-      vi.mocked(del).mockResolvedValue(undefined as any)
+      vi.mocked(del).mockResolvedValue(undefined as never)
 
       const url = 'https://blob.vercel-storage.com/test.pdf'
       await deleteFile(url)

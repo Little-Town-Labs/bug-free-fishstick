@@ -25,7 +25,7 @@ vi.mock('@/lib/db', () => {
   return { db: chain }
 })
 
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuth } from '@/lib/utils/auth'
 import { getDraft } from '@/lib/services/proposal-draft'
 import { db } from '@/lib/db'
 import { GET as exportHandler } from '@/app/api/rfps/[rfpId]/proposals/[draftId]/export/route'

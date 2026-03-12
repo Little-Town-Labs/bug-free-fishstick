@@ -1,19 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
 import { queryAnalyticsSnapshots, type AnalyticsFilters } from '@/lib/services/analytics'
-import { Redis } from '@upstash/redis'
+import { getRedis } from '@/lib/storage/kv'
 import crypto from 'crypto'
-
-let _redis: Redis | null = null
-function getRedis(): Redis {
-  if (!_redis) {
-    _redis = new Redis({
-      url: process.env.KV_REST_API_URL!,
-      token: process.env.KV_REST_API_TOKEN!,
-    })
-  }
-  return _redis
-}
 
 const CACHE_TTL = 30 * 60 // 30 minutes
 
@@ -48,15 +37,18 @@ export async function GET(request: NextRequest) {
 
     // Try cache first
     try {
-      const cached = await getRedis().get(cacheKey)
-      if (cached) {
-        return NextResponse.json(
-          typeof cached === 'string' ? JSON.parse(cached) : cached,
-          { status: 200 }
-        )
+      const redis = getRedis()
+      if (redis) {
+        const cached = await redis.get(cacheKey)
+        if (cached) {
+          return NextResponse.json(
+            typeof cached === 'string' ? JSON.parse(cached) : cached,
+            { status: 200 }
+          )
+        }
       }
     } catch {
-      // KV unavailable in local dev — fall through
+      // Redis unavailable — fall through
     }
 
     const snapshots = await queryAnalyticsSnapshots(auth.orgId, filters)
@@ -71,9 +63,10 @@ export async function GET(request: NextRequest) {
 
     // Cache the response
     try {
-      await getRedis().set(cacheKey, JSON.stringify(response), { ex: CACHE_TTL })
+      const redis = getRedis()
+      if (redis) await redis.set(cacheKey, JSON.stringify(response), { ex: CACHE_TTL })
     } catch {
-      // KV write failure is non-fatal
+      // Redis write failure is non-fatal
     }
 
     return NextResponse.json(response, { status: 200 })

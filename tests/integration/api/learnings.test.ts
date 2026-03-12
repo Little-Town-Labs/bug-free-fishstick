@@ -28,7 +28,7 @@ vi.mock('@/lib/services/learning-capture', () => ({
 }))
 
 import { GET, POST } from '@/app/api/learnings/route'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuth } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { captureManualLearning } from '@/lib/services/learning-capture'
 
@@ -42,8 +42,8 @@ function createMockRequest(
     init.body = JSON.stringify(body)
     ;(init.headers as Record<string, string>)['content-type'] = 'application/json'
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new NextRequest(url, init as any)
+   
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1])
 }
 
 describe('Learnings API Routes', () => {

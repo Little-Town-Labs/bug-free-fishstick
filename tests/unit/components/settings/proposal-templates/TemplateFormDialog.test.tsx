@@ -20,6 +20,7 @@ const defaultProps = {
   section: 'assumptions' as const,
   initialValues: null,
   isSaving: false,
+  error: null as string | null,
   onSave: vi.fn(),
   onClose: vi.fn(),
 }
@@ -190,7 +191,7 @@ describe('TemplateFormDialog', () => {
     it('disables Save button when isSaving is true', () => {
       render(<TemplateFormDialog {...defaultProps} isSaving={true} />)
 
-      const submitBtn = screen.getByRole('button', { name: /save/i })
+      const submitBtn = screen.getByRole('button', { name: /saving/i })
       expect(submitBtn).toBeDisabled()
     })
 

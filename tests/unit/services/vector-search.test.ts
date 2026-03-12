@@ -21,7 +21,6 @@ vi.mock('@/lib/ai/embeddings', () => ({
 }))
 
 import { searchSimilar } from '@/lib/services/vector-search'
-import { db } from '@/lib/db'
 import { generateEmbedding } from '@/lib/ai/embeddings'
 import { createMockKnowledgeEntry } from '../../factories/index'
 
@@ -131,6 +130,7 @@ describe('Vector Search Service', () => {
 
       vi.mocked(generateEmbedding).mockResolvedValue(mockEmbedding)
       // Build result without embedding property (select excludes it)
+       
       const { embedding: _removed, ...entryWithoutEmbedding } = mockEntry
       limitMock.mockResolvedValue([
         { ...entryWithoutEmbedding, similarity: 0.91 },

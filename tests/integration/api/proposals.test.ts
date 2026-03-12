@@ -30,7 +30,7 @@ import {
   cancelDraft,
 } from '@/lib/services/proposal-draft'
 import { GET as listProposals, POST as createProposal } from '@/app/api/rfps/[rfpId]/proposals/route'
-import { GET as getProposal, PATCH as patchProposal, DELETE as deleteProposal } from '@/app/api/rfps/[rfpId]/proposals/[draftId]/route'
+import { GET as getProposal, DELETE as deleteProposal } from '@/app/api/rfps/[rfpId]/proposals/[draftId]/route'
 import { POST as submitAnswersRoute } from '@/app/api/rfps/[rfpId]/proposals/[draftId]/answers/route'
 
 const mockUser = { userId: 'user-1', orgId: 'org-1', orgRole: 'org:member' }
@@ -61,13 +61,13 @@ function createRequest(method: string, url: string, body?: unknown): NextRequest
     init.body = JSON.stringify(body)
     init.headers = { 'content-type': 'application/json' }
   }
-  return new NextRequest(url, init as any)
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1])
 }
 
 function routeParams(rfpId: string, draftId?: string) {
   return draftId
-    ? { params: Promise.resolve({ rfpId, draftId }) } as any
-    : { params: Promise.resolve({ rfpId }) } as any
+    ? { params: Promise.resolve({ rfpId, draftId }) } as never
+    : { params: Promise.resolve({ rfpId }) } as never
 }
 
 describe('proposals API', () => {
@@ -78,7 +78,7 @@ describe('proposals API', () => {
 
   describe('POST /api/rfps/[rfpId]/proposals', () => {
     it('should return 201 with draft and clarifying questions', async () => {
-      vi.mocked(createDraft).mockResolvedValue(mockDraft as any)
+      vi.mocked(createDraft).mockResolvedValue(mockDraft as never)
 
       const req = createRequest('POST', 'http://localhost/api/rfps/rfp-1/proposals')
       const res = await createProposal(req, routeParams('rfp-1'))
@@ -102,7 +102,7 @@ describe('proposals API', () => {
 
     it('should return 401 when not authenticated', async () => {
       vi.mocked(requireAuth).mockRejectedValue(
-        new (AuthError as any)('Unauthorized', 401)
+        new (AuthError as unknown as new (msg: string, code: number) => Error)('Unauthorized', 401)
       )
 
       const req = createRequest('POST', 'http://localhost/api/rfps/rfp-1/proposals')
@@ -114,7 +114,7 @@ describe('proposals API', () => {
 
   describe('GET /api/rfps/[rfpId]/proposals', () => {
     it('should return 200 with list of drafts', async () => {
-      vi.mocked(listDrafts).mockResolvedValue([mockDraft] as any)
+      vi.mocked(listDrafts).mockResolvedValue([mockDraft] as never)
 
       const req = createRequest('GET', 'http://localhost/api/rfps/rfp-1/proposals')
       const res = await listProposals(req, routeParams('rfp-1'))
@@ -127,7 +127,7 @@ describe('proposals API', () => {
 
   describe('GET /api/rfps/[rfpId]/proposals/[draftId]', () => {
     it('should return 200 with full draft details', async () => {
-      vi.mocked(getDraft).mockResolvedValue(mockDraft as any)
+      vi.mocked(getDraft).mockResolvedValue(mockDraft as never)
 
       const req = createRequest('GET', 'http://localhost/api/rfps/rfp-1/proposals/draft-1')
       const res = await getProposal(req, routeParams('rfp-1', 'draft-1'))
@@ -159,7 +159,7 @@ describe('proposals API', () => {
 
   describe('POST /api/rfps/[rfpId]/proposals/[draftId]/answers', () => {
     it('should return 202 with full draft object', async () => {
-      vi.mocked(submitAnswers).mockResolvedValue({ ...mockDraft, status: 'generating' } as any)
+      vi.mocked(submitAnswers).mockResolvedValue({ ...mockDraft, status: 'generating' } as never)
 
       const req = createRequest('POST', 'http://localhost/api/rfps/rfp-1/proposals/draft-1/answers', {
         answers: [
@@ -203,7 +203,7 @@ describe('proposals API', () => {
         ...mockDraft,
         status: 'error',
         generationError: 'Cancelled by user',
-      } as any)
+      } as never)
 
       const req = createRequest('DELETE', 'http://localhost/api/rfps/rfp-1/proposals/draft-1')
       const res = await deleteProposal(req, routeParams('rfp-1', 'draft-1'))

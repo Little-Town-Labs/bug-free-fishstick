@@ -20,11 +20,14 @@ import {
 describe('Vercel KV Storage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Set env vars so getRedis() returns the mocked client instead of null
+    process.env.UPSTASH_REDIS_REST_URL = 'https://fake.upstash.io'
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'fake-token'
   })
 
   describe('setProcessingStatus', () => {
     it('should store RFP processing status with TTL', async () => {
-      vi.mocked(redisMock.set).mockResolvedValue('OK' as any)
+      vi.mocked(redisMock.set).mockResolvedValue('OK' as never)
 
       const status: ProcessingStatus = {
         rfpId: 'rfp-123',
@@ -44,7 +47,7 @@ describe('Vercel KV Storage', () => {
     })
 
     it('should store status with error field', async () => {
-      vi.mocked(redisMock.set).mockResolvedValue('OK' as any)
+      vi.mocked(redisMock.set).mockResolvedValue('OK' as never)
 
       const status: ProcessingStatus = {
         rfpId: 'rfp-456',
@@ -62,7 +65,7 @@ describe('Vercel KV Storage', () => {
     })
 
     it('should use correct key namespacing', async () => {
-      vi.mocked(redisMock.set).mockResolvedValue('OK' as any)
+      vi.mocked(redisMock.set).mockResolvedValue('OK' as never)
 
       const status: ProcessingStatus = {
         rfpId: 'rfp-abc',
@@ -112,7 +115,7 @@ describe('Vercel KV Storage', () => {
       }
 
       // KV might return parsed object directly
-      vi.mocked(redisMock.get).mockResolvedValue(status as any)
+      vi.mocked(redisMock.get).mockResolvedValue(status as never)
 
       const result = await getProcessingStatus('rfp-456')
 

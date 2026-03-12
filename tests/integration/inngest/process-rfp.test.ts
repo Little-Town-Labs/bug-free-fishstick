@@ -204,7 +204,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       // Verify workflow steps
       expect(step.run).toHaveBeenCalledWith('fetch-rfp', expect.any(Function))
@@ -271,7 +271,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       // Verify Word parser was called instead of PDF parser
       expect(parseWord).toHaveBeenCalledWith(expect.any(Buffer))
@@ -337,7 +337,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       // Verify db.update was called (processing status + final update)
       expect(db.update).toHaveBeenCalled()
@@ -367,7 +367,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(db.select).toHaveBeenCalled()
     })
@@ -388,7 +388,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(downloadFile).toHaveBeenCalledWith(originalFileUrl)
     })
@@ -412,7 +412,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(parsePdf).toHaveBeenCalledWith(expect.any(Buffer))
       expect(parseWord).not.toHaveBeenCalled()
@@ -438,7 +438,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(parseWord).toHaveBeenCalledWith(expect.any(Buffer))
       expect(parsePdf).not.toHaveBeenCalled()
@@ -465,7 +465,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(analyzeDocument).toHaveBeenCalledWith({
         text: parsedText,
@@ -496,7 +496,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(generateResponses).toHaveBeenCalledWith({
         fields: mockAnalyzed.fields.map(f => ({
@@ -534,7 +534,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(checkQuality).toHaveBeenCalledWith({
         responses: mockResponses.responses.map(r => ({
@@ -597,7 +597,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(db.insert).toHaveBeenCalled()
       expect(insertMock).toHaveBeenCalled()
@@ -661,7 +661,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       // Verify final update includes parsedStructure and automationPercentage
       expect(setMock).toHaveBeenCalledWith(expect.objectContaining({
@@ -699,7 +699,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await expect((processRfp as unknown as Function)({ event, step })).rejects.toThrow()
+      await expect((processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })).rejects.toThrow()
     })
 
     it('should handle document download failure', async () => {
@@ -713,7 +713,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await expect((processRfp as unknown as Function)({ event, step })).rejects.toThrow('Download failed')
+      await expect((processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })).rejects.toThrow('Download failed')
     })
 
     it('should handle parser errors', async () => {
@@ -728,7 +728,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await expect((processRfp as unknown as Function)({ event, step })).rejects.toThrow('Parse failed')
+      await expect((processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })).rejects.toThrow('Parse failed')
     })
 
     it('should handle AI agent errors', async () => {
@@ -744,7 +744,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await expect((processRfp as unknown as Function)({ event, step })).rejects.toThrow('AI agent failed')
+      await expect((processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })).rejects.toThrow('AI agent failed')
     })
 
     it('should update RFP status on workflow failure', async () => {
@@ -780,7 +780,7 @@ describe('process-rfp Inngest workflow', () => {
       const event = createMockEvent({ rfpId, organizationId })
 
       try {
-        await (processRfp as unknown as Function)({ event, step })
+        await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
       } catch {
         // Expected to throw
       }
@@ -807,7 +807,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       // searchSimilar should always be called, even without a customerId
       const { searchSimilar } = await import('@/lib/services/vector-search')
@@ -865,7 +865,7 @@ describe('process-rfp Inngest workflow', () => {
       const step = createMockStep()
       const event = createMockEvent({ rfpId, organizationId })
 
-      await (processRfp as unknown as Function)({ event, step })
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       // Should complete workflow even with 0 fields
       expect(setMock).toHaveBeenCalledWith(expect.objectContaining({

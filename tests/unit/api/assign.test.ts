@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const mockReturning = vi.fn()
 const mockWhere = vi.fn()
 const mockSet = vi.fn()
-const mockUpdate = vi.fn()
 
 vi.mock('@/lib/db', () => ({
   db: {

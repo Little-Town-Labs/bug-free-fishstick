@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { RoleSelector } from '@/components/settings/RoleSelector'
 import type { UserMember } from '@/components/settings/UserList'
 
 interface RfpAssignmentProps {
