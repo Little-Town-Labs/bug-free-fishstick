@@ -1,0 +1,38 @@
+# LTL Standard CI — TypeScript / Next.js
+# Copy to .github/workflows/ci.yml in the target repo.
+# Adjust the steps below based on which scripts exist in the repo's package.json.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Type-check
+        run: npm run type-check --if-present || npm run typecheck --if-present
+
+      - name: Test
+        run: npm test --if-present
