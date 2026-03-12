@@ -22,6 +22,17 @@ vi.mock('@/lib/ai/agents/proposal-coverage-checker', () => ({
   checkCoverage: vi.fn(),
 }))
 
+vi.mock('@/lib/db/schema', () => ({
+  proposalDrafts: { id: 'id', organizationId: 'organizationId' },
+  rfps: { id: 'id', organizationId: 'organizationId' },
+  proposalTemplates: { id: 'id', organizationId: 'organizationId' },
+}))
+
+vi.mock('drizzle-orm', () => ({
+  eq: vi.fn(),
+  and: vi.fn(),
+}))
+
 import { requireAuth, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { checkCoverage } from '@/lib/ai/agents/proposal-coverage-checker'
