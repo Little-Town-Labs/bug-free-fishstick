@@ -37,9 +37,9 @@ vi.mock('@/lib/db', () => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
           limit: vi.fn(() => Promise.resolve([])),
-          then: vi.fn((cb) => cb([])),
+          then: vi.fn((cb: (v: unknown[]) => unknown) => cb([])),
         })),
-        then: vi.fn((cb) => cb([])),
+        then: vi.fn((cb: (v: unknown[]) => unknown) => cb([])),
       })),
     })),
     insert: vi.fn(() => ({
@@ -100,7 +100,7 @@ const TEST_CUSTOMER_ID = '00000000-0000-4000-8000-000000000001'
 function createMockRequest(
   method: string,
   url: string = `http://localhost:3000/api/customers/${TEST_CUSTOMER_ID}/knowledge`,
-  body?: any,
+  body?: unknown,
   headers?: Record<string, string>
 ): NextRequest {
   const init: RequestInit = {
@@ -113,7 +113,7 @@ function createMockRequest(
       init.headers = { ...init.headers, 'content-type': 'application/json' }
     }
   }
-  return new NextRequest(url, init as any)
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1])
 }
 
 // Helper to create mock FormData request.
@@ -156,7 +156,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
             limit: vi.fn(() => Promise.resolve(mockEntries)),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'GET',
@@ -200,7 +200,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedEntry])),
         })),
-      } as any)
+      } as never)
       vi.mocked(inngest.send).mockResolvedValue({ ids: ['event-123'] })
 
       const request = createMockRequest(
@@ -271,7 +271,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedEntry])),
         })),
-      } as any)
+      } as never)
 
       const formData = new FormData()
       const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' })
@@ -345,7 +345,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
       ]
 
       vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
-      vi.mocked(searchSimilar).mockResolvedValue(mockResults as any)
+      vi.mocked(searchSimilar).mockResolvedValue(mockResults as never)
 
       const request = createMockRequest(
         'POST',
@@ -392,7 +392,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
             limit: vi.fn(() => Promise.resolve([mockEntry])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'GET',
@@ -416,7 +416,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
             limit: vi.fn(() => Promise.resolve([])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'GET',
@@ -437,7 +437,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
       vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'DELETE',
@@ -470,7 +470,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
       vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 0 })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'DELETE',

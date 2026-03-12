@@ -110,7 +110,9 @@ export async function searchByRequirements(
 export async function fetchTypedSupplierContext(
   orgId: string,
   industryTags?: string[] | null,
+   
   _rfpType?: string | null,
+   
   _openaiApiKey?: string
 ): Promise<TypedSupplierContext> {
   const orgFilter = eq(knowledgeEntries.organizationId, orgId)

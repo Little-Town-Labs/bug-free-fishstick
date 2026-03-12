@@ -26,7 +26,7 @@ const STATUS_CLASSES: Record<string, string> = {
 
 export function IntegrationCard({
   integration,
-  integrationType,
+  integrationType: _integrationType,
   displayName,
   description,
   isAdmin,

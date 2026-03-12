@@ -43,22 +43,23 @@ function makeParams(rfpId = 'rfp-1') {
 describe('GET /api/rfps/[rfpId]/document', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(requireAuth).mockResolvedValue(mockUser as any)
+    vi.mocked(requireAuth).mockResolvedValue(mockUser as never)
 
-    const dbAny = db as any
+    const dbAny = db as any // eslint-disable-line @typescript-eslint/no-explicit-any
     dbAny.select.mockReturnValue(dbAny)
     dbAny.from.mockReturnValue(dbAny)
     dbAny.where.mockReturnValue(dbAny)
   })
 
   it('returns 401 when not authenticated', async () => {
-    vi.mocked(requireAuth).mockRejectedValue(new (AuthError as any)('Unauthorized', 401))
+    vi.mocked(requireAuth).mockRejectedValue(new (AuthError as unknown as new (msg: string, code: number) => Error)('Unauthorized', 401))
 
     const res = await GET(makeRequest(), makeParams())
     expect(res.status).toBe(401)
   })
 
   it('returns 404 when RFP not found', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(db as any).limit.mockResolvedValue([])
 
     const res = await GET(makeRequest(), makeParams())
@@ -68,6 +69,7 @@ describe('GET /api/rfps/[rfpId]/document', () => {
   })
 
   it('returns 404 when no file uploaded', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(db as any).limit.mockResolvedValue([{
       id: 'rfp-1',
       organizationId: 'org-1',
@@ -82,6 +84,7 @@ describe('GET /api/rfps/[rfpId]/document', () => {
   })
 
   it('returns PDF with correct content-type', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(db as any).limit.mockResolvedValue([{
       id: 'rfp-1',
       organizationId: 'org-1',
@@ -98,6 +101,7 @@ describe('GET /api/rfps/[rfpId]/document', () => {
   })
 
   it('returns DOCX with correct content-type', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(db as any).limit.mockResolvedValue([{
       id: 'rfp-1',
       organizationId: 'org-1',

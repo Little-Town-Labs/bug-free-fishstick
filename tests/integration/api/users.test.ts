@@ -51,7 +51,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 }))
 
 import { GET, POST } from '@/app/api/users/route'
-import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuth, isAdmin } from '@/lib/utils/auth'
 import { NextRequest } from 'next/server'
 
 describe('Users API Routes', () => {

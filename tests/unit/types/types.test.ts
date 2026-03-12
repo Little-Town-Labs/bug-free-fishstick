@@ -4,15 +4,13 @@ import type {
   ResponseStatus,
   FieldType,
   ProcessingStatus,
-  RfpWithResponses,
-  RfpExport,
 } from '@/types/rfp'
 import type {
   KnowledgeEntryType,
   LearningSourceType,
   KnowledgeSearchResult,
 } from '@/types/knowledge'
-import type { ApiResponse, ApiError, PaginatedResponse, ValidationError } from '@/types/api'
+import type { ApiResponse, PaginatedResponse, ValidationError } from '@/types/api'
 
 describe('Type exports', () => {
   it('should export RFP types', () => {

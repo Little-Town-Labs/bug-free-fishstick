@@ -49,37 +49,32 @@ describe('rfp-versions service', () => {
 
   describe('createVersionSnapshot()', () => {
     it('queries rfp_responses for the given rfpId', async () => {
-      const selectMock = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValueOnce(Promise.resolve([mockRfp])),
-        }),
-      })
       // First call returns responses, second returns rfp
       vi.mocked(db.select)
         .mockReturnValueOnce({
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue(Promise.resolve(mockResponses)),
           }),
-        } as any)
+        } as never)
         .mockReturnValueOnce({
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue(Promise.resolve([mockRfp])),
             }),
           }),
-        } as any)
+        } as never)
 
       vi.mocked(db.insert).mockReturnValue({
         values: vi.fn().mockReturnValue({
           returning: vi.fn().mockReturnValue(Promise.resolve([mockVersionRecord])),
         }),
-      } as any)
+      } as never)
 
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue(Promise.resolve()),
         }),
-      } as any)
+      } as never)
 
       await createVersionSnapshot('rfp_1', 'org_1', 'user_1', 'Finalized')
 
@@ -92,27 +87,27 @@ describe('rfp-versions service', () => {
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue(Promise.resolve(mockResponses)),
           }),
-        } as any)
+        } as never)
         .mockReturnValueOnce({
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue(Promise.resolve([mockRfp])),
             }),
           }),
-        } as any)
+        } as never)
 
       const valuesMock = vi.fn().mockReturnValue({
         returning: vi.fn().mockReturnValue(Promise.resolve([mockVersionRecord])),
       })
       vi.mocked(db.insert).mockReturnValue({
         values: valuesMock,
-      } as any)
+      } as never)
 
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue(Promise.resolve()),
         }),
-      } as any)
+      } as never)
 
       await createVersionSnapshot('rfp_1', 'org_1', 'user_1', 'Finalized')
 
@@ -134,27 +129,27 @@ describe('rfp-versions service', () => {
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue(Promise.resolve(mockResponses)),
           }),
-        } as any)
+        } as never)
         .mockReturnValueOnce({
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue(Promise.resolve([mockRfp])),
             }),
           }),
-        } as any)
+        } as never)
 
       const valuesMock = vi.fn().mockReturnValue({
         returning: vi.fn().mockReturnValue(Promise.resolve([mockVersionRecord])),
       })
       vi.mocked(db.insert).mockReturnValue({
         values: valuesMock,
-      } as any)
+      } as never)
 
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue(Promise.resolve()),
         }),
-      } as any)
+      } as never)
 
       await createVersionSnapshot('rfp_1', 'org_1', 'user_1', 'Finalized v2')
 
@@ -168,27 +163,27 @@ describe('rfp-versions service', () => {
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue(Promise.resolve(mockResponses)),
           }),
-        } as any)
+        } as never)
         .mockReturnValueOnce({
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue(Promise.resolve([mockRfp])),
             }),
           }),
-        } as any)
+        } as never)
 
       vi.mocked(db.insert).mockReturnValue({
         values: vi.fn().mockReturnValue({
           returning: vi.fn().mockReturnValue(Promise.resolve([mockVersionRecord])),
         }),
-      } as any)
+      } as never)
 
       const setMock = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue(Promise.resolve()),
       })
       vi.mocked(db.update).mockReturnValue({
         set: setMock,
-      } as any)
+      } as never)
 
       await createVersionSnapshot('rfp_1', 'org_1', 'user_1', 'Finalized')
 
@@ -201,26 +196,26 @@ describe('rfp-versions service', () => {
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue(Promise.resolve(mockResponses)),
           }),
-        } as any)
+        } as never)
         .mockReturnValueOnce({
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue(Promise.resolve([mockRfp])),
             }),
           }),
-        } as any)
+        } as never)
 
       vi.mocked(db.insert).mockReturnValue({
         values: vi.fn().mockReturnValue({
           returning: vi.fn().mockReturnValue(Promise.resolve([mockVersionRecord])),
         }),
-      } as any)
+      } as never)
 
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue(Promise.resolve()),
         }),
-      } as any)
+      } as never)
 
       const result = await createVersionSnapshot('rfp_1', 'org_1', 'user_1', 'Finalized')
 

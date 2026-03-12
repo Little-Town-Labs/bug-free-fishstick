@@ -64,7 +64,7 @@ describe('proposal-writer (F8 interface)', () => {
   })
 
   it('calls generateText with the new WriteProposalInput shape', async () => {
-    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
     await writeProposal(baseInput)
 
@@ -72,7 +72,7 @@ describe('proposal-writer (F8 interface)', () => {
   })
 
   it('system prompt contains "Do NOT generate Terms & Conditions"', async () => {
-    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
     await writeProposal(baseInput)
 
@@ -81,7 +81,7 @@ describe('proposal-writer (F8 interface)', () => {
   })
 
   it('system prompt contains "Do NOT perform any pricing calculations"', async () => {
-    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
     await writeProposal(baseInput)
 
@@ -90,7 +90,7 @@ describe('proposal-writer (F8 interface)', () => {
   })
 
   it('prompt includes pricingMarkdown verbatim', async () => {
-    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
     await writeProposal(baseInput)
 
@@ -99,7 +99,7 @@ describe('proposal-writer (F8 interface)', () => {
   })
 
   it('omits Company Profile block when companyProfile is null', async () => {
-    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
     await writeProposal({ ...baseInput, companyProfile: null })
 
@@ -108,7 +108,7 @@ describe('proposal-writer (F8 interface)', () => {
   })
 
   it('includes Company Profile block when companyProfile is non-empty', async () => {
-    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
     await writeProposal(baseInput)
 
@@ -117,7 +117,7 @@ describe('proposal-writer (F8 interface)', () => {
   })
 
   it('omits Customer Preferences block when customerContext is null', async () => {
-    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
     await writeProposal({ ...baseInput, customerContext: null })
 
@@ -126,7 +126,7 @@ describe('proposal-writer (F8 interface)', () => {
   })
 
   it('includes customer tone/industry/instructions when customerContext is provided', async () => {
-    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
     await writeProposal(baseInput)
 
@@ -137,7 +137,7 @@ describe('proposal-writer (F8 interface)', () => {
   })
 
   it('returns { markdownContent } matching generateText output', async () => {
-    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as any)
+    vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
     const result = await writeProposal(baseInput)
 

@@ -25,7 +25,7 @@ describe('classifyRfp', () => {
         complexity: 'medium',
         industryTags: ['healthcare', 'government'],
       },
-    } as any)
+    } as never)
 
     const result = await classifyRfp({
       documentText: 'Technical requirements for a healthcare system...',
@@ -46,7 +46,7 @@ describe('classifyRfp', () => {
     const longText = 'A'.repeat(5000)
     mockGenerateObject.mockResolvedValueOnce({
       object: { rfpType: 'mixed', complexity: 'complex', industryTags: [] },
-    } as any)
+    } as never)
 
     await classifyRfp({
       documentText: longText,
@@ -56,14 +56,14 @@ describe('classifyRfp', () => {
     })
 
     const call = mockGenerateObject.mock.calls[0]![0]
-    expect((call as any).prompt).toContain('A'.repeat(2000))
-    expect((call as any).prompt).not.toContain('A'.repeat(2001))
+    expect((call as Record<string, unknown>).prompt).toContain('A'.repeat(2000))
+    expect((call as Record<string, unknown>).prompt).not.toContain('A'.repeat(2001))
   })
 
   it('deduplicates field types in prompt', async () => {
     mockGenerateObject.mockResolvedValueOnce({
       object: { rfpType: 'commercial', complexity: 'simple', industryTags: ['fintech'] },
-    } as any)
+    } as never)
 
     await classifyRfp({
       documentText: 'Pricing document',
@@ -73,6 +73,6 @@ describe('classifyRfp', () => {
     })
 
     const call = mockGenerateObject.mock.calls[0]![0]
-    expect((call as any).prompt).toContain('text, number')
+    expect((call as Record<string, unknown>).prompt).toContain('text, number')
   })
 })

@@ -57,7 +57,7 @@ export function ProposalTemplateLibrary({ isAdmin }: ProposalTemplateLibraryProp
     if (!pendingReorderRef.current) return
     pendingReorderRef.current = false
     void persistReorder(state.templates)
-  }, [state.templates]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.templates])  
 
   // Persist reorder optimistically (fire-and-forget)
   async function persistReorder(templates: ProposalTemplate[]) {

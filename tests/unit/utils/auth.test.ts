@@ -123,7 +123,7 @@ describe('Auth Utilities', () => {
         await requireAuth()
       } catch (error) {
         expect(error).toBeInstanceOf(AuthError)
-        expect((error as any).statusCode).toBe(401)
+        expect((error as { statusCode: number }).statusCode).toBe(401)
       }
     })
   })
@@ -162,7 +162,7 @@ describe('Auth Utilities', () => {
         await requireAdmin()
       } catch (error) {
         expect(error).toBeInstanceOf(AuthError)
-        expect((error as any).statusCode).toBe(403)
+        expect((error as { statusCode: number }).statusCode).toBe(403)
       }
     })
 
@@ -181,7 +181,7 @@ describe('Auth Utilities', () => {
         await requireAdmin()
       } catch (error) {
         expect(error).toBeInstanceOf(AuthError)
-        expect((error as any).statusCode).toBe(401)
+        expect((error as { statusCode: number }).statusCode).toBe(401)
       }
     })
   })

@@ -13,7 +13,7 @@ vi.mock('@/lib/ai/providers', () => ({
 import { generateObject } from 'ai'
 import { getLanguageModel } from '@/lib/ai/providers'
 import { analyzeDocument } from '@/lib/ai/agents/document-analyzer'
-import type { DocumentAnalysisInput, DocumentAnalysisResult } from '@/lib/ai/agents/document-analyzer'
+import type { DocumentAnalysisInput } from '@/lib/ai/agents/document-analyzer'
 
 describe('Document Analyzer Agent', () => {
   beforeEach(() => {
@@ -41,7 +41,7 @@ describe('Document Analyzer Agent', () => {
           summary: 'RFP for IT services with 2 sections',
         },
       }
-      vi.mocked(generateObject).mockResolvedValue(mockResult as any)
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const input: DocumentAnalysisInput = {
         text: 'Sample RFP document text with Company Name field and approach description',
@@ -84,7 +84,7 @@ describe('Document Analyzer Agent', () => {
           summary: 'Comprehensive form with all field types',
         },
       }
-      vi.mocked(generateObject).mockResolvedValue(mockResult as any)
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const input: DocumentAnalysisInput = {
         text: 'Document with various field types',
@@ -114,7 +114,7 @@ describe('Document Analyzer Agent', () => {
           summary: 'Document with multiple fields',
         },
       }
-      vi.mocked(generateObject).mockResolvedValue(mockResult as any)
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const input: DocumentAnalysisInput = {
         text: 'Document with three questions',
@@ -144,7 +144,7 @@ describe('Document Analyzer Agent', () => {
           summary: 'Document with detailed questions',
         },
       }
-      vi.mocked(generateObject).mockResolvedValue(mockResult as any)
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const input: DocumentAnalysisInput = {
         text: 'RFP document',
@@ -171,7 +171,7 @@ describe('Document Analyzer Agent', () => {
           summary: 'This is an RFP for cloud infrastructure services with 5 main sections covering technical requirements, pricing, and timeline.',
         },
       }
-      vi.mocked(generateObject).mockResolvedValue(mockResult as any)
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const input: DocumentAnalysisInput = {
         text: 'Complex RFP document',
@@ -193,7 +193,7 @@ describe('Document Analyzer Agent', () => {
           summary: 'Test summary',
         },
       }
-      vi.mocked(generateObject).mockResolvedValue(mockResult as any)
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const providerConfig = { provider: 'openai' as const, apiKey: 'test-key-123' }
       const input: DocumentAnalysisInput = {
@@ -216,7 +216,7 @@ describe('Document Analyzer Agent', () => {
           summary: 'Summary',
         },
       }
-      vi.mocked(generateObject).mockResolvedValue(mockResult as any)
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const documentText = 'This is the full document text extracted from the PDF. It contains multiple sections and questions that need to be analyzed.'
       const input: DocumentAnalysisInput = {
@@ -279,8 +279,8 @@ describe('Document Analyzer Agent', () => {
 
       try {
         await analyzeDocument(input)
-      } catch (error: any) {
-        expect(error.message).toMatch(/document analysis|analyze|failed/i)
+      } catch (error: unknown) {
+        expect((error as Error).message).toMatch(/document analysis|analyze|failed/i)
       }
     })
 
@@ -290,7 +290,7 @@ describe('Document Analyzer Agent', () => {
           // Missing required 'fields' array
           summary: 'Summary only',
         },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const input: DocumentAnalysisInput = {
         text: 'Document text',
@@ -309,7 +309,7 @@ describe('Document Analyzer Agent', () => {
           ],
           summary: 'Summary',
         },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const input: DocumentAnalysisInput = {
         text: 'Document text',
@@ -331,7 +331,7 @@ describe('Document Analyzer Agent', () => {
           summary: 'Very long document',
         },
       }
-      vi.mocked(generateObject).mockResolvedValue(mockResult as any)
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const veryLongText = 'Lorem ipsum '.repeat(10000) // ~120,000 characters
       const input: DocumentAnalysisInput = {
@@ -354,7 +354,7 @@ describe('Document Analyzer Agent', () => {
           summary: 'Document contains only narrative text with no fillable fields or questions',
         },
       }
-      vi.mocked(generateObject).mockResolvedValue(mockResult as any)
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const input: DocumentAnalysisInput = {
         text: 'This is just a narrative document with no questions or forms.',
@@ -373,16 +373,16 @@ describe('Document Analyzer Agent', () => {
       const mockResult = {
         object: {
           fields: [
-            { id: 'f1', type: 'text' as const, question: 'Nom de l\'entreprise (français)', position: { page: 1, x: 0, y: 0, width: 100, height: 20 } },
-            { id: 'f2', type: 'text' as const, question: '会社名 (Japanese)', position: { page: 1, x: 0, y: 30, width: 100, height: 20 } },
+            { id: 'f1', type: 'text' as const, question: 'Nom de l\'entreprise (fran\u00e7ais)', position: { page: 1, x: 0, y: 0, width: 100, height: 20 } },
+            { id: 'f2', type: 'text' as const, question: '\u4f1a\u793e\u540d (Japanese)', position: { page: 1, x: 0, y: 30, width: 100, height: 20 } },
           ],
           summary: 'Multilingual document',
         },
       }
-      vi.mocked(generateObject).mockResolvedValue(mockResult as any)
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const input: DocumentAnalysisInput = {
-        text: 'Document with special chars: €, £, ¥, ©, ®, ™, and unicode: 你好, مرحبا, Здравствуйте',
+        text: 'Document with special chars: \u20ac, \u00a3, \u00a5, \u00a9, \u00ae, \u2122, and unicode: \u4f60\u597d, \u0645\u0631\u062d\u0628\u0627, \u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439\u0442\u0435',
         pages: 1,
         providerConfig: { provider: 'claude' },
       }
@@ -390,7 +390,7 @@ describe('Document Analyzer Agent', () => {
       const result = await analyzeDocument(input)
 
       expect(result.fields).toBeDefined()
-      expect(result.fields[0]!.question).toContain('français')
+      expect(result.fields[0]!.question).toContain('fran\u00e7ais')
       expect(result.fields[1]!.question).toContain('Japanese')
     })
   })

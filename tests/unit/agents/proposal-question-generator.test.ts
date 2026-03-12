@@ -46,7 +46,7 @@ describe('proposal-question-generator', () => {
               { id: 'q3', question: 'What SLA terms apply for this contract?', rfpSection: 'Service Level' },
             ],
           },
-        } as any)
+        } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
         const result = await generateClarifyingQuestions(baseInput)
 
@@ -61,7 +61,7 @@ describe('proposal-question-generator', () => {
               { id: 'q1', question: 'What is your pricing model?', rfpSection: 'Section 4 — Pricing' },
             ],
           },
-        } as any)
+        } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
         const result = await generateClarifyingQuestions(baseInput)
 
@@ -82,7 +82,7 @@ describe('proposal-question-generator', () => {
               { id: 'q1', question: 'What pricing model?', rfpSection: 'Pricing' },
             ],
           },
-        } as any)
+        } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
         const result = await generateClarifyingQuestions(baseInput)
 
@@ -100,7 +100,7 @@ describe('proposal-question-generator', () => {
               { id: 'q3', question: 'Can you confirm ISO 27001 scope?', rfpSection: 'Security' },
             ],
           },
-        } as any)
+        } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
         await generateClarifyingQuestions(baseInput)
 
@@ -112,7 +112,7 @@ describe('proposal-question-generator', () => {
     })
 
     describe('edge cases', () => {
-      it('should handle empty rfpFields gracefully and still return 3–10 questions', async () => {
+      it('should handle empty rfpFields gracefully and still return 3-10 questions', async () => {
         vi.mocked(generateObject).mockResolvedValue({
           object: {
             questions: [
@@ -121,7 +121,7 @@ describe('proposal-question-generator', () => {
               { id: 'q3', question: 'What is the budget range?', rfpSection: 'General' },
             ],
           },
-        } as any)
+        } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
         const result = await generateClarifyingQuestions({
           ...baseInput,
@@ -140,7 +140,7 @@ describe('proposal-question-generator', () => {
               { id: 'q3', question: 'What is the delivery timeline?', rfpSection: 'Schedule' },
             ],
           },
-        } as any)
+        } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
         const result = await generateClarifyingQuestions({
           ...baseInput,
@@ -265,7 +265,7 @@ describe('proposal-question-generator', () => {
   // -------------------------------------------------------------------------
   // Task 1.2: Mandatory IDs always present in generateClarifyingQuestions output
   // -------------------------------------------------------------------------
-  describe('mandatory question injection — ID presence', () => {
+  describe('mandatory question injection - ID presence', () => {
     it('all three mandatory IDs present when pricingModel is time_and_materials', async () => {
       vi.mocked(generateObject).mockResolvedValue({
         object: {
@@ -275,7 +275,7 @@ describe('proposal-question-generator', () => {
             { id: 'q3', question: 'Q3', rfpSection: 'General' },
           ],
         },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const result = await generateClarifyingQuestions({
         ...baseInput,
@@ -294,7 +294,7 @@ describe('proposal-question-generator', () => {
             { id: 'q1', question: 'Q1', rfpSection: 'General' },
           ],
         },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const result = await generateClarifyingQuestions({
         ...baseInput,
@@ -313,7 +313,7 @@ describe('proposal-question-generator', () => {
             { id: 'q1', question: 'Q1', rfpSection: 'General' },
           ],
         },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const result = await generateClarifyingQuestions({
         ...baseInput,
@@ -332,7 +332,7 @@ describe('proposal-question-generator', () => {
             { id: 'q1', question: 'Q1', rfpSection: 'General' },
           ],
         },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const result = await generateClarifyingQuestions({
         ...baseInput,
@@ -348,7 +348,7 @@ describe('proposal-question-generator', () => {
   // -------------------------------------------------------------------------
   // Task 1.3: Mandatory questions at front of output array
   // -------------------------------------------------------------------------
-  describe('mandatory question injection — ordering', () => {
+  describe('mandatory question injection - ordering', () => {
     it('mandatory questions are the first 3 elements in the result array', async () => {
       vi.mocked(generateObject).mockResolvedValue({
         object: {
@@ -358,7 +358,7 @@ describe('proposal-question-generator', () => {
             { id: 'q3', question: 'Q3', rfpSection: 'General' },
           ],
         },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const result = await generateClarifyingQuestions({
         ...baseInput,
@@ -378,7 +378,7 @@ describe('proposal-question-generator', () => {
             { id: 'q2', question: 'Q2', rfpSection: 'General' },
           ],
         },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const result = await generateClarifyingQuestions({
         ...baseInput,
@@ -395,8 +395,8 @@ describe('proposal-question-generator', () => {
   // -------------------------------------------------------------------------
   // Task 1.4: LLM question count trimming and merge ceiling
   // -------------------------------------------------------------------------
-  describe('mandatory question injection — count ceiling', () => {
-    it('LLM returns 10 questions → trimmed to 7 → total result is 10', async () => {
+  describe('mandatory question injection - count ceiling', () => {
+    it('LLM returns 10 questions -> trimmed to 7 -> total result is 10', async () => {
       const tenQuestions = Array.from({ length: 10 }, (_, i) => ({
         id: `q${i + 1}`,
         question: `Question ${i + 1}`,
@@ -405,7 +405,7 @@ describe('proposal-question-generator', () => {
 
       vi.mocked(generateObject).mockResolvedValue({
         object: { questions: tenQuestions },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const result = await generateClarifyingQuestions({
         ...baseInput,
@@ -416,7 +416,7 @@ describe('proposal-question-generator', () => {
       expect(result.questions[0]!.id).toBe(MANDATORY_QUESTION_IDS.DELIVERABLES)
     })
 
-    it('LLM returns 3 questions → total result is 6', async () => {
+    it('LLM returns 3 questions -> total result is 6', async () => {
       vi.mocked(generateObject).mockResolvedValue({
         object: {
           questions: [
@@ -425,7 +425,7 @@ describe('proposal-question-generator', () => {
             { id: 'q3', question: 'Q3', rfpSection: 'General' },
           ],
         },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const result = await generateClarifyingQuestions({
         ...baseInput,
@@ -435,10 +435,10 @@ describe('proposal-question-generator', () => {
       expect(result.questions.length).toBe(6)
     })
 
-    it('LLM returns 0 questions → total result is 3 (mandatory only)', async () => {
+    it('LLM returns 0 questions -> total result is 3 (mandatory only)', async () => {
       vi.mocked(generateObject).mockResolvedValue({
         object: { questions: [] },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
       const result = await generateClarifyingQuestions({
         ...baseInput,
@@ -455,11 +455,11 @@ describe('proposal-question-generator', () => {
   // -------------------------------------------------------------------------
   // Task 1.5: System prompt includes pricing model label and deduplication instruction
   // -------------------------------------------------------------------------
-  describe('mandatory question injection — system prompt', () => {
+  describe('mandatory question injection - system prompt', () => {
     async function captureSystemPrompt(pricingModel: GenerateClarifyingQuestionsInput['pricingModel']): Promise<string> {
       vi.mocked(generateObject).mockResolvedValue({
         object: { questions: [{ id: 'q1', question: 'Q1', rfpSection: 'General' }] },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
       await generateClarifyingQuestions({ ...baseInput, pricingModel })
       const callArgs = vi.mocked(generateObject).mock.calls[0]![0] as { system: string }
       return callArgs.system
@@ -499,9 +499,9 @@ describe('proposal-question-generator', () => {
   })
 
   // -------------------------------------------------------------------------
-  // Task 1.6: Backward compatibility — omitting pricingModel works
+  // Task 1.6: Backward compatibility - omitting pricingModel works
   // -------------------------------------------------------------------------
-  describe('mandatory question injection — backward compatibility', () => {
+  describe('mandatory question injection - backward compatibility', () => {
     it('omitting pricingModel does not break existing callers; mandatory questions present with T&M wording', async () => {
       vi.mocked(generateObject).mockResolvedValue({
         object: {
@@ -511,9 +511,9 @@ describe('proposal-question-generator', () => {
             { id: 'q3', question: 'What SLA terms apply for this contract?', rfpSection: 'Service Level' },
           ],
         },
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
-      // baseInput has no pricingModel field — backward-compatible call
+      // baseInput has no pricingModel field - backward-compatible call
       const result = await generateClarifyingQuestions(baseInput)
 
       const ids = result.questions.map((q) => q.id)

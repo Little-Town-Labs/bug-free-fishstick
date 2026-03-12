@@ -46,7 +46,7 @@ interface TemplateFormDialogProps {
 export function TemplateFormDialog({
   open,
   mode,
-  section: _section,
+  section: _,
   initialValues,
   isSaving,
   error,

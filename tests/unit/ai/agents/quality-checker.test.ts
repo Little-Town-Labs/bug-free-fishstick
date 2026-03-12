@@ -13,7 +13,7 @@ vi.mock('@/lib/ai/providers', () => ({
 import { generateObject } from 'ai'
 import { getLanguageModel } from '@/lib/ai/providers'
 import { checkQuality } from '@/lib/ai/agents/quality-checker'
-import type { QualityCheckInput, QualityCheckResult } from '@/lib/ai/agents/quality-checker'
+import type { QualityCheckInput } from '@/lib/ai/agents/quality-checker'
 
 describe('quality-checker', () => {
   beforeEach(() => {
@@ -62,7 +62,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         const result = await checkQuality(input)
 
@@ -98,7 +98,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         const result = await checkQuality(input)
 
@@ -132,7 +132,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         const result = await checkQuality(input)
 
@@ -166,7 +166,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         const result = await checkQuality(input)
 
@@ -203,7 +203,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         const result = await checkQuality(input)
 
@@ -237,7 +237,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         const result = await checkQuality(input)
 
@@ -271,7 +271,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         await checkQuality(input)
 
@@ -337,7 +337,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         const result = await checkQuality(input)
 
@@ -373,7 +373,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         const result = await checkQuality(input)
 
@@ -407,7 +407,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         const result = await checkQuality(input)
 
@@ -469,7 +469,7 @@ describe('quality-checker', () => {
               },
             ],
           },
-        } as any)
+        } as never)
 
         const result = await checkQuality(input)
 

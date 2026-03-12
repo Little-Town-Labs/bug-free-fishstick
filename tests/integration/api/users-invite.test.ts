@@ -28,7 +28,7 @@ vi.mock('@clerk/nextjs/server', () => ({
 }))
 
 import { POST } from '@/app/api/users/invite/route'
-import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuth, isAdmin } from '@/lib/utils/auth'
 
 describe('POST /api/users/invite', () => {
   const auth = requireAuth as ReturnType<typeof vi.fn>

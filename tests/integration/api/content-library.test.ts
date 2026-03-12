@@ -54,11 +54,11 @@ function createRequest(method: string, url: string, body?: unknown): NextRequest
     init.body = JSON.stringify(body)
     init.headers = { 'content-type': 'application/json' }
   }
-  return new NextRequest(url, init as any)
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1])
 }
 
 function entryParams(entryId: string) {
-  return { params: Promise.resolve({ entryId }) } as any
+  return { params: Promise.resolve({ entryId }) } as never
 }
 
 describe('content-library API', () => {
@@ -69,7 +69,7 @@ describe('content-library API', () => {
 
   describe('GET /api/content-library', () => {
     it('returns 200 with entries list', async () => {
-      vi.mocked(listEntries).mockResolvedValue([mockEntry] as any)
+      vi.mocked(listEntries).mockResolvedValue([mockEntry] as never)
       const req = createRequest('GET', 'http://localhost/api/content-library')
       const res = await listHandler(req)
       expect(res.status).toBe(200)
@@ -79,7 +79,7 @@ describe('content-library API', () => {
     })
 
     it('passes category filter to service', async () => {
-      vi.mocked(listEntries).mockResolvedValue([mockEntry] as any)
+      vi.mocked(listEntries).mockResolvedValue([mockEntry] as never)
       const req = createRequest('GET', 'http://localhost/api/content-library?category=Pricing')
       await listHandler(req)
       expect(listEntries).toHaveBeenCalledWith('org-1', 'Pricing')
@@ -87,7 +87,7 @@ describe('content-library API', () => {
 
     it('returns 401 when not authenticated', async () => {
       vi.mocked(requireAuth).mockRejectedValue(
-        new (AuthError as any)('Unauthorized', 401)
+        new (AuthError as unknown as new (msg: string, code: number) => Error)('Unauthorized', 401)
       )
       const req = createRequest('GET', 'http://localhost/api/content-library')
       const res = await listHandler(req)
@@ -97,7 +97,7 @@ describe('content-library API', () => {
 
   describe('POST /api/content-library', () => {
     it('returns 201 with created entry', async () => {
-      vi.mocked(createEntry).mockResolvedValue(mockEntry as any)
+      vi.mocked(createEntry).mockResolvedValue(mockEntry as never)
       const req = createRequest('POST', 'http://localhost/api/content-library', {
         category: 'Pricing',
         name: 'Standard Pricing',
@@ -148,7 +148,7 @@ describe('content-library API', () => {
 
     it('returns 401 when not authenticated', async () => {
       vi.mocked(requireAuth).mockRejectedValue(
-        new (AuthError as any)('Unauthorized', 401)
+        new (AuthError as unknown as new (msg: string, code: number) => Error)('Unauthorized', 401)
       )
       const req = createRequest('POST', 'http://localhost/api/content-library', {
         category: 'Pricing',
@@ -162,7 +162,7 @@ describe('content-library API', () => {
 
   describe('GET /api/content-library/[entryId]', () => {
     it('returns 200 with entry', async () => {
-      vi.mocked(getEntry).mockResolvedValue(mockEntry as any)
+      vi.mocked(getEntry).mockResolvedValue(mockEntry as never)
       const req = createRequest('GET', 'http://localhost/api/content-library/entry-1')
       const res = await getHandler(req, entryParams('entry-1'))
       expect(res.status).toBe(200)
@@ -191,7 +191,7 @@ describe('content-library API', () => {
 
   describe('PATCH /api/content-library/[entryId]', () => {
     it('returns 200 with updated entry', async () => {
-      vi.mocked(updateEntry).mockResolvedValue({ ...mockEntry, name: 'Updated' } as any)
+      vi.mocked(updateEntry).mockResolvedValue({ ...mockEntry, name: 'Updated' } as never)
       const req = createRequest('PATCH', 'http://localhost/api/content-library/entry-1', {
         name: 'Updated',
       })
@@ -240,7 +240,7 @@ describe('content-library API', () => {
 
     it('returns 401 when not authenticated', async () => {
       vi.mocked(requireAuth).mockRejectedValue(
-        new (AuthError as any)('Unauthorized', 401)
+        new (AuthError as unknown as new (msg: string, code: number) => Error)('Unauthorized', 401)
       )
       const req = createRequest('DELETE', 'http://localhost/api/content-library/entry-1')
       const res = await deleteHandler(req, entryParams('entry-1'))

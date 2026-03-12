@@ -17,7 +17,7 @@ vi.mock('@/lib/services/rate-card', () => ({
   upsertRateCard: vi.fn(),
 }))
 
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdmin } from '@/lib/utils/auth'
 import { getRateCard, upsertRateCard } from '@/lib/services/rate-card'
 import { GET, PATCH } from '@/app/api/settings/rate-card/route'
 

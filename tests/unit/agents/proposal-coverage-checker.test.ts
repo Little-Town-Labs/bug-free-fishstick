@@ -35,7 +35,7 @@ describe('proposal-coverage-checker', () => {
           { requirementId: 'f2', addressed: false, evidence: null, gap: 'Only a placeholder is present.' },
         ],
       },
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
     const result = await checkCoverage(baseInput)
 
@@ -51,7 +51,7 @@ describe('proposal-coverage-checker', () => {
           { requirementId: 'f2', addressed: false, evidence: null, gap: 'Only a placeholder is present.' },
         ],
       },
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
     const result = await checkCoverage(baseInput)
 
@@ -67,7 +67,7 @@ describe('proposal-coverage-checker', () => {
           { requirementId: 'f2', addressed: false, evidence: null, gap: 'missing' },
         ],
       },
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
     const result = await checkCoverage(baseInput)
 
@@ -108,7 +108,7 @@ describe('proposal-coverage-checker', () => {
           { requirementId: 'template:Payment Terms', addressed: true, evidence: 'Payment due in 30 days.', gap: null },
         ],
       },
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
     const result = await checkCoverage({
       ...baseInput,
@@ -131,7 +131,7 @@ describe('proposal-coverage-checker', () => {
           { requirementId: 'template:T', addressed: false, evidence: null, gap: 'gap' },
         ],
       },
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
     const result = await checkCoverage({
       ...baseInput,
@@ -165,7 +165,7 @@ describe('proposal-coverage-checker', () => {
           // f2 missing from LLM response
         ],
       },
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
     const result = await checkCoverage(baseInput)
 
@@ -181,7 +181,7 @@ describe('proposal-coverage-checker', () => {
           { requirementId: 'f2', addressed: true, evidence: 'e', gap: null },
         ],
       },
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof generateObject>>)
 
     const result = await checkCoverage(baseInput)
 

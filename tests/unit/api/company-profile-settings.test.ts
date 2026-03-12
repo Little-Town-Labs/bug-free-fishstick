@@ -18,7 +18,7 @@ vi.mock('@/lib/services/company-profile', () => ({
   upsertCompanyProfile: vi.fn(),
 }))
 
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuth, requireAdmin } from '@/lib/utils/auth'
 import { getCompanyProfile, upsertCompanyProfile } from '@/lib/services/company-profile'
 import { GET, PATCH } from '@/app/api/settings/company-profile/route'
 

@@ -222,6 +222,7 @@ export default function ProposalWizardPage() {
         pollingRef.current = null
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, draft?.status, rfpId, existingDraftId])
 
   function handleAnswersSubmitted(updatedDraft: ProposalDraft) {

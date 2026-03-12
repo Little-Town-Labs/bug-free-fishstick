@@ -82,7 +82,6 @@ import {
   searchByRequirements,
   fetchTypedSupplierContext,
   fetchCustomerContext,
-  fetchLearnings,
 } from '@/lib/services/proposal-retrieval'
 import { parseScopeLines } from '@/lib/services/scope-line-parser'
 import { computePricingEstimate } from '@/lib/services/pricing-computation'
@@ -207,7 +206,7 @@ function mockSelectSequence(responses: Array<{ type: 'limited' | 'multi'; rows: 
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue(spec.rows),
         }),
-      } as any
+      } as never
     }
     return {
       from: vi.fn().mockReturnValue({
@@ -215,7 +214,7 @@ function mockSelectSequence(responses: Array<{ type: 'limited' | 'multi'; rows: 
           limit: vi.fn().mockResolvedValue(spec.rows),
         }),
       }),
-    } as any
+    } as never
   })
 }
 
@@ -245,7 +244,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(undefined),
       }),
-    } as any)
+    } as never)
   })
 
   const eventData = { draftId: 'draft-1', rfpId: 'rfp-1', organizationId: 'org-1' }
@@ -254,7 +253,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('calls all 11 step names', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       const stepNames = step.run.mock.calls.map((c: unknown[]) => c[0])
       expect(stepNames).toEqual([
@@ -275,7 +274,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('calls fetchCustomerContext with rfp.customerId and orgId', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       expect(fetchCustomerContext).toHaveBeenCalledWith('customer-1', 'org-1')
     })
@@ -283,7 +282,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('calls searchByRequirements with parsed structure fields', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       expect(searchByRequirements).toHaveBeenCalledWith(
         mockRfp.parsedStructure.fields,
@@ -295,7 +294,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('calls fetchTypedSupplierContext with orgId, industryTags, rfpType', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       expect(fetchTypedSupplierContext).toHaveBeenCalledWith(
         'org-1',
@@ -307,7 +306,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('calls parseScopeLines with draft.clarifyingQuestions', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       expect(parseScopeLines).toHaveBeenCalledWith(mockDraft.clarifyingQuestions)
     })
@@ -315,7 +314,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('calls computePricingEstimate with rateCard and scopeLines', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       expect(computePricingEstimate).toHaveBeenCalledWith(
         null, // rateCard is null from mock
@@ -327,7 +326,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('calls writeProposal with new input shape including pricingMarkdown', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       expect(writeProposal).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -341,7 +340,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('required template content appears verbatim in updateDraftContent', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       const markdownArg = vi.mocked(updateDraftContent).mock.calls[0]![2] as string
       expect(markdownArg).toContain(REQUIRED_TEMPLATE_CONTENT)
@@ -350,7 +349,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('calls updateDraftContent with 4 args including CoverageReport from agent', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       expect(updateDraftContent).toHaveBeenCalledWith(
         'draft-1',
@@ -366,7 +365,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('pricingMarkdown is placeholder when rate card is null', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       expect(writeProposal).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -378,7 +377,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('situational template matching rfpType is included in final output', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       const markdownArg = vi.mocked(updateDraftContent).mock.calls[0]![2] as string
       expect(markdownArg).toContain(SITUATIONAL_MATCHING_CONTENT)
@@ -387,7 +386,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('situational template NOT matching rfpType is excluded from final output', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       const markdownArg = vi.mocked(updateDraftContent).mock.calls[0]![2] as string
       expect(markdownArg).not.toContain(SITUATIONAL_NON_MATCHING_CONTENT)
@@ -398,7 +397,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('calls checkCoverage with requirements and proposal markdown', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       expect(checkCoverage).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -415,7 +414,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
     it('passes evaluateCoverage templates to checkCoverage', async () => {
       setupSuccessPath()
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       // All templates have evaluateCoverage: false in fixtures, so array should be empty
       expect(checkCoverage).toHaveBeenCalledWith(
@@ -429,7 +428,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
       setupSuccessPath()
       vi.mocked(checkCoverage).mockRejectedValueOnce(new Error('LLM timeout'))
       const step = createMockStep()
-      const result = await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      const result = await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       // Pipeline should still complete successfully with fallback
       expect(result).toEqual({ draftId: 'draft-1', status: 'draft' })
@@ -451,10 +450,10 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
       const setMock = vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(undefined),
       })
-      vi.mocked(db.update).mockReturnValue({ set: setMock } as any)
+      vi.mocked(db.update).mockReturnValue({ set: setMock } as never)
 
       const step = createMockStep()
-      await (generateProposal as unknown as Function)({ event: createMockEvent(eventData), step })
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
 
       expect(db.update).toHaveBeenCalled()
       expect(setMock).toHaveBeenCalledWith(

@@ -27,7 +27,7 @@ describe('Vercel KV Storage', () => {
 
   describe('setProcessingStatus', () => {
     it('should store RFP processing status with TTL', async () => {
-      vi.mocked(redisMock.set).mockResolvedValue('OK' as any)
+      vi.mocked(redisMock.set).mockResolvedValue('OK' as never)
 
       const status: ProcessingStatus = {
         rfpId: 'rfp-123',
@@ -47,7 +47,7 @@ describe('Vercel KV Storage', () => {
     })
 
     it('should store status with error field', async () => {
-      vi.mocked(redisMock.set).mockResolvedValue('OK' as any)
+      vi.mocked(redisMock.set).mockResolvedValue('OK' as never)
 
       const status: ProcessingStatus = {
         rfpId: 'rfp-456',
@@ -65,7 +65,7 @@ describe('Vercel KV Storage', () => {
     })
 
     it('should use correct key namespacing', async () => {
-      vi.mocked(redisMock.set).mockResolvedValue('OK' as any)
+      vi.mocked(redisMock.set).mockResolvedValue('OK' as never)
 
       const status: ProcessingStatus = {
         rfpId: 'rfp-abc',
@@ -115,7 +115,7 @@ describe('Vercel KV Storage', () => {
       }
 
       // KV might return parsed object directly
-      vi.mocked(redisMock.get).mockResolvedValue(status as any)
+      vi.mocked(redisMock.get).mockResolvedValue(status as never)
 
       const result = await getProcessingStatus('rfp-456')
 

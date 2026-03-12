@@ -45,7 +45,7 @@ function createRequest(): NextRequest {
 }
 
 function routeParams() {
-  return { params: Promise.resolve({ rfpId: 'rfp-1', draftId: 'draft-1' }) } as any
+  return { params: Promise.resolve({ rfpId: 'rfp-1', draftId: 'draft-1' }) } as never
 }
 
 let selectCallCount: number
@@ -83,7 +83,7 @@ function setupDbMocks(opts: { draftExists?: boolean; rfpExists?: boolean } = {})
             limit: vi.fn().mockResolvedValue(mockDraft ? [mockDraft] : []),
           }),
         }),
-      } as any
+      } as never
     }
     if (call === 1) {
       // RFP query
@@ -93,21 +93,21 @@ function setupDbMocks(opts: { draftExists?: boolean; rfpExists?: boolean } = {})
             limit: vi.fn().mockResolvedValue(mockRfp ? [mockRfp] : []),
           }),
         }),
-      } as any
+      } as never
     }
     // Templates query (no limit)
     return {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([]),
       }),
-    } as any
+    } as never
   })
 
   vi.mocked(db.update).mockReturnValue({
     set: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue(undefined),
     }),
-  } as any)
+  } as never)
 }
 
 describe('POST /api/rfps/[rfpId]/proposals/[draftId]/coverage', () => {

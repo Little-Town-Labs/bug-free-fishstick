@@ -10,7 +10,7 @@ vi.mock('docx', () => ({
   TextRun: vi.fn(),
 }))
 
-import { Document, Packer, Paragraph, TextRun } from 'docx'
+import { Document, Packer } from 'docx'
 import { generateWordOutput } from '@/lib/documents/word-output'
 import type { WordOutputOptions, WordOutputResult } from '@/lib/documents/word-output'
 

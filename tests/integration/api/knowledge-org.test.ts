@@ -102,7 +102,7 @@ function createMockRequest(
       init.headers = { ...init.headers, 'content-type': 'application/json' }
     }
   }
-  return new NextRequest(url, init as any)
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1])
 }
 
 // In the jsdom/Node test environment, Request does not auto-set the
@@ -139,7 +139,7 @@ describe('Org-Level Knowledge API Routes', () => {
             limit: vi.fn(() => Promise.resolve(mockEntries)),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest('GET')
       const response = await listEntries(request)
@@ -177,7 +177,7 @@ describe('Org-Level Knowledge API Routes', () => {
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedEntry])),
         })),
-      } as any)
+      } as never)
       vi.mocked(inngest.send).mockResolvedValue({ ids: ['event-123'] })
 
       const request = createMockRequest('POST', 'http://localhost:3000/api/knowledge', {
@@ -237,7 +237,7 @@ describe('Org-Level Knowledge API Routes', () => {
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedEntry])),
         })),
-      } as any)
+      } as never)
 
       const formData = new FormData()
       const file = new File(['test content'], 'proposal.pdf', { type: 'application/pdf' })
@@ -301,7 +301,7 @@ describe('Org-Level Knowledge API Routes', () => {
       vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'DELETE',
@@ -318,7 +318,7 @@ describe('Org-Level Knowledge API Routes', () => {
       vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 0 })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'DELETE',

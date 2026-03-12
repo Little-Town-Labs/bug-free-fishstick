@@ -60,8 +60,8 @@ function createMockRequest(
     init.body = JSON.stringify(body)
     init.headers = { 'content-type': 'application/json' }
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new NextRequest(url, init as any)
+   
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1])
 }
 
 describe('RFP Permission Filtering', () => {

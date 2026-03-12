@@ -2,7 +2,6 @@ import { inngest } from '@/lib/inngest/client'
 import type { GetFunctionInput } from 'inngest'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
-import { sql } from 'drizzle-orm'
 
 export const computeSnapshots = inngest.createFunction(
   {

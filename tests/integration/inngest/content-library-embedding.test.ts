@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const mockDbSelect = vi.fn()
-const mockDbUpdate = vi.fn()
 const mockDbFrom = vi.fn()
 const mockDbWhere = vi.fn()
 const mockDbLimit = vi.fn()

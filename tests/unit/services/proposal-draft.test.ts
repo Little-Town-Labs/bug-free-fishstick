@@ -74,7 +74,7 @@ function mockSelectReturns<T>(rows: T[]) {
         limit: vi.fn().mockResolvedValue(rows),
       }),
     }),
-  } as any)
+  } as never)
 }
 
 function mockSelectMulti<T>(rows: T[]) {
@@ -82,7 +82,7 @@ function mockSelectMulti<T>(rows: T[]) {
     from: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue(rows),
     }),
-  } as any)
+  } as never)
 }
 
 function mockInsertReturns<T>(row: T) {
@@ -90,7 +90,7 @@ function mockInsertReturns<T>(row: T) {
     values: vi.fn().mockReturnValue({
       returning: vi.fn().mockResolvedValue([row]),
     }),
-  } as any)
+  } as never)
 }
 
 function mockUpdateReturns<T>(row: T) {
@@ -100,7 +100,7 @@ function mockUpdateReturns<T>(row: T) {
         returning: vi.fn().mockResolvedValue([row]),
       }),
     }),
-  } as any)
+  } as never)
 }
 
 describe('proposal-draft service', () => {
@@ -117,7 +117,7 @@ describe('proposal-draft service', () => {
             limit: vi.fn().mockResolvedValue([mockRfp]),
           }),
         }),
-      } as any)
+      } as never)
       vi.mocked(generateClarifyingQuestions).mockResolvedValue({ questions: mockQuestions })
       mockInsertReturns(mockDraft)
 
@@ -134,7 +134,7 @@ describe('proposal-draft service', () => {
             limit: vi.fn().mockResolvedValue([{ ...mockRfp, parsedStructure: null }]),
           }),
         }),
-      } as any)
+      } as never)
 
       await expect(createDraft('rfp-1', 'org-1', 'user-1')).rejects.toThrow(
         'RFP must be processed before generating a proposal'
@@ -148,7 +148,7 @@ describe('proposal-draft service', () => {
             limit: vi.fn().mockResolvedValue([]),
           }),
         }),
-      } as any)
+      } as never)
 
       await expect(createDraft('rfp-1', 'wrong-org', 'user-1')).rejects.toThrow()
     })
@@ -160,7 +160,7 @@ describe('proposal-draft service', () => {
             limit: vi.fn().mockResolvedValue([mockRfp]),
           }),
         }),
-      } as any)
+      } as never)
       vi.mocked(generateClarifyingQuestions).mockResolvedValue({ questions: mockQuestions })
       mockInsertReturns(mockDraft)
 
@@ -182,7 +182,7 @@ describe('proposal-draft service', () => {
               limit: vi.fn().mockResolvedValue([mockRfp]),
             }),
           }),
-        } as any)
+        } as never)
       }
 
       it('passes pricingModel from rate card settings to generateClarifyingQuestions', async () => {
@@ -268,7 +268,7 @@ describe('proposal-draft service', () => {
             returning: vi.fn().mockResolvedValue([]),
           }),
         }),
-      } as any)
+      } as never)
 
       await expect(submitAnswers('draft-1', 'org-1', [])).rejects.toThrow()
     })
@@ -306,7 +306,7 @@ describe('proposal-draft service', () => {
           returning: vi.fn().mockResolvedValue([{ ...mockDraft, status: 'draft', markdownContent: '# Test', coverageReport }]),
         }),
       })
-      vi.mocked(db.update).mockReturnValue({ set: setMock } as any)
+      vi.mocked(db.update).mockReturnValue({ set: setMock } as never)
 
       await updateDraftContent('draft-1', 'org-1', '# Test', coverageReport)
 
@@ -321,7 +321,7 @@ describe('proposal-draft service', () => {
           returning: vi.fn().mockResolvedValue([{ ...mockDraft, status: 'draft', markdownContent: '# Test' }]),
         }),
       })
-      vi.mocked(db.update).mockReturnValue({ set: setMock } as any)
+      vi.mocked(db.update).mockReturnValue({ set: setMock } as never)
 
       await updateDraftContent('draft-1', 'org-1', '# Test')
 

@@ -40,7 +40,7 @@ function mockSelectWithLimit(rows: unknown[]) {
         limit: vi.fn().mockResolvedValue(rows),
       }),
     }),
-  } as any)
+  } as never)
 }
 
 function mockSelectNoLimit(rows: unknown[]) {
@@ -48,7 +48,7 @@ function mockSelectNoLimit(rows: unknown[]) {
     from: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue(rows),
     }),
-  } as any)
+  } as never)
 }
 
 function mockInsert(returning: unknown[]) {
@@ -56,7 +56,7 @@ function mockInsert(returning: unknown[]) {
     values: vi.fn().mockReturnValue({
       returning: vi.fn().mockResolvedValue(returning),
     }),
-  } as any)
+  } as never)
 }
 
 function mockUpdate(returning: unknown[]) {
@@ -66,13 +66,13 @@ function mockUpdate(returning: unknown[]) {
         returning: vi.fn().mockResolvedValue(returning),
       }),
     }),
-  } as any)
+  } as never)
 }
 
 function mockDelete() {
   vi.mocked(db.delete).mockReturnValue({
     where: vi.fn().mockResolvedValue(undefined),
-  } as any)
+  } as never)
 }
 
 describe('proposal-content-library service', () => {

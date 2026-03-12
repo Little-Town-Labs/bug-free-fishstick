@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ReturnComments } from '@/components/rfp/ReturnComments'
 
@@ -73,7 +73,7 @@ describe('ReturnComments', () => {
     })
 
     it('does not call onSubmit when comments are empty and submit is clicked', async () => {
-      const user = userEvent.setup()
+      userEvent.setup()
       const onSubmit = vi.fn()
       render(<ReturnComments {...defaultProps} onSubmit={onSubmit} />)
 

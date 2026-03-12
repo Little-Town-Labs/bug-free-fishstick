@@ -12,7 +12,7 @@ vi.mock('@/lib/ai/providers', () => ({
 import { generateObject } from 'ai'
 import { getLanguageModel } from '@/lib/ai/providers'
 import { generateResponses } from '@/lib/ai/agents/response-generator'
-import type { GenerateResponsesInput, GenerateResponsesResult } from '@/lib/ai/agents/response-generator'
+import type { GenerateResponsesInput } from '@/lib/ai/agents/response-generator'
 
 describe('response-generator', () => {
   beforeEach(() => {
@@ -42,7 +42,7 @@ describe('response-generator', () => {
               { fieldId: 'field-2', responseText: 'We maintain SOC 2 Type II compliance and use end-to-end encryption.', confidenceScore: 0.88, sources: ['security_doc'] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         const result = await generateResponses(input)
@@ -73,7 +73,7 @@ describe('response-generator', () => {
               { fieldId: 'field-1', responseText: 'Acme Corp', confidenceScore: 0.92, sources: ['source1'] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         const result = await generateResponses(input)
@@ -103,7 +103,7 @@ describe('response-generator', () => {
               { fieldId: 'field-1', responseText: 'Acme Corp', confidenceScore: 0.95, sources: ['source1'] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         const result = await generateResponses(input)
@@ -132,7 +132,7 @@ describe('response-generator', () => {
               { fieldId: 'field-1', responseText: '[NEEDS INPUT: No matching knowledge found]', confidenceScore: 0.3, sources: [] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         const result = await generateResponses(input)
@@ -162,7 +162,7 @@ describe('response-generator', () => {
               { fieldId: 'field-1', responseText: 'Acme Corp', confidenceScore: 0.9, sources: ['doc1', 'doc2'] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         const result = await generateResponses(input)
@@ -190,7 +190,7 @@ describe('response-generator', () => {
               { fieldId: 'field-1', responseText: 'Answer', confidenceScore: 0.9, sources: ['source1'] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         await generateResponses(input)
@@ -223,7 +223,7 @@ describe('response-generator', () => {
               { fieldId: 'field-4', responseText: 'Acme Corp is a leading technology company founded in 2010 with 500 employees dedicated to innovation and excellence.', confidenceScore: 0.88, sources: ['company_info'] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         const result = await generateResponses(input)
@@ -273,7 +273,7 @@ describe('response-generator', () => {
         await expect(generateResponses(input)).rejects.toThrow('API rate limit exceeded')
       })
 
-      it('should handle missing knowledge context (empty array — should produce low-confidence responses)', async () => {
+      it('should handle missing knowledge context (empty array - should produce low-confidence responses)', async () => {
         // Arrange
         const input: GenerateResponsesInput = {
           fields: [
@@ -289,7 +289,7 @@ describe('response-generator', () => {
               { fieldId: 'field-1', responseText: '[NEEDS INPUT: No knowledge context available]', confidenceScore: 0.0, sources: [] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         const result = await generateResponses(input)
@@ -321,7 +321,7 @@ describe('response-generator', () => {
               { fieldId: 'field-1', responseText: 'Answer', confidenceScore: 0.75, sources: ['source1'] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         const result = await generateResponses(input)
@@ -350,7 +350,7 @@ describe('response-generator', () => {
               { fieldId: 'field-1', responseText: 'Answer', confidenceScore: 0.75, sources: ['source1'] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         const result = await generateResponses(input)
@@ -380,16 +380,16 @@ describe('response-generator', () => {
               { fieldId: 'field-2', responseText: '[NEEDS INPUT: No matching knowledge found]', confidenceScore: 0.1, sources: [] },
             ],
           },
-        } as any)
+        } as never)
 
         // Act
         const result = await generateResponses(input)
 
         // Assert
         expect(result.responses).toHaveLength(2)
-        expect(result.responses.every(r => r.status === 'needs_input')).toBe(true)
-        expect(result.responses.every(r => r.responseText.includes('[NEEDS INPUT'))).toBe(true)
-        expect(result.responses.every(r => r.confidenceScore < 0.7)).toBe(true)
+        expect(result.responses.every((r) => r.status === 'needs_input')).toBe(true)
+        expect(result.responses.every((r) => r.responseText.includes('[NEEDS INPUT'))).toBe(true)
+        expect(result.responses.every((r) => r.confidenceScore < 0.7)).toBe(true)
       })
     })
   })

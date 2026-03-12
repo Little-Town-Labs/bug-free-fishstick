@@ -19,9 +19,9 @@ vi.mock('@/lib/db', () => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
           limit: vi.fn(() => Promise.resolve([])),
-          then: vi.fn((cb) => cb([])),
+          then: vi.fn((cb: (v: unknown[]) => unknown) => cb([])),
         })),
-        then: vi.fn((cb) => cb([])),
+        then: vi.fn((cb: (v: unknown[]) => unknown) => cb([])),
       })),
     })),
     insert: vi.fn(() => ({
@@ -59,7 +59,7 @@ import { createMockCustomer } from '../../factories/index'
 function createMockRequest(
   method: string,
   url: string = 'http://localhost:3000/api/customers',
-  body?: any
+  body?: unknown
 ): NextRequest {
   const init: RequestInit = {
     method,
@@ -69,7 +69,7 @@ function createMockRequest(
     init.body = JSON.stringify(body)
     init.headers = { 'content-type': 'application/json' }
   }
-  return new NextRequest(url, init as any)
+  return new NextRequest(url, init as unknown as ConstructorParameters<typeof NextRequest>[1])
 }
 
 describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
@@ -92,9 +92,8 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve(mockCustomers)),
         })),
-      } as any)
+      } as never)
 
-      const request = createMockRequest('GET')
       const response = await listCustomers()
 
       expect(response.status).toBe(200)
@@ -109,7 +108,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         new AuthError('Unauthorized', 401)
       )
 
-      const request = createMockRequest('GET')
+      createMockRequest('GET')
       const response = await listCustomers()
 
       expect(response.status).toBe(401)
@@ -130,7 +129,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedCustomer])),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'POST',
@@ -195,17 +194,17 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
               limit: vi.fn(() => Promise.resolve([mockCustomer])),
             })),
           })),
-        } as any)
+        } as never)
         .mockReturnValueOnce({
           from: vi.fn(() => ({
             where: vi.fn(() => Promise.resolve([{ count: 5 }])),
           })),
-        } as any)
+        } as never)
         .mockReturnValueOnce({
           from: vi.fn(() => ({
             where: vi.fn(() => Promise.resolve([{ count: 3 }])),
           })),
-        } as any)
+        } as never)
 
       const request = createMockRequest(
         'GET',
@@ -230,7 +229,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
             limit: vi.fn(() => Promise.resolve([])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'GET',
@@ -274,7 +273,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
             returning: vi.fn(() => Promise.resolve([mockUpdatedCustomer])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'PATCH',
@@ -314,7 +313,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
             returning: vi.fn(() => Promise.resolve([])),
           })),
         })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'PATCH',
@@ -333,7 +332,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
       vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'DELETE',
@@ -364,7 +363,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
       vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 0 })),
-      } as any)
+      } as never)
 
       const request = createMockRequest(
         'DELETE',

@@ -31,7 +31,7 @@ vi.mock('@/lib/db/schema/rfp-responses', () => ({
 
 vi.mock('@/lib/inngest/client', () => ({
   inngest: {
-    createFunction: (_config: unknown, _event: unknown, handler: Function) => handler,
+    createFunction: (_config: unknown, _event: unknown, handler: (...args: unknown[]) => unknown) => handler,
   },
 }))
 

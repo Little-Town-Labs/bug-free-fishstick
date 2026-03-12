@@ -68,9 +68,9 @@ const mockRfp = {
 describe('POST /api/rfps/[rfpId]/finalize — Inngest event', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(requireAdmin).mockResolvedValue(mockAdmin as any)
+    vi.mocked(requireAdmin).mockResolvedValue(mockAdmin as never)
 
-    const dbAny = db as any
+    const dbAny = db as any // eslint-disable-line @typescript-eslint/no-explicit-any
     dbAny.select.mockReturnValue(dbAny)
     dbAny.from.mockReturnValue(dbAny)
     dbAny.where.mockReturnValue(dbAny)
