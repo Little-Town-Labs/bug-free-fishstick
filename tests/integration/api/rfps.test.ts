@@ -420,7 +420,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       expect(response.status).toBe(200)
       const data = await response.json()
       expect(data.url).toBeDefined()
-      expect(data.url).toContain('blob.vercel-storage.com')
+      expect(data.url).toContain('/api/rfps/rfp_1/document')
     })
 
     it('should return 400 on missing file', async () => {
