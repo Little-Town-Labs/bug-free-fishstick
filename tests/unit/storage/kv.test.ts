@@ -17,7 +17,7 @@ import {
   type ProcessingStatus,
 } from '@/lib/storage/kv'
 
-describe('Vercel KV Storage', () => {
+describe('Upstash Redis Storage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Set env vars so getRedis() returns the mocked client instead of null

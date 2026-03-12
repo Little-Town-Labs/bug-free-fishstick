@@ -39,7 +39,7 @@ The solution addresses a critical business need: teams currently spend significa
 - **Database**: Neon PostgreSQL + pgvector
 - **ORM**: Drizzle ORM
 - **File Storage**: Vercel Blob
-- **Cache**: Vercel KV
+- **Cache**: Upstash Redis
 - **Background Jobs**: Inngest
 
 ### AI & Document Processing
@@ -83,7 +83,7 @@ The solution addresses a critical business need: teams currently spend significa
             ┌───────────────────────┼───────────────────────┐
             ▼                       ▼                       ▼
 ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
-│    Neon PostgreSQL  │  │    Vercel Blob      │  │    Vercel KV        │
+│    Neon PostgreSQL  │  │    Vercel Blob      │  │    Upstash Redis    │
 │    + pgvector       │  │                     │  │                     │
 │                     │  │ • Original RFPs     │  │ • Processing status │
 │ • Organizations     │  │ • Completed RFPs    │  │ • Session cache     │
@@ -165,10 +165,11 @@ src/
 
 1. **Clerk** (clerk.com) - Create app, enable Organizations, create `org:super_admin` role
 2. **Neon** (neon.tech) - Create project, enable pgvector extension
-3. **Vercel** (vercel.com) - Link repo, create Blob and KV stores
-4. **Inngest** (inngest.com) - Create app for background jobs
-5. **OpenAI** (platform.openai.com) - Get API key for embeddings
-6. **Anthropic** (console.anthropic.com) - Optional default LLM key
+3. **Vercel** (vercel.com) - Link repo, create Blob store
+4. **Upstash** (upstash.com) - Create Redis database for caching
+5. **Inngest** (inngest.com) - Create app for background jobs
+6. **OpenAI** (platform.openai.com) - Get API key for embeddings
+7. **Anthropic** (console.anthropic.com) - Optional default LLM key
 
 ### Installation
 
@@ -238,8 +239,8 @@ See `.env.example` for all required environment variables:
 | `CLERK_WEBHOOK_SECRET` | Clerk webhook signing secret |
 | `DATABASE_URL` | Neon PostgreSQL connection string |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token |
-| `KV_REST_API_URL` | Vercel KV REST URL |
-| `KV_REST_API_TOKEN` | Vercel KV REST token |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token |
 | `INNGEST_EVENT_KEY` | Inngest event key |
 | `INNGEST_SIGNING_KEY` | Inngest signing key |
 | `OPENAI_API_KEY` | OpenAI API key (for embeddings) |
@@ -306,7 +307,7 @@ pnpm db:migrate
 - **Authentication**: Clerk with Organizations for multi-tenancy
 - **Authorization**: Role-based (Super Admin, Admin, User)
 - **Data Isolation**: Clerk orgId enforced on all queries
-- **API Security**: Zod validation, rate limiting via Vercel KV
+- **API Security**: Zod validation, rate limiting via Upstash Redis
 - **Secrets**: Encrypted tenant LLM keys in database
 - **File Access**: Signed URLs with expiration
 

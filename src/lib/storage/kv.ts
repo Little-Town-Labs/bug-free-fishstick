@@ -31,7 +31,7 @@ export interface ProcessingStatus {
 const PROCESSING_STATUS_TTL = 3600 // 1 hour
 
 /**
- * Stores RFP processing status in Vercel KV with TTL
+ * Stores RFP processing status in Upstash Redis with TTL
  * @param rfpId - The RFP ID
  * @param status - Processing status object
  */
@@ -42,7 +42,7 @@ export async function setProcessingStatus(rfpId: string, status: ProcessingStatu
 }
 
 /**
- * Retrieves RFP processing status from Vercel KV
+ * Retrieves RFP processing status from Upstash Redis
  * @param rfpId - The RFP ID
  * @returns Processing status or null if not found
  */
@@ -58,7 +58,7 @@ export async function getProcessingStatus(rfpId: string): Promise<ProcessingStat
 }
 
 /**
- * Deletes RFP processing status from Vercel KV
+ * Deletes RFP processing status from Upstash Redis
  * @param rfpId - The RFP ID
  */
 export async function deleteProcessingStatus(rfpId: string): Promise<void> {
