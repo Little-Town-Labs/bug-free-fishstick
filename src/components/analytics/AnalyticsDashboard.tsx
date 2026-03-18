@@ -29,27 +29,36 @@ export function AnalyticsDashboard({
   const [snapshots, setSnapshots] = useState<AnalyticsSnapshot[]>(initialSnapshots)
   const [dataAsOf, setDataAsOf] = useState(initialDataAsOf)
   const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [initialRender, setInitialRender] = useState(true)
 
   const fetchSnapshots = useCallback(async (f: AnalyticsFilters) => {
     setLoading(true)
+    setFetchError(null)
     try {
       const params = new URLSearchParams()
       if (f.period) params.set('period', f.period)
       if (f.startDate) params.set('startDate', f.startDate)
       if (f.endDate) params.set('endDate', f.endDate)
       const res = await fetch(`/api/analytics?${params.toString()}`)
-      if (!res.ok) return
+      if (!res.ok) {
+        setFetchError('Failed to refresh analytics data')
+        return
+      }
       const data = await res.json() as { snapshots: AnalyticsSnapshot[]; dataAsOf?: string }
       setSnapshots(data.snapshots)
       if (data.dataAsOf) setDataAsOf(data.dataAsOf)
+    } catch {
+      setFetchError('Failed to refresh analytics data')
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
+    if (initialRender) { setInitialRender(false); return }
     fetchSnapshots(filters)
-  }, [filters, fetchSnapshots])
+  }, [filters, fetchSnapshots, initialRender])
 
   const totalRfps = extractMetricValue(snapshots, 'volume')
   const winRate = extractMetricValue(snapshots, 'win_rate')
@@ -120,7 +129,9 @@ export function AnalyticsDashboard({
           />
         </label>
         <span className="ml-auto text-xs text-muted-foreground">
-          {loading ? 'Loading...' : `Data as of ${new Date(dataAsOf).toLocaleString()}`}
+          {fetchError ? (
+            <span className="text-destructive">{fetchError}</span>
+          ) : loading ? 'Loading...' : `Data as of ${new Date(dataAsOf).toLocaleString()}`}
         </span>
       </div>
 

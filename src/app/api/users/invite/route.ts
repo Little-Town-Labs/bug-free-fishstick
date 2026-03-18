@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
-    console.error('[POST /api/users/invite]', error)
+    console.error('[POST /api/users/invite]', error instanceof Error ? error.message : String(error))
     const message =
       error instanceof Error ? error.message : 'Failed to send invitation'
     return NextResponse.json({ error: message }, { status: 500 })

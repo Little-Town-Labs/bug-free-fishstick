@@ -60,7 +60,7 @@ export async function checkRateLimit(
       )
     }
   } catch (error) {
-    console.error('[rate-limit] Redis unreachable, allowing request:', error)
+    console.error('[rate-limit] Redis unreachable, allowing request:', error instanceof Error ? error.message : String(error))
   }
 
   return null

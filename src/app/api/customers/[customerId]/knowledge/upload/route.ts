@@ -114,7 +114,7 @@ export async function POST(
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
-    console.error('[POST /api/customers/knowledge/upload]', error)
+    console.error('[POST /api/customers/knowledge/upload]', error instanceof Error ? error.message : String(error))
     const message =
       error instanceof Error ? error.message : 'Failed to upload document'
     return NextResponse.json({ error: message }, { status: 500 })
