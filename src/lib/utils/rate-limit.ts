@@ -42,21 +42,25 @@ export async function checkRateLimit(
   if (!limiters) return null // Redis unavailable — allow request
 
   const limiter = limiters[tier]
-  const { success, limit, remaining, reset } = await limiter.limit(identifier)
+  try {
+    const { success, limit, remaining, reset } = await limiter.limit(identifier)
 
-  if (!success) {
-    return NextResponse.json(
-      { error: 'Too many requests' },
-      {
-        status: 429,
-        headers: {
-          'X-RateLimit-Limit': limit.toString(),
-          'X-RateLimit-Remaining': remaining.toString(),
-          'X-RateLimit-Reset': reset.toString(),
-          'Retry-After': Math.ceil((reset - Date.now()) / 1000).toString(),
-        },
-      }
-    )
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': reset.toString(),
+            'Retry-After': Math.ceil((reset - Date.now()) / 1000).toString(),
+          },
+        }
+      )
+    }
+  } catch (error) {
+    console.error('[rate-limit] Redis unreachable, allowing request:', error)
   }
 
   return null
