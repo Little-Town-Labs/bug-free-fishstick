@@ -85,11 +85,7 @@ export default function IntegrationsPage() {
   const salesforceIntegration = getIntegration('salesforce')
 
   return (
-    <div className="container mx-auto py-8 space-y-8 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold">Integrations</h1>
-        <p className="mt-1 text-muted-foreground">Connect RFP Automator with your external tools.</p>
-      </div>
+    <div className="space-y-8 max-w-3xl">
 
       <section aria-labelledby="integrations-heading">
         <h2 id="integrations-heading" className="mb-4 text-lg font-semibold">Connected Services</h2>

@@ -73,11 +73,11 @@ vi.mock('@vercel/blob', () => ({
 }))
 
 vi.mock('@/lib/documents/pdf-parser', () => ({
-  parsePdf: vi.fn(() => Promise.resolve('parsed pdf content')),
+  parsePdf: vi.fn(() => Promise.resolve({ text: 'parsed pdf content' })),
 }))
 
 vi.mock('@/lib/documents/word-parser', () => ({
-  parseWord: vi.fn(() => Promise.resolve('parsed word content')),
+  parseWord: vi.fn(() => Promise.resolve({ text: 'parsed word content' })),
 }))
 
 // These imports will fail in red phase since routes don't exist yet
