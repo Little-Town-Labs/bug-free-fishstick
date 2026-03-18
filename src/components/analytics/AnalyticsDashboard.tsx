@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { MetricCard } from './MetricCard'
 import { VolumeChart } from './VolumeChart'
 import { WinLossBreakdown } from './WinLossBreakdown'
@@ -20,12 +20,36 @@ function extractMetricValue(snapshots: AnalyticsSnapshot[], key: string): number
 }
 
 export function AnalyticsDashboard({
-  snapshots,
+  snapshots: initialSnapshots,
   filters: initialFilters,
   isAdmin,
-  dataAsOf,
+  dataAsOf: initialDataAsOf,
 }: AnalyticsDashboardProps) {
   const [filters, setFilters] = useState<AnalyticsFilters>(initialFilters)
+  const [snapshots, setSnapshots] = useState<AnalyticsSnapshot[]>(initialSnapshots)
+  const [dataAsOf, setDataAsOf] = useState(initialDataAsOf)
+  const [loading, setLoading] = useState(false)
+
+  const fetchSnapshots = useCallback(async (f: AnalyticsFilters) => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (f.period) params.set('period', f.period)
+      if (f.startDate) params.set('startDate', f.startDate)
+      if (f.endDate) params.set('endDate', f.endDate)
+      const res = await fetch(`/api/analytics?${params.toString()}`)
+      if (!res.ok) return
+      const data = await res.json() as { snapshots: AnalyticsSnapshot[]; dataAsOf?: string }
+      setSnapshots(data.snapshots)
+      if (data.dataAsOf) setDataAsOf(data.dataAsOf)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchSnapshots(filters)
+  }, [filters, fetchSnapshots])
 
   const totalRfps = extractMetricValue(snapshots, 'volume')
   const winRate = extractMetricValue(snapshots, 'win_rate')
@@ -96,7 +120,7 @@ export function AnalyticsDashboard({
           />
         </label>
         <span className="ml-auto text-xs text-muted-foreground">
-          Data as of {new Date(dataAsOf).toLocaleString()}
+          {loading ? 'Loading...' : `Data as of ${new Date(dataAsOf).toLocaleString()}`}
         </span>
       </div>
 

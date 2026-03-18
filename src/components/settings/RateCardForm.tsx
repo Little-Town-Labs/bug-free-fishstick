@@ -284,9 +284,9 @@ function buildPayload(state: FormState): { rateCard: RateCard; proposalDefaults:
     blendedRate: state.mode === 'blended' ? blendedRateRaw : null,
     blendedRateUnit: state.mode === 'blended' ? state.blendedRateUnit : null,
     roles,
-    // Margin is entered as a percentage (e.g. "20" = 20%). null/NaN is sent
-    // as-is so the server Zod schema produces a proper 422 field error.
-    defaultMarginPct: marginRaw !== null ? marginRaw / 100 : (null as unknown as number),
+    // Margin is entered as a percentage (e.g. "20" = 20%). Default to 0 when
+    // empty so the server Zod schema receives a valid number.
+    defaultMarginPct: marginRaw !== null ? marginRaw / 100 : 0,
     currency: state.currency,
     discounts,
   }

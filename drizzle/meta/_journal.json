@@ -57,6 +57,13 @@
       "when": 1771125000000,
       "tag": "0007_team_scaling_insights",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1771200000000,
+      "tag": "0008_proposal_bid_engine",
+      "breakpoints": true
     }
   ]
 }

@@ -62,7 +62,10 @@ export default function CompanyKnowledgePage() {
         method: 'POST',
         body: formData,
       })
-      if (!res.ok) throw new Error('Failed to upload document')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || 'Failed to upload document')
+      }
       setUploaderOpen(false)
       await fetchEntries()
     } catch (err) {
