@@ -1,6 +1,6 @@
 'use client'
 
-import { OrganizationSwitcher, UserButton } from '@clerk/nextjs'
+import { OrganizationSwitcher, SignedIn, UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -96,20 +96,22 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
           {/* User section */}
           <div className="border-t border-border p-3">
-            <div className="flex items-center gap-2">
-              <OrganizationSwitcher
-                hidePersonal
-                afterCreateOrganizationUrl="/dashboard"
-                afterSelectOrganizationUrl="/dashboard"
-                appearance={{
-                  elements: {
-                    rootBox: 'flex-1',
-                    organizationSwitcherTrigger: 'w-full',
-                  },
-                }}
-              />
-              <UserButton afterSignOutUrl="/sign-in" />
-            </div>
+            <SignedIn>
+              <div className="flex items-center gap-2">
+                <OrganizationSwitcher
+                  hidePersonal
+                  afterCreateOrganizationUrl="/dashboard"
+                  afterSelectOrganizationUrl="/dashboard"
+                  appearance={{
+                    elements: {
+                      rootBox: 'flex-1',
+                      organizationSwitcherTrigger: 'w-full',
+                    },
+                  }}
+                />
+                <UserButton />
+              </div>
+            </SignedIn>
           </div>
         </div>
       </aside>
