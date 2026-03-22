@@ -55,15 +55,31 @@ export async function analyzeDocument(
     const result = await generateObject({
       model,
       schema: resultSchema,
-      prompt: `Analyze the following ${input.pages}-page document and identify all fillable fields, questions, and form elements.
+      system: `You are an expert RFP analyst. Your job is to identify every section in an RFP document that requires a response from a vendor/bidder.
 
-For each identified field, provide:
-- A unique ID
+INCLUDE as response fields:
+- Direct questions (e.g., "Describe your approach to...")
+- Fillable form fields (text boxes, checkboxes, tables, date fields)
+- Sections where the RFP expects the vendor to provide NEW information (qualifications, methodology, staffing, references, pricing, technical approach, etc.)
+- Compliance or certification requirements that need confirmation
+- Any section with instructions like "provide", "describe", "explain", "list", "demonstrate", "submit", or "include"
+
+DO NOT INCLUDE as response fields:
+- Informational sections that describe the buyer's organization, project background, or context (these are reference material, not questions)
+- Terms and conditions the vendor must accept (not a response field)
+- Table of contents, headers, page numbers, or administrative boilerplate
+- Evaluation criteria descriptions (these explain how responses will be scored, not what to respond to)
+
+When a section is not phrased as a question but clearly expects vendor input, rewrite it as a question. For example: "Section B describes qualifications needed" should become "What are your qualifications for the requirements described in Section B?"`,
+      prompt: `Analyze the following ${input.pages}-page document and identify all sections requiring a vendor response.
+
+For each identified requirement, provide:
+- A unique ID (field-1, field-2, ...)
 - The field type (text, paragraph, checkbox, table, date, or number)
-- The question or label text
+- The question or requirement text (rewritten as a question if the original is not phrased as one)
 - The approximate position in the document (page number and coordinates)
 
-Also provide a brief summary of the document's purpose and content.
+Also provide a brief summary of the document's purpose, the issuing organization, and the type of services or goods being requested.
 
 Document text:
 

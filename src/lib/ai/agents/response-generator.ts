@@ -72,10 +72,44 @@ export async function generateResponses(input: GenerateResponsesInput): Promise<
     }
   }
 
+  const fieldsText = input.fields
+    .map((f) => `- [${f.id}] (${f.type}) ${f.question}`)
+    .join('\n')
+
+  const knowledgeText = input.knowledgeContext.length > 0
+    ? input.knowledgeContext
+        .sort((a, b) => b.relevanceScore - a.relevanceScore)
+        .map((k) => `[${k.source}] (relevance: ${Math.round(k.relevanceScore * 100)}%)\n${k.content}`)
+        .join('\n\n')
+    : '(No knowledge base content available — generate reasonable drafts but flag for human review.)'
+
   const result = await generateObject({
     model,
     schema: responseSchema,
-    prompt: `Generate responses for the following RFP fields based on the knowledge context provided.\n\nFields:\n${JSON.stringify(input.fields)}\n\nKnowledge Context:\n${JSON.stringify(input.knowledgeContext)}${learningsSection}${customerSection}`,
+    system: `You are an expert RFP response writer. Generate high-quality, specific responses for each RFP field using the knowledge context provided.
+
+CRITICAL RULES:
+1. ALWAYS prefer knowledge base content over generic responses. If a knowledge entry is relevant (relevance > 50%), incorporate its content — paraphrase and adapt it to answer the specific question, do not copy verbatim.
+2. For each response, list which knowledge sources you drew from in the sources array.
+3. If no knowledge context is relevant to a field, write a reasonable draft response but set confidenceScore below 0.5 to flag it for human review.
+4. Match the tone and detail level to the field type:
+   - text: concise, 1-2 sentences
+   - paragraph: detailed, 3-5 sentences minimum
+   - checkbox: "Yes" or "No" with brief justification
+   - table: structured data in markdown table format
+   - date: specific date or "TBD — [reason]"
+   - number: specific figure with units, or estimate with range
+5. Never fabricate certifications, statistics, or specific claims not supported by the knowledge context.
+6. Prefix any uncertain response with [NEEDS REVIEW].`,
+    prompt: `Generate responses for each RFP field below. Use the knowledge context to inform your answers — prioritize entries with higher relevance scores.
+
+Fields requiring responses:
+${fieldsText}
+
+Available Knowledge Context (sorted by relevance):
+${knowledgeText}${learningsSection}${customerSection}
+
+For each field, return: fieldId, responseText, confidenceScore (0-1), and sources (list of knowledge entry sources used).`,
   })
 
   return {

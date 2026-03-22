@@ -215,6 +215,7 @@ export default function CustomerDetailPage() {
                 <KnowledgeUploader
                   onUpload={handleUpload}
                   isUploading={isUploading}
+                  error={error}
                 />
               </DialogContent>
             </Dialog>

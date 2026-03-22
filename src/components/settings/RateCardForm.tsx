@@ -780,6 +780,46 @@ export function RateCardForm({ isAdmin }: RateCardFormProps) {
   }, [])
 
   async function handleSave() {
+    // Client-side validation before submitting
+    const validationErrors: Array<{ field: string; message: string }> = []
+
+    if (state.mode === 'blended') {
+      const br = parseNum(state.blendedRate)
+      if (br === null || br <= 0) {
+        validationErrors.push({ field: 'blendedRate', message: 'Blended rate is required and must be a positive number' })
+      }
+    } else {
+      if (state.roles.length === 0) {
+        validationErrors.push({ field: 'roles', message: 'At least one role is required in by-role mode' })
+      }
+      for (const r of state.roles) {
+        const rate = parseNum(r.rate)
+        if (rate === null || rate <= 0) {
+          validationErrors.push({ field: `role.${r.name || 'unnamed'}`, message: `Role "${r.name || 'unnamed'}" requires a positive rate` })
+        }
+        if (!r.name.trim()) {
+          validationErrors.push({ field: `role.${r.id}`, message: 'Role name is required' })
+        }
+      }
+    }
+
+    for (const d of state.discounts) {
+      if (!d.name.trim()) {
+        validationErrors.push({ field: `discount.${d.id}`, message: 'Discount name is required' })
+      }
+      const val = parseNum(d.value)
+      if (val === null || val < 0) {
+        validationErrors.push({ field: `discount.${d.name || 'unnamed'}`, message: `Discount "${d.name || 'unnamed'}" requires a non-negative value` })
+      } else if (d.type === 'percentage' && val > 1) {
+        validationErrors.push({ field: `discount.${d.name}`, message: `Discount "${d.name}" must be a decimal fraction ≤ 1 (e.g. 0.15 for 15%)` })
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      dispatch({ type: 'SAVE_ERROR', errors: validationErrors })
+      return
+    }
+
     dispatch({ type: 'SAVE_START' })
     const payload = buildPayload(state)
 
