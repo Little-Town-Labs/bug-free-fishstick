@@ -113,7 +113,7 @@ export const generateProposal = inngest.createFunction(
           catch { return null }
         }),
         step.run('search-requirements', async () => {
-          try { return await searchByRequirements(rfp.parsedStructure?.fields ?? [], organizationId, openaiApiKey) }
+          try { return await searchByRequirements(rfp.parsedStructure?.fields ?? [], organizationId, openaiApiKey, rfp.customerId ?? undefined) }
           catch { return [] }
         }),
         step.run('fetch-typed-supplier-context', async () => {

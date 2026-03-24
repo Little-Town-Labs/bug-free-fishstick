@@ -279,7 +279,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
       expect(fetchCustomerContext).toHaveBeenCalledWith('customer-1', 'org-1')
     })
 
-    it('calls searchByRequirements with parsed structure fields', async () => {
+    it('calls searchByRequirements with parsed structure fields and customerId', async () => {
       setupSuccessPath()
       const step = createMockStep()
       await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
@@ -288,6 +288,28 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
         mockRfp.parsedStructure.fields,
         'org-1',
         'decrypted-key',
+        'customer-1',
+      )
+    })
+
+    it('passes undefined to searchByRequirements when rfp.customerId is null', async () => {
+      // Override the RFP to have null customerId
+      mockSelectSequence([
+        { type: 'limited', rows: [{ k: 'encrypted-key' }] },
+        { type: 'limited', rows: [mockDraft] },
+        { type: 'limited', rows: [{ ...mockRfp, customerId: null }] },
+        { type: 'limited', rows: [{ cp: 'Acme Corp description.' }] },
+        { type: 'multi', rows: [mockRequiredTemplate] },
+        { type: 'multi', rows: [] },
+      ])
+      const step = createMockStep()
+      await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
+
+      expect(searchByRequirements).toHaveBeenCalledWith(
+        mockRfp.parsedStructure.fields,
+        'org-1',
+        'decrypted-key',
+        undefined,
       )
     })
 

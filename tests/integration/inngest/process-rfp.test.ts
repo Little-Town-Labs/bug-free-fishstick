@@ -46,8 +46,8 @@ vi.mock('@/lib/inngest/client', () => ({
   },
 }))
 
-vi.mock('@/lib/services/vector-search', () => ({
-  searchSimilar: vi.fn().mockResolvedValue([]),
+vi.mock('@/lib/services/proposal-retrieval', () => ({
+  searchByRequirements: vi.fn().mockResolvedValue([]),
 }))
 
 import { db } from '@/lib/db'
@@ -58,6 +58,7 @@ import { analyzeDocument } from '@/lib/ai/agents/document-analyzer'
 import type { DocumentAnalysisResult } from '@/lib/ai/agents/document-analyzer'
 import { generateResponses } from '@/lib/ai/agents/response-generator'
 import { checkQuality } from '@/lib/ai/agents/quality-checker'
+import { searchByRequirements } from '@/lib/services/proposal-retrieval'
 import { processRfp } from '@/lib/inngest/functions/process-rfp'
 
 // Helper function to create a mock step object
@@ -790,12 +791,45 @@ describe('process-rfp Inngest workflow', () => {
     })
   })
 
-  describe('searchSimilar integration', () => {
-    it('should call searchSimilar even when rfp.customerId is null', async () => {
-      const rfpId = 'rfp-140'
+  describe('searchByRequirements integration (KB-driven draft intelligence)', () => {
+    it('should call searchByRequirements with analyzed.fields instead of rfp.name', async () => {
+      const rfpId = 'rfp-kb-1'
       const organizationId = 'org-456'
-      // RFP with no customerId
-      const mockRfp = createMockRfp({ id: rfpId, organizationId, customerId: null })
+      const mockFields = [
+        { id: '1', question: 'What is your company name?', type: 'text' },
+        { id: '2', question: 'Describe your experience', type: 'paragraph' },
+      ]
+      const mockRfp = createMockRfp({ id: rfpId, organizationId, customerId: 'cust-1' })
+      const mockAnalyzed = createMockAnalyzedResult(mockFields)
+
+      setupStandardDbMocks(mockRfp)
+      vi.mocked(downloadFile).mockResolvedValue(Buffer.from('data'))
+      vi.mocked(parsePdf).mockResolvedValue(createMockParsedPdf('text'))
+      vi.mocked(analyzeDocument).mockResolvedValue(mockAnalyzed)
+      vi.mocked(generateResponses).mockResolvedValue({ responses: [] })
+      vi.mocked(checkQuality).mockResolvedValue({ results: [] })
+
+      const step = createMockStep()
+      const event = createMockEvent({ rfpId, organizationId })
+
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
+
+      expect(searchByRequirements).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ id: '1', question: 'What is your company name?' }),
+          expect.objectContaining({ id: '2', question: 'Describe your experience' }),
+        ]),
+        organizationId,
+        undefined, // no BYOK openai key in setupStandardDbMocks
+        'cust-1',
+      )
+    })
+
+    it('should pass rfp.customerId to searchByRequirements', async () => {
+      const rfpId = 'rfp-kb-2'
+      const organizationId = 'org-456'
+      const customerId = 'customer-xyz'
+      const mockRfp = createMockRfp({ id: rfpId, organizationId, customerId })
 
       setupStandardDbMocks(mockRfp)
       vi.mocked(downloadFile).mockResolvedValue(Buffer.from('data'))
@@ -809,9 +843,81 @@ describe('process-rfp Inngest workflow', () => {
 
       await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
-      // searchSimilar should always be called, even without a customerId
-      const { searchSimilar } = await import('@/lib/services/vector-search')
-      expect(vi.mocked(searchSimilar)).toHaveBeenCalled()
+      expect(searchByRequirements).toHaveBeenCalledWith(
+        expect.any(Array),
+        organizationId,
+        undefined, // no BYOK openai key in setupStandardDbMocks
+        customerId,
+      )
+    })
+
+    it('should map searchByRequirements results to knowledgeContext format', async () => {
+      const rfpId = 'rfp-kb-3'
+      const organizationId = 'org-456'
+      const mockRfp = createMockRfp({ id: rfpId, organizationId, customerId: 'cust-1' })
+
+      vi.mocked(searchByRequirements).mockResolvedValueOnce([
+        {
+          id: 'kb-1', organizationId, customerId: null, type: 'company_doc',
+          title: 'Company Overview', content: 'Acme Corp is a leader in tech.',
+          similarity: 0.95, tags: null, metadata: null, chunkIndex: null,
+          totalChunks: null, sectionHeading: null, sourceEntryId: null,
+          processingStatus: 'complete' as const,
+          createdAt: new Date(), updatedAt: new Date(),
+        },
+      ])
+
+      setupStandardDbMocks(mockRfp)
+      vi.mocked(downloadFile).mockResolvedValue(Buffer.from('data'))
+      vi.mocked(parsePdf).mockResolvedValue(createMockParsedPdf('text'))
+      vi.mocked(analyzeDocument).mockResolvedValue(createMockAnalyzedResult([
+        { id: '1', question: 'Q1', type: 'text' },
+      ]))
+      vi.mocked(generateResponses).mockResolvedValue(createMockGeneratedResponses([
+        { fieldId: '1', responseText: 'A1', confidenceScore: 0.9 },
+      ]))
+      vi.mocked(checkQuality).mockResolvedValue(createMockQualityResults(['1']))
+
+      const step = createMockStep()
+      const event = createMockEvent({ rfpId, organizationId })
+
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
+
+      expect(generateResponses).toHaveBeenCalledWith(
+        expect.objectContaining({
+          knowledgeContext: [
+            { content: 'Acme Corp is a leader in tech.', relevanceScore: 0.95, source: 'Company Overview' },
+          ],
+        }),
+      )
+    })
+
+    it('should continue without error when searchByRequirements returns empty', async () => {
+      const rfpId = 'rfp-kb-4'
+      const organizationId = 'org-456'
+      const mockRfp = createMockRfp({ id: rfpId, organizationId })
+
+      setupStandardDbMocks(mockRfp)
+      vi.mocked(downloadFile).mockResolvedValue(Buffer.from('data'))
+      vi.mocked(parsePdf).mockResolvedValue(createMockParsedPdf('text'))
+      vi.mocked(analyzeDocument).mockResolvedValue(createMockAnalyzedResult([
+        { id: '1', question: 'Q1', type: 'text' },
+      ]))
+      vi.mocked(generateResponses).mockResolvedValue(createMockGeneratedResponses([
+        { fieldId: '1', responseText: 'A1', confidenceScore: 0.9 },
+      ]))
+      vi.mocked(checkQuality).mockResolvedValue(createMockQualityResults(['1']))
+
+      const step = createMockStep()
+      const event = createMockEvent({ rfpId, organizationId })
+
+      await expect(
+        (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
+      ).resolves.not.toThrow()
+
+      expect(generateResponses).toHaveBeenCalledWith(
+        expect.objectContaining({ knowledgeContext: [] }),
+      )
     })
   })
 
