@@ -1,6 +1,17 @@
 import { pgTable, text, timestamp, uuid, date, real, integer, jsonb, index } from 'drizzle-orm/pg-core'
 import { customers } from './customers'
 
+export interface ExtractedRfpMetadata {
+  title: string | null
+  issuingOrganization: string | null
+  referenceNumber: string | null
+  submissionDeadline: string | null
+  projectStartDate: string | null
+  contactName: string | null
+  contactEmail: string | null
+  contactPhone: string | null
+}
+
 export const rfpStatuses = ['draft', 'processing', 'submitted', 'approved', 'finalized'] as const
 export type RfpStatus = (typeof rfpStatuses)[number]
 
@@ -55,6 +66,9 @@ export const rfps = pgTable(
     outcome: text('outcome', { enum: ['won', 'lost'] as const }),
     outcomeSetAt: timestamp('outcome_set_at'),
     crmDealId: text('crm_deal_id'),
+
+    // AI-extracted metadata from inbound RFP document
+    extractedMetadata: jsonb('extracted_metadata').$type<ExtractedRfpMetadata>(),
 
     // Parsed document structure (cached)
     parsedStructure: jsonb('parsed_structure').$type<{

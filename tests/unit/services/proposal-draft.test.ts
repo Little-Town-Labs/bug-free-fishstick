@@ -16,16 +16,30 @@ vi.mock('@/lib/inngest/client', () => ({
 
 vi.mock('@/lib/ai/agents/proposal-question-generator', () => ({
   generateClarifyingQuestions: vi.fn(),
+  MANDATORY_QUESTION_IDS: {
+    DELIVERABLES: 'scope-deliverables',
+    EXCLUSIONS: 'scope-exclusions',
+    TIMELINE: 'scope-timeline',
+  },
 }))
 
 vi.mock('@/lib/services/rate-card', () => ({
   getRateCard: vi.fn(),
 }))
 
+vi.mock('@/lib/services/vector-search', () => ({
+  searchSimilar: vi.fn().mockResolvedValue([]),
+}))
+
+vi.mock('@/lib/db/schema/knowledge-entries', () => ({
+  knowledgeEntries: { organizationId: 'organization_id', type: 'type', title: 'title' },
+}))
+
 import { db } from '@/lib/db'
 import { inngest } from '@/lib/inngest/client'
 import { generateClarifyingQuestions } from '@/lib/ai/agents/proposal-question-generator'
 import { getRateCard } from '@/lib/services/rate-card'
+import { searchSimilar } from '@/lib/services/vector-search'
 import {
   createDraft,
   submitAnswers,
@@ -234,6 +248,144 @@ describe('proposal-draft service', () => {
         )
       })
     })
+
+    describe('createDraft — KB pre-fill for clarifying questions', () => {
+      const mockRfpWithCustomer = { ...mockRfp, customerId: 'cust-1' }
+
+      function mockRfpAndKbSelect(rfpOverride = mockRfpWithCustomer) {
+        let selectCallCount = 0
+        vi.mocked(db.select).mockImplementation(() => {
+          selectCallCount++
+          if (selectCallCount === 1) {
+            // First select: RFP fetch
+            return {
+              from: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([rfpOverride]),
+                }),
+              }),
+            } as never
+          }
+          // Subsequent selects: KB topics/categories query
+          return {
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          } as never
+        })
+      }
+
+      it('should attach suggestedAnswer when KB match has similarity >= 0.7', async () => {
+        mockRfpAndKbSelect()
+        vi.mocked(getRateCard).mockResolvedValue({ rateCard: null, proposalDefaults: null })
+
+        const generatedQuestions = [
+          { id: 'scope-deliverables', question: 'What deliverables?', rfpSection: 'Scope', answer: null },
+          { id: 'q-extra', question: 'Security certifications?', rfpSection: 'Security', answer: null },
+        ]
+        vi.mocked(generateClarifyingQuestions).mockResolvedValue({ questions: generatedQuestions })
+
+        // KB returns a strong match for the non-mandatory question
+        vi.mocked(searchSimilar).mockResolvedValue([
+          {
+            id: 'kb-99', organizationId: 'org-1', customerId: null, type: 'certification',
+            title: 'ISO 27001 Certification', content: 'We hold ISO 27001 certification since 2020.',
+            similarity: 0.85, tags: null, metadata: null, chunkIndex: null, totalChunks: null,
+            sectionHeading: null, sourceEntryId: null, processingStatus: 'complete' as const,
+            createdAt: new Date(), updatedAt: new Date(),
+          },
+        ])
+
+        mockInsertReturns({ ...mockDraft, clarifyingQuestions: generatedQuestions })
+
+        await createDraft('rfp-1', 'org-1', 'user-1')
+
+        // Verify the insert was called with enriched questions
+        const insertCall = vi.mocked(db.insert).mock.results[0]
+        const valuesCall = (insertCall as { value: { values: ReturnType<typeof vi.fn> } }).value.values
+        const insertedData = valuesCall.mock.calls[0]![0]
+        const questions = insertedData.clarifyingQuestions
+
+        // Mandatory question should NOT have suggestions
+        const mandatory = questions.find((q: { id: string }) => q.id === 'scope-deliverables')
+        expect(mandatory.suggestedAnswer).toBeUndefined()
+
+        // Non-mandatory question should have KB suggestion
+        const extra = questions.find((q: { id: string }) => q.id === 'q-extra')
+        expect(extra.suggestedAnswer).toBe('We hold ISO 27001 certification since 2020.')
+        expect(extra.kbSourceId).toBe('kb-99')
+        expect(extra.kbSourceTitle).toBe('ISO 27001 Certification')
+        expect(extra.suggestionConfidence).toBe(0.85)
+      })
+
+      it('should not attach suggestion when KB match similarity < 0.7', async () => {
+        mockRfpAndKbSelect()
+        vi.mocked(getRateCard).mockResolvedValue({ rateCard: null, proposalDefaults: null })
+
+        const generatedQuestions = [
+          { id: 'q-extra', question: 'What is your approach?', rfpSection: 'Technical', answer: null },
+        ]
+        vi.mocked(generateClarifyingQuestions).mockResolvedValue({ questions: generatedQuestions })
+
+        // KB returns a weak match
+        vi.mocked(searchSimilar).mockResolvedValue([
+          {
+            id: 'kb-1', organizationId: 'org-1', customerId: null, type: 'company_doc',
+            title: 'About Us', content: 'We are a tech company.',
+            similarity: 0.5, tags: null, metadata: null, chunkIndex: null, totalChunks: null,
+            sectionHeading: null, sourceEntryId: null, processingStatus: 'complete' as const,
+            createdAt: new Date(), updatedAt: new Date(),
+          },
+        ])
+
+        mockInsertReturns({ ...mockDraft, clarifyingQuestions: generatedQuestions })
+
+        await createDraft('rfp-1', 'org-1', 'user-1')
+
+        const insertCall = vi.mocked(db.insert).mock.results[0]
+        const valuesCall = (insertCall as { value: { values: ReturnType<typeof vi.fn> } }).value.values
+        const insertedData = valuesCall.mock.calls[0]![0]
+        const q = insertedData.clarifyingQuestions[0]
+
+        expect(q.suggestedAnswer).toBeUndefined()
+        expect(q.kbSourceId).toBeUndefined()
+      })
+
+      it('should handle empty KB gracefully — questions still generated, no suggestions', async () => {
+        mockRfpAndKbSelect()
+        vi.mocked(getRateCard).mockResolvedValue({ rateCard: null, proposalDefaults: null })
+
+        const generatedQuestions = [
+          { id: 'q-1', question: 'Timeline?', rfpSection: 'Schedule', answer: null },
+        ]
+        vi.mocked(generateClarifyingQuestions).mockResolvedValue({ questions: generatedQuestions })
+        vi.mocked(searchSimilar).mockResolvedValue([])
+
+        mockInsertReturns({ ...mockDraft, clarifyingQuestions: generatedQuestions })
+
+        const result = await createDraft('rfp-1', 'org-1', 'user-1')
+
+        expect(result).toBeDefined()
+        expect(result.status).toBe('awaiting_answers')
+      })
+
+      it('should degrade gracefully when searchSimilar throws', async () => {
+        mockRfpAndKbSelect()
+        vi.mocked(getRateCard).mockResolvedValue({ rateCard: null, proposalDefaults: null })
+
+        const generatedQuestions = [
+          { id: 'q-1', question: 'Approach?', rfpSection: 'Technical', answer: null },
+        ]
+        vi.mocked(generateClarifyingQuestions).mockResolvedValue({ questions: generatedQuestions })
+        vi.mocked(searchSimilar).mockRejectedValue(new Error('Embedding API down'))
+
+        mockInsertReturns({ ...mockDraft, clarifyingQuestions: generatedQuestions })
+
+        // Should not throw — questions are still saved without suggestions
+        const result = await createDraft('rfp-1', 'org-1', 'user-1')
+        expect(result).toBeDefined()
+      })
+    })
   })
 
   describe('submitAnswers', () => {
@@ -277,6 +429,46 @@ describe('proposal-draft service', () => {
       mockSelectReturns([])
 
       await expect(submitAnswers('draft-1', 'wrong-org', [])).rejects.toThrow()
+    })
+
+    it('should preserve KB suggestion fields when merging answers', async () => {
+      const questionsWithSuggestions = [
+        {
+          id: 'q1', question: 'Pricing model?', rfpSection: 'Pricing', answer: null,
+          suggestedAnswer: 'We offer time and materials pricing.',
+          kbSourceId: 'kb-1', kbSourceTitle: 'Pricing Guide', suggestionConfidence: 0.85,
+        },
+        {
+          id: 'q2', question: 'Certifications?', rfpSection: 'Standards', answer: null,
+          suggestedAnswer: null, kbSourceId: null, kbSourceTitle: null, suggestionConfidence: null,
+        },
+      ]
+      const draftWithSuggestions = { ...mockDraft, clarifyingQuestions: questionsWithSuggestions }
+
+      mockSelectReturns([draftWithSuggestions])
+
+      const setMock = vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ ...draftWithSuggestions, status: 'generating' }]),
+        }),
+      })
+      vi.mocked(db.update).mockReturnValue({ set: setMock } as never)
+
+      await submitAnswers('draft-1', 'org-1', [
+        { id: 'q1', answer: 'User override answer' },
+        { id: 'q2', answer: 'Manual answer' },
+      ])
+
+      const updatedQuestions = setMock.mock.calls[0]![0].clarifyingQuestions
+      // q1: user answer overwrites, but suggestion fields preserved
+      expect(updatedQuestions[0].answer).toBe('User override answer')
+      expect(updatedQuestions[0].suggestedAnswer).toBe('We offer time and materials pricing.')
+      expect(updatedQuestions[0].kbSourceId).toBe('kb-1')
+      expect(updatedQuestions[0].kbSourceTitle).toBe('Pricing Guide')
+      expect(updatedQuestions[0].suggestionConfidence).toBe(0.85)
+      // q2: no suggestions, answer set
+      expect(updatedQuestions[1].answer).toBe('Manual answer')
+      expect(updatedQuestions[1].suggestedAnswer).toBeNull()
     })
   })
 

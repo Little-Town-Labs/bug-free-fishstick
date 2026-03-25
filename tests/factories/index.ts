@@ -105,6 +105,7 @@ export function createMockRfp(overrides: Partial<Rfp> = {}): Rfp {
     outcome: null,
     outcomeSetAt: null,
     crmDealId: null,
+    extractedMetadata: null,
     parsedStructure: null,
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date('2025-01-01T00:00:00Z'),

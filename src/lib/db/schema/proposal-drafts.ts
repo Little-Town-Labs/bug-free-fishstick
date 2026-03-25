@@ -15,6 +15,10 @@ export interface ClarifyingQuestion {
   question: string
   rfpSection: string
   answer: string | null
+  suggestedAnswer?: string | null
+  kbSourceId?: string | null
+  kbSourceTitle?: string | null
+  suggestionConfidence?: number | null
 }
 
 export interface CoverageRequirement {

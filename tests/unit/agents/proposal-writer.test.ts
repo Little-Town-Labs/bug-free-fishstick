@@ -143,4 +143,140 @@ describe('proposal-writer (F8 interface)', () => {
 
     expect(result.markdownContent).toBe(mockMarkdown)
   })
+
+  describe('KB source attribution (KB-driven draft intelligence)', () => {
+    it('system prompt instructs source blockquotes after each section heading', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+      expect(args.system).toContain('source blockquote')
+    })
+
+    it('system prompt includes "No knowledge base match" gap indicator', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+      expect(args.system).toContain('No knowledge base match')
+    })
+
+    it('prompt includes KB entry titles in knowledge base context', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('About Us')
+    })
+  })
+
+  describe('RFP metadata integration (KB-driven draft intelligence)', () => {
+    it('includes rfpMetadata title in prompt when provided', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        rfpName: 'Fallback Name',
+        rfpMetadata: {
+          title: 'Request for Proposal: Cloud Migration Services',
+          issuingOrganization: 'Acme Corporation',
+          referenceNumber: 'RFP-2026-089',
+          submissionDeadline: 'March 31, 2026',
+          projectStartDate: 'May 1, 2026',
+          contactName: 'Jane Smith',
+          contactEmail: 'jane@acme.com',
+          contactPhone: null,
+        },
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('Request for Proposal: Cloud Migration Services')
+      expect(args.prompt).toContain('Acme Corporation')
+      expect(args.prompt).toContain('March 31, 2026')
+      expect(args.prompt).toContain('RFP-2026-089')
+    })
+
+    it('uses rfpName as fallback when rfpMetadata title is null', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        rfpName: 'My Custom RFP Name',
+        rfpMetadata: {
+          title: null,
+          issuingOrganization: null,
+          referenceNumber: null,
+          submissionDeadline: null,
+          projectStartDate: null,
+          contactName: null,
+          contactEmail: null,
+          contactPhone: null,
+        },
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('My Custom RFP Name')
+    })
+
+    it('uses rfpName as fallback when rfpMetadata is undefined', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        rfpName: 'Fallback RFP Title',
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('Fallback RFP Title')
+    })
+
+    it('omits null metadata fields from prompt (no "null" or "N/A" rendered)', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        rfpName: 'Test RFP',
+        rfpMetadata: {
+          title: 'Test RFP Title',
+          issuingOrganization: null,
+          referenceNumber: null,
+          submissionDeadline: null,
+          projectStartDate: null,
+          contactName: null,
+          contactEmail: null,
+          contactPhone: null,
+        },
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      // Should not contain literal "null" as a metadata value
+      expect(args.prompt).not.toMatch(/Issuing Organization:.*null/i)
+      expect(args.prompt).not.toMatch(/Reference Number:.*null/i)
+    })
+
+    it('system prompt instructs to use exact RFP title verbatim', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        rfpName: 'Test',
+        rfpMetadata: {
+          title: 'Test Title',
+          issuingOrganization: null,
+          referenceNumber: null,
+          submissionDeadline: null,
+          projectStartDate: null,
+          contactName: null,
+          contactEmail: null,
+          contactPhone: null,
+        },
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+      expect(args.system).toMatch(/exact RFP title/i)
+    })
+  })
 })

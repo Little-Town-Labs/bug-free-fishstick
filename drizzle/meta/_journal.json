@@ -64,6 +64,13 @@
       "when": 1771200000000,
       "tag": "0008_proposal_bid_engine",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774598400000,
+      "tag": "0009_kb_driven_draft_intelligence",
+      "breakpoints": true
     }
   ]
 }

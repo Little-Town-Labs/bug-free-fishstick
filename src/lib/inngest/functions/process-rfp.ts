@@ -10,7 +10,8 @@ import { parseWord } from '@/lib/documents/word-parser'
 import { analyzeDocument } from '@/lib/ai/agents/document-analyzer'
 import { generateResponses } from '@/lib/ai/agents/response-generator'
 import { checkQuality } from '@/lib/ai/agents/quality-checker'
-import { searchSimilar } from '@/lib/services/vector-search'
+import { searchByRequirements } from '@/lib/services/proposal-retrieval'
+import type { RequirementField } from '@/lib/services/proposal-retrieval'
 import { classifyRfp } from '@/lib/ai/agents/rfp-classifier'
 import { suggestAssignee } from '@/lib/services/rfp-classifier'
 import { decrypt } from '@/lib/services/encryption'
@@ -131,8 +132,13 @@ export const processRfp = inngest.createFunction(
     const generatedResponses = await step.run('generate-responses', async () => {
       // Fetch knowledge context, learnings, and customer settings in parallel
       const customerId = rfp.customerId ?? undefined
+      const searchFields: RequirementField[] = analyzed.fields.map((f) => ({
+        id: f.id,
+        question: f.question,
+        type: f.type,
+      }))
       const [knowledgeContext, orgLearnings, customerResults] = await Promise.all([
-        searchSimilar(rfp.name, organizationId, 10, customerId, openaiApiKey).then((results) =>
+        searchByRequirements(searchFields, organizationId, openaiApiKey, customerId).then((results) =>
           results.map((r) => ({
             content: r.content,
             relevanceScore: r.similarity,
@@ -227,7 +233,7 @@ export const processRfp = inngest.createFunction(
       return await db.insert(rfpResponses).values(responseValues).returning()
     })
 
-    // Step 8: Update RFP with final status and metadata
+    // Step 8: Update RFP with final status, metadata, and auto-populated fields
     await step.run('update-rfp', async () => {
       const fields = analyzed.fields || []
       const autoFilledCount = generatedResponses.responses.filter(
@@ -236,21 +242,35 @@ export const processRfp = inngest.createFunction(
       const automationPercentage =
         fields.length > 0 ? Math.round((autoFilledCount / fields.length) * 100) : 0
 
+      // Build update payload — auto-populate only when user hasn't entered a value
+      const updatePayload: Record<string, unknown> = {
+        status: 'draft' as const,
+        parsedStructure: {
+          pages: 'pages' in parsedDoc ? parsedDoc.pages : 1,
+          fields: fields.map((f) => ({
+            id: f.id,
+            type: f.type as 'text' | 'paragraph' | 'checkbox' | 'table',
+            question: f.question,
+            position: f.position,
+          })),
+        },
+        automationPercentage,
+        extractedMetadata: analyzed.metadata ?? null,
+      }
+
+      // Auto-populate dueDate from extracted submission deadline (user data takes precedence)
+      if (!rfp.dueDate && analyzed.metadata?.submissionDeadline) {
+        updatePayload.dueDate = analyzed.metadata.submissionDeadline
+      }
+
+      // Auto-populate customerCompanyName from extracted issuing org (user data takes precedence)
+      if (!rfp.customerCompanyName && analyzed.metadata?.issuingOrganization) {
+        updatePayload.customerCompanyName = analyzed.metadata.issuingOrganization
+      }
+
       return await db
         .update(rfps)
-        .set({
-          status: 'draft' as const,
-          parsedStructure: {
-            pages: 'pages' in parsedDoc ? parsedDoc.pages : 1,
-            fields: fields.map((f) => ({
-              id: f.id,
-              type: f.type as 'text' | 'paragraph' | 'checkbox' | 'table',
-              question: f.question,
-              position: f.position,
-            })),
-          },
-          automationPercentage,
-        })
+        .set(updatePayload)
         .where(eq(rfps.id, rfpId))
         .returning()
     })

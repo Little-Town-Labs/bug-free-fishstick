@@ -4,7 +4,7 @@ import type { KnowledgeEntry } from '@/lib/db/schema/knowledge-entries'
 import { customers } from '@/lib/db/schema/customers'
 import type { Customer } from '@/lib/db/schema/customers'
 import { learnings } from '@/lib/db/schema/learnings'
-import { generateEmbedding } from '@/lib/ai/embeddings'
+import { generateEmbeddings } from '@/lib/ai/embeddings'
 import type { KnowledgeEntryWithSimilarity } from '@/lib/services/vector-search'
 import { eq, and, or, isNull, isNotNull, sql } from 'drizzle-orm'
 
@@ -14,8 +14,9 @@ export type { Learning } from '@/lib/db/schema/learnings'
 
 // ─── Module constants ────────────────────────────────────────────────────────
 
-const REQUIREMENT_SEARCH_CAP = 10
+const REQUIREMENT_SEARCH_CAP = 20
 const RESULTS_PER_REQUIREMENT = 5
+export const CUSTOMER_BOOST_FACTOR = 1.3
 
 // ─── Exported types ──────────────────────────────────────────────────────────
 
@@ -40,20 +41,44 @@ export type CustomerContext = NonNullable<Customer['settings']> | null
  * Performs one semantic similarity query per requirement field (capped at
  * REQUIREMENT_SEARCH_CAP), merges results, and deduplicates by entry ID —
  * keeping the instance with the highest similarity score.
+ *
+ * When `customerId` is provided, queries include both customer-scoped and
+ * org-wide entries (union filter), and customer entries receive a
+ * CUSTOMER_BOOST_FACTOR multiplier on their similarity score.
+ *
+ * Uses batch `generateEmbeddings` for a single API round-trip.
  */
 export async function searchByRequirements(
   fields: RequirementField[],
   orgId: string,
-  openaiApiKey?: string
+  openaiApiKey?: string,
+  customerId?: string
 ): Promise<KnowledgeEntryWithSimilarity[]> {
   if (!fields.length) return []
   if (!openaiApiKey && !process.env.OPENAI_API_KEY) return []
 
   const cappedFields = fields.slice(0, REQUIREMENT_SEARCH_CAP)
 
+  // Batch all embeddings in a single API call
+  let embeddings: number[][]
+  try {
+    embeddings = await generateEmbeddings(
+      cappedFields.map((f) => f.question),
+      openaiApiKey
+    )
+  } catch {
+    return []
+  }
+
+  // Customer-scoped filter: include customer entries + org-wide (null) entries
+  const customerFilter = customerId
+    ? or(eq(knowledgeEntries.customerId, customerId), isNull(knowledgeEntries.customerId))
+    : isNull(knowledgeEntries.customerId)
+
   const settled = await Promise.allSettled(
-    cappedFields.map(async (field) => {
-      const embedding = await generateEmbedding(field.question, openaiApiKey)
+    cappedFields.map(async (_field, idx) => {
+      const embedding = embeddings[idx]
+      if (!embedding) return []
       const embeddingJson = JSON.stringify(embedding)
 
       return db
@@ -79,7 +104,8 @@ export async function searchByRequirements(
         .where(
           and(
             eq(knowledgeEntries.organizationId, orgId),
-            isNotNull(knowledgeEntries.embedding)
+            isNotNull(knowledgeEntries.embedding),
+            customerFilter
           )
         )
         .orderBy(sql`${knowledgeEntries.embedding} <=> ${embeddingJson}::vector`)
@@ -87,13 +113,26 @@ export async function searchByRequirements(
     })
   )
 
+  // Apply customer boost and deduplicate
   const dedupeMap = new Map<string, KnowledgeEntryWithSimilarity>()
   for (const result of settled) {
     if (result.status !== 'fulfilled') continue
     for (const entry of result.value as KnowledgeEntryWithSimilarity[]) {
+      // Apply boost to customer-specific entries
+      const boostedSimilarity =
+        customerId && entry.customerId === customerId
+          ? entry.similarity * CUSTOMER_BOOST_FACTOR
+          : entry.similarity
+      const boostedEntry = { ...entry, similarity: boostedSimilarity }
+
       const existing = dedupeMap.get(entry.id)
-      if (!existing || entry.similarity > existing.similarity) {
-        dedupeMap.set(entry.id, entry)
+      if (!existing) {
+        dedupeMap.set(entry.id, boostedEntry)
+      } else if (boostedSimilarity > existing.similarity) {
+        dedupeMap.set(entry.id, boostedEntry)
+      } else if (boostedSimilarity === existing.similarity && customerId && entry.customerId === customerId) {
+        // Tie-breaker: prefer customer-scoped entry
+        dedupeMap.set(entry.id, boostedEntry)
       }
     }
   }

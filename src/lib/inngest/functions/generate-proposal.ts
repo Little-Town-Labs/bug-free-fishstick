@@ -21,6 +21,7 @@ import { computePricingEstimate } from '@/lib/services/pricing-computation'
 import { writeProposal } from '@/lib/ai/agents/proposal-writer'
 import { checkCoverage } from '@/lib/ai/agents/proposal-coverage-checker'
 import { updateDraftContent } from '@/lib/services/proposal-draft'
+import { computeKbCoveragePercentage } from '@/lib/services/kb-coverage-metric'
 
 // ─── Private helpers ────────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ export const generateProposal = inngest.createFunction(
           catch { return null }
         }),
         step.run('search-requirements', async () => {
-          try { return await searchByRequirements(rfp.parsedStructure?.fields ?? [], organizationId, openaiApiKey) }
+          try { return await searchByRequirements(rfp.parsedStructure?.fields ?? [], organizationId, openaiApiKey, rfp.customerId ?? undefined) }
           catch { return [] }
         }),
         step.run('fetch-typed-supplier-context', async () => {
@@ -185,6 +186,8 @@ export const generateProposal = inngest.createFunction(
           pricingMarkdown,
           clarifyingAnswers: draft.clarifyingQuestions ?? [],
           organizationId,
+          rfpName: rfp.name,
+          rfpMetadata: rfp.extractedMetadata,
         })
       })
 
@@ -212,9 +215,11 @@ export const generateProposal = inngest.createFunction(
         return markdownContent + renderTemplatesBlock(allTemplates)
       })
 
-      // Step 11: Save content + coverage report
+      // Step 11: Compute KB coverage metric and save content + coverage report
       await step.run('save-proposal-content', async () => {
-        return updateDraftContent(draftId, organizationId, finalMarkdown, coverageReport)
+        const kbCoveragePercentage = computeKbCoveragePercentage(finalMarkdown)
+        const enrichedCoverageReport = { ...coverageReport, kbCoveragePercentage }
+        return updateDraftContent(draftId, organizationId, finalMarkdown, enrichedCoverageReport)
       })
 
       return { draftId, status: 'draft' }

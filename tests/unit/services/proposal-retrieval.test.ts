@@ -21,6 +21,7 @@ vi.mock('@/lib/db', () => ({
 
 vi.mock('@/lib/ai/embeddings', () => ({
   generateEmbedding: vi.fn(),
+  generateEmbeddings: vi.fn(),
 }))
 
 import {
@@ -28,8 +29,10 @@ import {
   fetchTypedSupplierContext,
   fetchCustomerContext,
   fetchLearnings,
+  CUSTOMER_BOOST_FACTOR,
 } from '@/lib/services/proposal-retrieval'
 import { generateEmbedding } from '@/lib/ai/embeddings'
+import { generateEmbeddings } from '@/lib/ai/embeddings'
 import {
   createMockKnowledgeEntry,
   createMockCustomer,
@@ -79,26 +82,26 @@ describe('searchByRequirements', () => {
     expect(generateEmbedding).not.toHaveBeenCalled()
   })
 
-  it('calls generateEmbedding once for a single field and returns results', async () => {
+  it('calls generateEmbeddings (batch) for a single field and returns results', async () => {
     const entry = makeEntryWithSimilarity({ organizationId: ORG_ID })
-    vi.mocked(generateEmbedding).mockResolvedValue(MOCK_EMBEDDING)
+    vi.mocked(generateEmbeddings).mockResolvedValue([MOCK_EMBEDDING])
     limitMock.mockResolvedValue([entry])
 
     const fields = [{ id: 'f1', question: 'What are your security certifications?' }]
     const result = await searchByRequirements(fields, ORG_ID, 'test-key')
 
-    expect(generateEmbedding).toHaveBeenCalledTimes(1)
-    expect(generateEmbedding).toHaveBeenCalledWith(fields[0]!.question, 'test-key')
+    expect(generateEmbeddings).toHaveBeenCalledTimes(1)
+    expect(generateEmbeddings).toHaveBeenCalledWith([fields[0]!.question], 'test-key')
     expect(result).toHaveLength(1)
     expect(result[0]!.id).toBe(entry.id)
   })
 
-  it('calls generateEmbedding once per field for multiple fields and merges results', async () => {
+  it('batch-embeds all field questions and merges results', async () => {
     const entry1 = makeEntryWithSimilarity({ id: 'entry-1', organizationId: ORG_ID, similarity: 0.9 })
     const entry2 = makeEntryWithSimilarity({ id: 'entry-2', organizationId: ORG_ID, similarity: 0.8 })
     const entry3 = makeEntryWithSimilarity({ id: 'entry-3', organizationId: ORG_ID, similarity: 0.7 })
 
-    vi.mocked(generateEmbedding).mockResolvedValue(MOCK_EMBEDDING)
+    vi.mocked(generateEmbeddings).mockResolvedValue([MOCK_EMBEDDING, MOCK_EMBEDDING, MOCK_EMBEDDING])
     limitMock
       .mockResolvedValueOnce([entry1])
       .mockResolvedValueOnce([entry2])
@@ -111,29 +114,31 @@ describe('searchByRequirements', () => {
     ]
     const result = await searchByRequirements(fields, ORG_ID, 'test-key')
 
-    expect(generateEmbedding).toHaveBeenCalledTimes(3)
+    expect(generateEmbeddings).toHaveBeenCalledTimes(1)
     expect(result).toHaveLength(3)
   })
 
-  it('caps at REQUIREMENT_SEARCH_CAP (10) and ignores extra fields', async () => {
-    vi.mocked(generateEmbedding).mockResolvedValue(MOCK_EMBEDDING)
+  it('caps at REQUIREMENT_SEARCH_CAP (20) and ignores extra fields', async () => {
+    vi.mocked(generateEmbeddings).mockResolvedValue(
+      Array.from({ length: 20 }, () => MOCK_EMBEDDING)
+    )
     limitMock.mockResolvedValue([])
 
-    const fields = Array.from({ length: 12 }, (_, i) => ({
+    const fields = Array.from({ length: 25 }, (_, i) => ({
       id: `f${i}`,
       question: `Question ${i}`,
     }))
 
     await searchByRequirements(fields, ORG_ID, 'test-key')
 
-    expect(generateEmbedding).toHaveBeenCalledTimes(10)
+    expect(vi.mocked(generateEmbeddings).mock.calls[0]![0]).toHaveLength(20)
   })
 
   it('deduplicates entries: keeps highest similarity when same id appears in multiple queries', async () => {
     const entryHighSim = makeEntryWithSimilarity({ id: 'id-A', organizationId: ORG_ID, similarity: 0.9 })
     const entryLowSim = makeEntryWithSimilarity({ id: 'id-A', organizationId: ORG_ID, similarity: 0.7 })
 
-    vi.mocked(generateEmbedding).mockResolvedValue(MOCK_EMBEDDING)
+    vi.mocked(generateEmbeddings).mockResolvedValue([MOCK_EMBEDDING, MOCK_EMBEDDING])
     limitMock
       .mockResolvedValueOnce([entryHighSim])
       .mockResolvedValueOnce([entryLowSim])
@@ -153,7 +158,7 @@ describe('searchByRequirements', () => {
     const entryLowSim = makeEntryWithSimilarity({ id: 'id-B', organizationId: ORG_ID, similarity: 0.6 })
     const entryHighSim = makeEntryWithSimilarity({ id: 'id-B', organizationId: ORG_ID, similarity: 0.95 })
 
-    vi.mocked(generateEmbedding).mockResolvedValue(MOCK_EMBEDDING)
+    vi.mocked(generateEmbeddings).mockResolvedValue([MOCK_EMBEDDING, MOCK_EMBEDDING])
     limitMock
       .mockResolvedValueOnce([entryLowSim])
       .mockResolvedValueOnce([entryHighSim])
@@ -178,23 +183,182 @@ describe('searchByRequirements', () => {
     expect(generateEmbedding).not.toHaveBeenCalled()
   })
 
-  it('isolates a single embedding call failure — other queries continue', async () => {
-    const goodEntry = makeEntryWithSimilarity({ id: 'good-entry', organizationId: ORG_ID, similarity: 0.85 })
-
-    vi.mocked(generateEmbedding)
-      .mockRejectedValueOnce(new Error('API rate limit'))
-      .mockResolvedValueOnce(MOCK_EMBEDDING)
-
-    limitMock.mockResolvedValueOnce([goodEntry])
+  it('returns empty array when batch embedding fails entirely', async () => {
+    vi.mocked(generateEmbeddings).mockRejectedValue(new Error('API rate limit'))
 
     const fields = [
-      { id: 'f1', question: 'First question — will fail' },
-      { id: 'f2', question: 'Second question — will succeed' },
+      { id: 'f1', question: 'First question' },
+      { id: 'f2', question: 'Second question' },
     ]
 
     const result = await searchByRequirements(fields, ORG_ID, 'test-key')
 
-    expect(result.some((e) => e.id === 'good-entry')).toBe(true)
+    expect(result).toEqual([])
+  })
+})
+
+// ─── searchByRequirements: enhanced features (011-kb-driven-draft-intelligence) ─
+
+describe('searchByRequirements — customer boost & batch embeddings', () => {
+  const CUSTOMER_ID = 'cust-abc123'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.OPENAI_API_KEY = 'test-key'
+
+    limitMock.mockResolvedValue([])
+    orderByMock.mockReturnValue({ limit: limitMock })
+    whereMock.mockReturnValue({ orderBy: orderByMock, limit: limitMock })
+    fromMock.mockReturnValue({ where: whereMock })
+    selectMock.mockReturnValue({ from: fromMock })
+  })
+
+  it('exports CUSTOMER_BOOST_FACTOR as a named constant equal to 1.3', () => {
+    expect(CUSTOMER_BOOST_FACTOR).toBe(1.3)
+  })
+
+  it('applies 1.3x boost to customer-specific entries when customerId provided', async () => {
+    const customerEntry = makeEntryWithSimilarity({
+      id: 'cust-entry',
+      organizationId: ORG_ID,
+      customerId: CUSTOMER_ID,
+      similarity: 0.7,
+    })
+    const orgEntry = makeEntryWithSimilarity({
+      id: 'org-entry',
+      organizationId: ORG_ID,
+      customerId: null,
+      similarity: 0.8,
+    })
+
+    vi.mocked(generateEmbeddings).mockResolvedValue([MOCK_EMBEDDING])
+    limitMock.mockResolvedValue([customerEntry, orgEntry])
+
+    const fields = [{ id: 'f1', question: 'What certifications do you have?' }]
+    const result = await searchByRequirements(fields, ORG_ID, 'test-key', CUSTOMER_ID)
+
+    const boostedCustomerEntry = result.find((e) => e.id === 'cust-entry')
+    const unboostedOrgEntry = result.find((e) => e.id === 'org-entry')
+
+    expect(boostedCustomerEntry).toBeDefined()
+    expect(boostedCustomerEntry!.similarity).toBeCloseTo(0.7 * 1.3, 5)
+    expect(unboostedOrgEntry).toBeDefined()
+    expect(unboostedOrgEntry!.similarity).toBe(0.8)
+  })
+
+  it('does not boost entries when no customerId is provided', async () => {
+    const orgEntry = makeEntryWithSimilarity({
+      id: 'org-entry',
+      organizationId: ORG_ID,
+      customerId: null,
+      similarity: 0.8,
+    })
+
+    vi.mocked(generateEmbeddings).mockResolvedValue([MOCK_EMBEDDING])
+    limitMock.mockResolvedValue([orgEntry])
+
+    const fields = [{ id: 'f1', question: 'Test question' }]
+    const result = await searchByRequirements(fields, ORG_ID, 'test-key')
+
+    expect(result[0]!.similarity).toBe(0.8)
+  })
+
+  it('includes both customer-scoped and org-wide entries when customerId provided', async () => {
+    const customerEntry = makeEntryWithSimilarity({
+      id: 'cust-entry',
+      organizationId: ORG_ID,
+      customerId: CUSTOMER_ID,
+      similarity: 0.6,
+    })
+    const orgEntry = makeEntryWithSimilarity({
+      id: 'org-entry',
+      organizationId: ORG_ID,
+      customerId: null,
+      similarity: 0.8,
+    })
+
+    vi.mocked(generateEmbeddings).mockResolvedValue([MOCK_EMBEDDING])
+    limitMock.mockResolvedValue([customerEntry, orgEntry])
+
+    const fields = [{ id: 'f1', question: 'Question' }]
+    const result = await searchByRequirements(fields, ORG_ID, 'test-key', CUSTOMER_ID)
+
+    expect(result).toHaveLength(2)
+    expect(result.some((e) => e.customerId === CUSTOMER_ID)).toBe(true)
+    expect(result.some((e) => e.customerId === null)).toBe(true)
+  })
+
+  it('prefers customer-scoped entry during dedup when boosted scores are equal', async () => {
+    // Customer entry: 0.6 * 1.3 = 0.78, org entry: 0.78 — tied after boost
+    const customerEntry = makeEntryWithSimilarity({
+      id: 'same-id',
+      organizationId: ORG_ID,
+      customerId: CUSTOMER_ID,
+      similarity: 0.6,
+    })
+    const orgEntry = makeEntryWithSimilarity({
+      id: 'same-id',
+      organizationId: ORG_ID,
+      customerId: null,
+      similarity: 0.78,
+    })
+
+    vi.mocked(generateEmbeddings).mockResolvedValue([MOCK_EMBEDDING, MOCK_EMBEDDING])
+    limitMock
+      .mockResolvedValueOnce([customerEntry])
+      .mockResolvedValueOnce([orgEntry])
+
+    const fields = [
+      { id: 'f1', question: 'Q1' },
+      { id: 'f2', question: 'Q2' },
+    ]
+    const result = await searchByRequirements(fields, ORG_ID, 'test-key', CUSTOMER_ID)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]!.customerId).toBe(CUSTOMER_ID)
+  })
+
+  it('uses batch generateEmbeddings instead of individual generateEmbedding calls', async () => {
+    vi.mocked(generateEmbeddings).mockResolvedValue([MOCK_EMBEDDING, MOCK_EMBEDDING, MOCK_EMBEDDING])
+    limitMock.mockResolvedValue([])
+
+    const fields = [
+      { id: 'f1', question: 'Q1' },
+      { id: 'f2', question: 'Q2' },
+      { id: 'f3', question: 'Q3' },
+    ]
+
+    await searchByRequirements(fields, ORG_ID, 'test-key')
+
+    expect(generateEmbeddings).toHaveBeenCalledTimes(1)
+    expect(generateEmbeddings).toHaveBeenCalledWith(['Q1', 'Q2', 'Q3'], 'test-key')
+    expect(generateEmbedding).not.toHaveBeenCalled()
+  })
+
+  it('caps at 20 fields (raised from 10)', async () => {
+    vi.mocked(generateEmbeddings).mockResolvedValue(
+      Array.from({ length: 20 }, () => MOCK_EMBEDDING)
+    )
+    limitMock.mockResolvedValue([])
+
+    const fields = Array.from({ length: 25 }, (_, i) => ({
+      id: `f${i}`,
+      question: `Question ${i}`,
+    }))
+
+    await searchByRequirements(fields, ORG_ID, 'test-key')
+
+    // Should batch exactly 20 texts (not 25, not 10)
+    expect(vi.mocked(generateEmbeddings).mock.calls[0]![0]).toHaveLength(20)
+  })
+
+  it('returns empty array when batch embedding fails entirely', async () => {
+    vi.mocked(generateEmbeddings).mockRejectedValue(new Error('API down'))
+
+    const fields = [{ id: 'f1', question: 'Test' }]
+    const result = await searchByRequirements(fields, ORG_ID, 'test-key')
+
+    expect(result).toEqual([])
   })
 })
 
