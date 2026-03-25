@@ -1,9 +1,11 @@
 import { db } from '@/lib/db'
 import { rfps, proposalDrafts } from '@/lib/db/schema'
+import { knowledgeEntries } from '@/lib/db/schema/knowledge-entries'
 import { eq, and } from 'drizzle-orm'
 import { inngest } from '@/lib/inngest/client'
-import { generateClarifyingQuestions } from '@/lib/ai/agents/proposal-question-generator'
+import { generateClarifyingQuestions, MANDATORY_QUESTION_IDS } from '@/lib/ai/agents/proposal-question-generator'
 import { getRateCard } from '@/lib/services/rate-card'
+import { searchSimilar } from '@/lib/services/vector-search'
 import type {
   ProposalDraft,
   NewProposalDraft,
@@ -11,6 +13,9 @@ import type {
   CoverageReport,
 } from '@/lib/db/schema/proposal-drafts'
 import type { ProposalDefaults } from '@/lib/db/schema/tenant-settings'
+
+const KB_SUGGESTION_THRESHOLD = 0.7
+const MANDATORY_IDS: Set<string> = new Set(Object.values(MANDATORY_QUESTION_IDS))
 
 export { ProposalDraft }
 
@@ -47,15 +52,62 @@ export async function createDraft(
     console.warn('[createDraft] Could not read rate card for pricing model; defaulting to T&M', (err as Error).message)
   }
 
+  // Query KB for distinct topics and categories to inform question generation
+  let knowledgeTopics: string[] = []
+  let contentLibraryCategories: string[] = []
+  try {
+    const kbEntries = await db
+      .select({ type: knowledgeEntries.type, title: knowledgeEntries.title })
+      .from(knowledgeEntries)
+      .where(eq(knowledgeEntries.organizationId, orgId))
+
+    const topicSet = new Set<string>()
+    const categorySet = new Set<string>()
+    for (const entry of kbEntries) {
+      if (entry.title) topicSet.add(entry.title)
+      if (entry.type) categorySet.add(entry.type)
+    }
+    knowledgeTopics = Array.from(topicSet)
+    contentLibraryCategories = Array.from(categorySet)
+  } catch {
+    // KB query failure → proceed with empty topics (graceful degradation)
+  }
+
   // Generate clarifying questions
   const { questions } = await generateClarifyingQuestions({
     rfpFields: rfp.parsedStructure.fields,
     rfpSummary: rfp.name,
-    knowledgeTopics: [],
-    contentLibraryCategories: [],
+    knowledgeTopics,
+    contentLibraryCategories,
     organizationId: orgId,
     pricingModel,
   })
+
+  // Per-question KB search: attach suggestions for non-mandatory questions
+  const customerId = rfp.customerId ?? undefined
+  const enrichedQuestions: ClarifyingQuestion[] = await Promise.all(
+    questions.map(async (q) => {
+      // Skip mandatory scope questions — they must always be answered by the user
+      if (MANDATORY_IDS.has(q.id)) return q
+
+      try {
+        const results = await searchSimilar(q.question, orgId, 3, customerId)
+        const top = results[0]
+        if (top && top.similarity >= KB_SUGGESTION_THRESHOLD) {
+          return {
+            ...q,
+            suggestedAnswer: top.content,
+            kbSourceId: top.id,
+            kbSourceTitle: top.title,
+            suggestionConfidence: top.similarity,
+          }
+        }
+      } catch {
+        // KB search failure for this question → no suggestion (graceful degradation)
+      }
+      return q
+    })
+  )
 
   // Persist draft
   const [draft] = await db
@@ -65,7 +117,7 @@ export async function createDraft(
       organizationId: orgId,
       createdBy: userId,
       status: 'awaiting_answers',
-      clarifyingQuestions: questions,
+      clarifyingQuestions: enrichedQuestions,
       version: 1,
     } satisfies Omit<NewProposalDraft, 'id' | 'createdAt' | 'updatedAt'>)
     .returning()
