@@ -9,16 +9,7 @@ export interface DocumentAnalysisInput {
   providerConfig: ProviderConfig
 }
 
-export interface DocumentAnalysisMetadata {
-  title: string | null
-  issuingOrganization: string | null
-  referenceNumber: string | null
-  submissionDeadline: string | null
-  projectStartDate: string | null
-  contactName: string | null
-  contactEmail: string | null
-  contactPhone: string | null
-}
+import type { ExtractedRfpMetadata } from '@/lib/db/schema/rfps'
 
 export interface DocumentAnalysisResult {
   fields: Array<{
@@ -28,7 +19,7 @@ export interface DocumentAnalysisResult {
     position: { page: number; x: number; y: number; width: number; height: number }
   }>
   summary: string
-  metadata?: DocumentAnalysisMetadata
+  metadata?: ExtractedRfpMetadata
 }
 
 // Zod schema for field validation

@@ -101,15 +101,19 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
   // RFP metadata block — use extracted metadata when available, fallback to rfpName
   const proposalTitle = rfpMetadata?.title ?? rfpName ?? null
   if (proposalTitle || rfpMetadata) {
-    const metadataLines: string[] = []
-    if (proposalTitle) metadataLines.push(`RFP Title: ${proposalTitle}`)
-    if (rfpMetadata?.issuingOrganization) metadataLines.push(`Issuing Organization: ${rfpMetadata.issuingOrganization}`)
-    if (rfpMetadata?.referenceNumber) metadataLines.push(`Reference Number: ${rfpMetadata.referenceNumber}`)
-    if (rfpMetadata?.submissionDeadline) metadataLines.push(`Submission Deadline: ${rfpMetadata.submissionDeadline}`)
-    if (rfpMetadata?.projectStartDate) metadataLines.push(`Project Start Date: ${rfpMetadata.projectStartDate}`)
-    if (rfpMetadata?.contactName) metadataLines.push(`Contact: ${rfpMetadata.contactName}`)
-    if (rfpMetadata?.contactEmail) metadataLines.push(`Email: ${rfpMetadata.contactEmail}`)
-    if (rfpMetadata?.contactPhone) metadataLines.push(`Phone: ${rfpMetadata.contactPhone}`)
+    const metadataFields: [string, string | null | undefined][] = [
+      ['RFP Title', proposalTitle],
+      ['Issuing Organization', rfpMetadata?.issuingOrganization],
+      ['Reference Number', rfpMetadata?.referenceNumber],
+      ['Submission Deadline', rfpMetadata?.submissionDeadline],
+      ['Project Start Date', rfpMetadata?.projectStartDate],
+      ['Contact', rfpMetadata?.contactName],
+      ['Email', rfpMetadata?.contactEmail],
+      ['Phone', rfpMetadata?.contactPhone],
+    ]
+    const metadataLines = metadataFields
+      .filter((entry): entry is [string, string] => !!entry[1])
+      .map(([label, value]) => `${label}: ${value}`)
     if (metadataLines.length > 0) {
       promptBlocks.push(`## RFP Metadata (use verbatim — do not paraphrase)\n${metadataLines.join('\n')}`)
     }
