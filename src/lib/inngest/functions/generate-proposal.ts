@@ -185,6 +185,8 @@ export const generateProposal = inngest.createFunction(
           pricingMarkdown,
           clarifyingAnswers: draft.clarifyingQuestions ?? [],
           organizationId,
+          rfpName: rfp.name,
+          rfpMetadata: rfp.extractedMetadata,
         })
       })
 

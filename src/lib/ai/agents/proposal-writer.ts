@@ -4,6 +4,7 @@ import type { ClarifyingQuestion } from '@/lib/db/schema/proposal-drafts'
 import type { KnowledgeEntryWithSimilarity } from '@/lib/services/vector-search'
 import type { TypedSupplierContext, CustomerContext } from '@/lib/services/proposal-retrieval'
 import type { Learning } from '@/lib/db/schema/learnings'
+import type { ExtractedRfpMetadata } from '@/lib/db/schema/rfps'
 
 export interface WriteProposalInput {
   rfpSections: Array<{ id: string; title: string; content: string }>
@@ -15,6 +16,8 @@ export interface WriteProposalInput {
   pricingMarkdown: string
   clarifyingAnswers: ClarifyingQuestion[]
   organizationId: string
+  rfpName?: string
+  rfpMetadata?: ExtractedRfpMetadata | null
 }
 
 export interface WriteProposalResult {
@@ -32,6 +35,8 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
     pricingMarkdown,
     clarifyingAnswers,
     organizationId,
+    rfpName,
+    rfpMetadata,
   } = input
 
   const model = await getLanguageModelForOrg(organizationId)
@@ -92,6 +97,24 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
 
   promptBlocks.push(`## Learnings\n${learningsText}`)
   promptBlocks.push(`## Scope & Clarifying Question Answers\n${answersText}`)
+
+  // RFP metadata block — use extracted metadata when available, fallback to rfpName
+  const proposalTitle = rfpMetadata?.title ?? rfpName ?? null
+  if (proposalTitle || rfpMetadata) {
+    const metadataLines: string[] = []
+    if (proposalTitle) metadataLines.push(`RFP Title: ${proposalTitle}`)
+    if (rfpMetadata?.issuingOrganization) metadataLines.push(`Issuing Organization: ${rfpMetadata.issuingOrganization}`)
+    if (rfpMetadata?.referenceNumber) metadataLines.push(`Reference Number: ${rfpMetadata.referenceNumber}`)
+    if (rfpMetadata?.submissionDeadline) metadataLines.push(`Submission Deadline: ${rfpMetadata.submissionDeadline}`)
+    if (rfpMetadata?.projectStartDate) metadataLines.push(`Project Start Date: ${rfpMetadata.projectStartDate}`)
+    if (rfpMetadata?.contactName) metadataLines.push(`Contact: ${rfpMetadata.contactName}`)
+    if (rfpMetadata?.contactEmail) metadataLines.push(`Email: ${rfpMetadata.contactEmail}`)
+    if (rfpMetadata?.contactPhone) metadataLines.push(`Phone: ${rfpMetadata.contactPhone}`)
+    if (metadataLines.length > 0) {
+      promptBlocks.push(`## RFP Metadata (use verbatim — do not paraphrase)\n${metadataLines.join('\n')}`)
+    }
+  }
+
   promptBlocks.push(`## PRE-COMPUTED PRICING SECTION (insert verbatim)\n${pricingMarkdown}`)
 
   const { text } = await generateText({
@@ -113,7 +136,7 @@ IMPORTANT RESTRICTIONS:
 - Do NOT copy or restate the RFP's own text back as a response. Every section must contain the vendor's NEW content responding to the requirement.
 
 FORMATTING RULES:
-1. Start with # Proposal.
+1. Start with # Proposal: [exact RFP title from the RFP Metadata section]. If no RFP title is provided, use # Proposal.
 2. Create one section per RFP requirement (## Heading for each).
 3. Immediately after each heading, add a source blockquote: > *Source: [source]*
 4. Write substantive paragraphs — minimum 2-3 sentences per section, drawing from the knowledge base and clarifying answers.

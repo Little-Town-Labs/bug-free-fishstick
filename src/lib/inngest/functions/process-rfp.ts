@@ -233,7 +233,7 @@ export const processRfp = inngest.createFunction(
       return await db.insert(rfpResponses).values(responseValues).returning()
     })
 
-    // Step 8: Update RFP with final status and metadata
+    // Step 8: Update RFP with final status, metadata, and auto-populated fields
     await step.run('update-rfp', async () => {
       const fields = analyzed.fields || []
       const autoFilledCount = generatedResponses.responses.filter(
@@ -242,21 +242,35 @@ export const processRfp = inngest.createFunction(
       const automationPercentage =
         fields.length > 0 ? Math.round((autoFilledCount / fields.length) * 100) : 0
 
+      // Build update payload — auto-populate only when user hasn't entered a value
+      const updatePayload: Record<string, unknown> = {
+        status: 'draft' as const,
+        parsedStructure: {
+          pages: 'pages' in parsedDoc ? parsedDoc.pages : 1,
+          fields: fields.map((f) => ({
+            id: f.id,
+            type: f.type as 'text' | 'paragraph' | 'checkbox' | 'table',
+            question: f.question,
+            position: f.position,
+          })),
+        },
+        automationPercentage,
+        extractedMetadata: analyzed.metadata ?? null,
+      }
+
+      // Auto-populate dueDate from extracted submission deadline (user data takes precedence)
+      if (!rfp.dueDate && analyzed.metadata?.submissionDeadline) {
+        updatePayload.dueDate = analyzed.metadata.submissionDeadline
+      }
+
+      // Auto-populate customerCompanyName from extracted issuing org (user data takes precedence)
+      if (!rfp.customerCompanyName && analyzed.metadata?.issuingOrganization) {
+        updatePayload.customerCompanyName = analyzed.metadata.issuingOrganization
+      }
+
       return await db
         .update(rfps)
-        .set({
-          status: 'draft' as const,
-          parsedStructure: {
-            pages: 'pages' in parsedDoc ? parsedDoc.pages : 1,
-            fields: fields.map((f) => ({
-              id: f.id,
-              type: f.type as 'text' | 'paragraph' | 'checkbox' | 'table',
-              question: f.question,
-              position: f.position,
-            })),
-          },
-          automationPercentage,
-        })
+        .set(updatePayload)
         .where(eq(rfps.id, rfpId))
         .returning()
     })

@@ -979,4 +979,241 @@ describe('process-rfp Inngest workflow', () => {
       }))
     })
   })
+
+  describe('extractedMetadata storage (KB-driven draft intelligence)', () => {
+    it('should store extractedMetadata on RFP record after analysis', async () => {
+      const rfpId = 'rfp-meta-1'
+      const organizationId = 'org-456'
+      const mockRfp = createMockRfp({ id: rfpId, organizationId })
+
+      const metadata = {
+        title: 'Cloud Migration RFP',
+        issuingOrganization: 'Acme Corp',
+        referenceNumber: 'RFP-2026-001',
+        submissionDeadline: 'March 31, 2026',
+        projectStartDate: null,
+        contactName: 'Jane Smith',
+        contactEmail: 'jane@acme.com',
+        contactPhone: null,
+      }
+      const analyzedWithMetadata = {
+        ...createMockAnalyzedResult([{ id: '1', question: 'Q1', type: 'text' }]),
+        metadata,
+      }
+
+      const setMock = vi.fn().mockReturnThis()
+      vi.mocked(db.select)
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+            }),
+          }),
+        } as unknown as ReturnType<typeof db.select>)
+        .mockReturnValue({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([mockRfp]),
+        } as unknown as ReturnType<typeof db.select>)
+
+      vi.mocked(db.update).mockReturnValue({
+        set: setMock,
+        where: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([{ ...mockRfp, status: 'processing' }]),
+      } as unknown as ReturnType<typeof db.update>)
+
+      vi.mocked(db.insert).mockReturnValue({
+        values: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([]),
+      } as unknown as ReturnType<typeof db.insert>)
+
+      vi.mocked(downloadFile).mockResolvedValue(Buffer.from('data'))
+      vi.mocked(parsePdf).mockResolvedValue(createMockParsedPdf('text'))
+      vi.mocked(analyzeDocument).mockResolvedValue(analyzedWithMetadata)
+      vi.mocked(generateResponses).mockResolvedValue(createMockGeneratedResponses([
+        { fieldId: '1', responseText: 'A1', confidenceScore: 0.9 },
+      ]))
+      vi.mocked(checkQuality).mockResolvedValue(createMockQualityResults(['1']))
+
+      const step = createMockStep()
+      const event = createMockEvent({ rfpId, organizationId })
+
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
+
+      // Final update-rfp step should include extractedMetadata
+      expect(setMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'draft',
+          extractedMetadata: metadata,
+        }),
+      )
+    })
+
+    it('should auto-populate dueDate from metadata when RFP dueDate is null', async () => {
+      const rfpId = 'rfp-meta-2'
+      const organizationId = 'org-456'
+      const mockRfp = createMockRfp({ id: rfpId, organizationId, dueDate: null })
+
+      const analyzedWithMetadata = {
+        ...createMockAnalyzedResult([]),
+        metadata: {
+          title: null, issuingOrganization: null, referenceNumber: null,
+          submissionDeadline: '2026-04-15',
+          projectStartDate: null, contactName: null, contactEmail: null, contactPhone: null,
+        },
+      }
+
+      const setMock = vi.fn().mockReturnThis()
+      vi.mocked(db.select)
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+            }),
+          }),
+        } as unknown as ReturnType<typeof db.select>)
+        .mockReturnValue({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([mockRfp]),
+        } as unknown as ReturnType<typeof db.select>)
+
+      vi.mocked(db.update).mockReturnValue({
+        set: setMock,
+        where: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([{ ...mockRfp, status: 'processing' }]),
+      } as unknown as ReturnType<typeof db.update>)
+
+      vi.mocked(db.insert).mockReturnValue({
+        values: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([]),
+      } as unknown as ReturnType<typeof db.insert>)
+
+      vi.mocked(downloadFile).mockResolvedValue(Buffer.from('data'))
+      vi.mocked(parsePdf).mockResolvedValue(createMockParsedPdf('text'))
+      vi.mocked(analyzeDocument).mockResolvedValue(analyzedWithMetadata)
+      vi.mocked(generateResponses).mockResolvedValue({ responses: [] })
+      vi.mocked(checkQuality).mockResolvedValue({ results: [] })
+
+      const step = createMockStep()
+      const event = createMockEvent({ rfpId, organizationId })
+
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
+
+      expect(setMock).toHaveBeenCalledWith(
+        expect.objectContaining({ dueDate: '2026-04-15' }),
+      )
+    })
+
+    it('should NOT overwrite dueDate when user already entered a value', async () => {
+      const rfpId = 'rfp-meta-3'
+      const organizationId = 'org-456'
+      const mockRfp = createMockRfp({ id: rfpId, organizationId, dueDate: '2026-05-01' })
+
+      const analyzedWithMetadata = {
+        ...createMockAnalyzedResult([]),
+        metadata: {
+          title: null, issuingOrganization: null, referenceNumber: null,
+          submissionDeadline: '2026-04-15',
+          projectStartDate: null, contactName: null, contactEmail: null, contactPhone: null,
+        },
+      }
+
+      const setMock = vi.fn().mockReturnThis()
+      vi.mocked(db.select)
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+            }),
+          }),
+        } as unknown as ReturnType<typeof db.select>)
+        .mockReturnValue({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([mockRfp]),
+        } as unknown as ReturnType<typeof db.select>)
+
+      vi.mocked(db.update).mockReturnValue({
+        set: setMock,
+        where: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([{ ...mockRfp, status: 'processing' }]),
+      } as unknown as ReturnType<typeof db.update>)
+
+      vi.mocked(db.insert).mockReturnValue({
+        values: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([]),
+      } as unknown as ReturnType<typeof db.insert>)
+
+      vi.mocked(downloadFile).mockResolvedValue(Buffer.from('data'))
+      vi.mocked(parsePdf).mockResolvedValue(createMockParsedPdf('text'))
+      vi.mocked(analyzeDocument).mockResolvedValue(analyzedWithMetadata)
+      vi.mocked(generateResponses).mockResolvedValue({ responses: [] })
+      vi.mocked(checkQuality).mockResolvedValue({ results: [] })
+
+      const step = createMockStep()
+      const event = createMockEvent({ rfpId, organizationId })
+
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
+
+      // dueDate should NOT be in the set call (user value preserved)
+      const finalSetCall = setMock.mock.calls.find(
+        (args: unknown[]) => (args[0] as Record<string, unknown>).status === 'draft'
+      )
+      expect(finalSetCall).toBeDefined()
+      expect((finalSetCall![0] as Record<string, unknown>).dueDate).toBeUndefined()
+    })
+
+    it('should auto-populate customerCompanyName from metadata when null', async () => {
+      const rfpId = 'rfp-meta-4'
+      const organizationId = 'org-456'
+      const mockRfp = createMockRfp({ id: rfpId, organizationId, customerCompanyName: null })
+
+      const analyzedWithMetadata = {
+        ...createMockAnalyzedResult([]),
+        metadata: {
+          title: null, issuingOrganization: 'Global Industries Inc.',
+          referenceNumber: null, submissionDeadline: null,
+          projectStartDate: null, contactName: null, contactEmail: null, contactPhone: null,
+        },
+      }
+
+      const setMock = vi.fn().mockReturnThis()
+      vi.mocked(db.select)
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([{ openaiApiKeyEncrypted: null }]),
+            }),
+          }),
+        } as unknown as ReturnType<typeof db.select>)
+        .mockReturnValue({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([mockRfp]),
+        } as unknown as ReturnType<typeof db.select>)
+
+      vi.mocked(db.update).mockReturnValue({
+        set: setMock,
+        where: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([{ ...mockRfp, status: 'processing' }]),
+      } as unknown as ReturnType<typeof db.update>)
+
+      vi.mocked(db.insert).mockReturnValue({
+        values: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([]),
+      } as unknown as ReturnType<typeof db.insert>)
+
+      vi.mocked(downloadFile).mockResolvedValue(Buffer.from('data'))
+      vi.mocked(parsePdf).mockResolvedValue(createMockParsedPdf('text'))
+      vi.mocked(analyzeDocument).mockResolvedValue(analyzedWithMetadata)
+      vi.mocked(generateResponses).mockResolvedValue({ responses: [] })
+      vi.mocked(checkQuality).mockResolvedValue({ results: [] })
+
+      const step = createMockStep()
+      const event = createMockEvent({ rfpId, organizationId })
+
+      await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
+
+      expect(setMock).toHaveBeenCalledWith(
+        expect.objectContaining({ customerCompanyName: 'Global Industries Inc.' }),
+      )
+    })
+  })
 })

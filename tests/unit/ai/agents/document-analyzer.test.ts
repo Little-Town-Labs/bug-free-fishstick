@@ -369,6 +369,38 @@ describe('Document Analyzer Agent', () => {
       expect(result.summary).toBeTruthy()
     })
 
+    it('should preserve non-English metadata as-is (no translation)', async () => {
+      const mockResult = {
+        object: {
+          fields: [],
+          summary: 'Japanese RFP document',
+          metadata: {
+            title: '提案依頼書：クラウド移行サービス',
+            issuingOrganization: '東京都庁',
+            referenceNumber: 'RFP-2026-日本-001',
+            submissionDeadline: '2026年4月30日',
+            projectStartDate: null,
+            contactName: '田中太郎',
+            contactEmail: 'tanaka@example.jp',
+            contactPhone: null,
+          },
+        },
+      }
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
+
+      const input: DocumentAnalysisInput = {
+        text: '提案依頼書 — クラウド移行サービス',
+        pages: 1,
+        providerConfig: { provider: 'claude' },
+      }
+
+      const result = await analyzeDocument(input)
+
+      expect(result.metadata?.title).toBe('提案依頼書：クラウド移行サービス')
+      expect(result.metadata?.issuingOrganization).toBe('東京都庁')
+      expect(result.metadata?.referenceNumber).toBe('RFP-2026-日本-001')
+    })
+
     it('should handle documents with special characters and unicode', async () => {
       const mockResult = {
         object: {
@@ -392,6 +424,154 @@ describe('Document Analyzer Agent', () => {
       expect(result.fields).toBeDefined()
       expect(result.fields[0]!.question).toContain('fran\u00e7ais')
       expect(result.fields[1]!.question).toContain('Japanese')
+    })
+  })
+
+  describe('Metadata Extraction (KB-driven draft intelligence)', () => {
+    it('should extract title from RFP with clear title line', async () => {
+      const mockResult = {
+        object: {
+          fields: [
+            { id: 'f1', type: 'text' as const, question: 'Q1', position: { page: 1, x: 0, y: 0, width: 100, height: 20 } },
+          ],
+          summary: 'Cloud migration RFP',
+          metadata: {
+            title: 'Request for Proposal: Cloud Migration Services',
+            issuingOrganization: 'Acme Corporation',
+            referenceNumber: 'RFP-2026-089',
+            submissionDeadline: 'March 31, 2026',
+            projectStartDate: 'May 1, 2026',
+            contactName: 'Jane Smith',
+            contactEmail: 'jane.smith@acme.com',
+            contactPhone: '+1 (555) 123-4567',
+          },
+        },
+      }
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
+
+      const input: DocumentAnalysisInput = {
+        text: 'Request for Proposal: Cloud Migration Services\nIssued by Acme Corporation...',
+        pages: 5,
+        providerConfig: { provider: 'claude' },
+      }
+
+      const result = await analyzeDocument(input)
+
+      expect(result.metadata).toBeDefined()
+      expect(result.metadata!.title).toBe('Request for Proposal: Cloud Migration Services')
+      expect(result.metadata!.issuingOrganization).toBe('Acme Corporation')
+      expect(result.metadata!.referenceNumber).toBe('RFP-2026-089')
+      expect(result.metadata!.submissionDeadline).toBe('March 31, 2026')
+      expect(result.metadata!.projectStartDate).toBe('May 1, 2026')
+      expect(result.metadata!.contactName).toBe('Jane Smith')
+      expect(result.metadata!.contactEmail).toBe('jane.smith@acme.com')
+      expect(result.metadata!.contactPhone).toBe('+1 (555) 123-4567')
+    })
+
+    it('should return null for metadata fields not clearly stated', async () => {
+      const mockResult = {
+        object: {
+          fields: [],
+          summary: 'Minimal document',
+          metadata: {
+            title: 'IT Services RFP',
+            issuingOrganization: null,
+            referenceNumber: null,
+            submissionDeadline: null,
+            projectStartDate: null,
+            contactName: null,
+            contactEmail: null,
+            contactPhone: null,
+          },
+        },
+      }
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
+
+      const input: DocumentAnalysisInput = {
+        text: 'IT Services RFP\nWe need a vendor for IT support.',
+        pages: 1,
+        providerConfig: { provider: 'claude' },
+      }
+
+      const result = await analyzeDocument(input)
+
+      expect(result.metadata!.title).toBe('IT Services RFP')
+      expect(result.metadata!.issuingOrganization).toBeNull()
+      expect(result.metadata!.referenceNumber).toBeNull()
+      expect(result.metadata!.submissionDeadline).toBeNull()
+      expect(result.metadata!.projectStartDate).toBeNull()
+      expect(result.metadata!.contactName).toBeNull()
+      expect(result.metadata!.contactEmail).toBeNull()
+      expect(result.metadata!.contactPhone).toBeNull()
+    })
+
+    it('should return null for all metadata when document has none', async () => {
+      const mockResult = {
+        object: {
+          fields: [],
+          summary: 'No identifiable metadata',
+          metadata: {
+            title: null,
+            issuingOrganization: null,
+            referenceNumber: null,
+            submissionDeadline: null,
+            projectStartDate: null,
+            contactName: null,
+            contactEmail: null,
+            contactPhone: null,
+          },
+        },
+      }
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
+
+      const input: DocumentAnalysisInput = {
+        text: 'Just some plain text with no structured metadata.',
+        pages: 1,
+        providerConfig: { provider: 'claude' },
+      }
+
+      const result = await analyzeDocument(input)
+
+      expect(result.metadata).toBeDefined()
+      const allNull = Object.values(result.metadata!).every((v) => v === null)
+      expect(allNull).toBe(true)
+    })
+
+    it('should preserve existing field extraction behavior (backward compatible)', async () => {
+      const mockResult = {
+        object: {
+          fields: [
+            { id: 'f1', type: 'text' as const, question: 'Company Name', position: { page: 1, x: 100, y: 200, width: 300, height: 30 } },
+          ],
+          summary: 'RFP with fields and metadata',
+          metadata: {
+            title: 'Test RFP',
+            issuingOrganization: null,
+            referenceNumber: null,
+            submissionDeadline: null,
+            projectStartDate: null,
+            contactName: null,
+            contactEmail: null,
+            contactPhone: null,
+          },
+        },
+      }
+      vi.mocked(generateObject).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof generateObject>>)
+
+      const input: DocumentAnalysisInput = {
+        text: 'RFP document with Company Name field',
+        pages: 1,
+        providerConfig: { provider: 'claude' },
+      }
+
+      const result = await analyzeDocument(input)
+
+      // Fields and summary still work as before
+      expect(result.fields).toHaveLength(1)
+      expect(result.fields[0]!.question).toBe('Company Name')
+      expect(result.summary).toBe('RFP with fields and metadata')
+      // Metadata is additive
+      expect(result.metadata).toBeDefined()
     })
   })
 })
