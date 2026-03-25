@@ -144,6 +144,35 @@ describe('proposal-writer (F8 interface)', () => {
     expect(result.markdownContent).toBe(mockMarkdown)
   })
 
+  describe('KB source attribution (KB-driven draft intelligence)', () => {
+    it('system prompt instructs source blockquotes after each section heading', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+      expect(args.system).toContain('source blockquote')
+    })
+
+    it('system prompt includes "No knowledge base match" gap indicator', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+      expect(args.system).toContain('No knowledge base match')
+    })
+
+    it('prompt includes KB entry titles in knowledge base context', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('About Us')
+    })
+  })
+
   describe('RFP metadata integration (KB-driven draft intelligence)', () => {
     it('includes rfpMetadata title in prompt when provided', async () => {
       vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)

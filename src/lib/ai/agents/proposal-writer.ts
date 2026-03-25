@@ -138,7 +138,7 @@ IMPORTANT RESTRICTIONS:
 FORMATTING RULES:
 1. Start with # Proposal: [exact RFP title from the RFP Metadata section]. If no RFP title is provided, use # Proposal.
 2. Create one section per RFP requirement (## Heading for each).
-3. Immediately after each heading, add a source blockquote: > *Source: [source]*
+3. Immediately after each heading, add a source blockquote: > *Source: [source]*. If no KB source matched this section, write > *Source: No knowledge base match — consider uploading relevant content*
 4. Write substantive paragraphs — minimum 2-3 sentences per section, drawing from the knowledge base and clarifying answers.
 5. Insert the pre-computed PRICING SECTION exactly as provided.`,
     prompt: `Write a complete proposal based on the following:\n\n${promptBlocks.join('\n\n')}\n\nGenerate the full proposal markdown now.`,

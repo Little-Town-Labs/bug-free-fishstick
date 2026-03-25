@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import type { ClarifyingQuestion, ProposalDraft } from '@/lib/db/schema/proposal-drafts'
 
 interface ClarifyingQuestionsFormProps {
@@ -19,7 +20,17 @@ export function ClarifyingQuestionsForm({
   questions,
   onSubmitted,
 }: ClarifyingQuestionsFormProps) {
-  const [answers, setAnswers] = useState<Record<string, string>>({})
+  // Initialize answers from KB suggestions where available
+  const [answers, setAnswers] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {}
+    for (const q of questions) {
+      if (q.suggestedAnswer) {
+        initial[q.id] = q.suggestedAnswer
+      }
+    }
+    return initial
+  })
+  const [clearedSuggestions, setClearedSuggestions] = useState<Set<string>>(new Set())
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -89,6 +100,27 @@ export function ClarifyingQuestionsForm({
             placeholder="Your answer (optional — leave blank to skip)"
             rows={3}
           />
+          {q.kbSourceTitle && !clearedSuggestions.has(q.id) && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-blue-700 bg-blue-50">
+                Auto-answered from Knowledge Base
+              </Badge>
+              <span className="text-xs text-muted-foreground">{q.kbSourceTitle}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                aria-label="Clear suggestion"
+                onClick={() => {
+                  setAnswers((prev) => ({ ...prev, [q.id]: '' }))
+                  setClearedSuggestions((prev) => new Set(prev).add(q.id))
+                }}
+              >
+                Clear
+              </Button>
+            </div>
+          )}
         </div>
       ))}
 
