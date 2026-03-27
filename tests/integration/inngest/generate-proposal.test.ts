@@ -250,7 +250,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
   const eventData = { draftId: 'draft-1', rfpId: 'rfp-1', organizationId: 'org-1' }
 
   describe('success path', () => {
-    it('calls all 11 step names', async () => {
+    it('calls all 12 step names', async () => {
       setupSuccessPath()
       const step = createMockStep()
       await (generateProposal as unknown as (...args: unknown[]) => Promise<unknown>)({ event: createMockEvent(eventData), step })
@@ -263,6 +263,7 @@ describe('generate-proposal Inngest function (F8 — 11-step pipeline)', () => {
         'fetch-typed-supplier-context',
         'fetch-required-templates',
         'fetch-situational-templates',
+        'fetch-content-library',
         'compute-pricing',
         'generate-proposal-content',
         'check-requirement-coverage',
