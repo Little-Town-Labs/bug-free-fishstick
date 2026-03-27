@@ -279,4 +279,117 @@ describe('proposal-writer (F8 interface)', () => {
       expect(args.system).toMatch(/exact RFP title/i)
     })
   })
+
+  describe('Content Library integration (012-content-library-pipeline)', () => {
+    it('includes Content Library block when entries are provided', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        contentLibraryEntries: [
+          {
+            id: 'cl-1',
+            organizationId: 'org-1',
+            category: 'Vendor Profile',
+            name: 'HQ Address',
+            content: '123 Main St, Austin TX 78701',
+            similarity: 0.9,
+            createdBy: 'user-1',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('## Content Library (Vendor Information)')
+      expect(args.prompt).toContain('[Vendor Profile] HQ Address: 123 Main St, Austin TX 78701')
+    })
+
+    it('omits Content Library block when entries are empty', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({ ...baseInput, contentLibraryEntries: [] })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).not.toContain('## Content Library')
+    })
+
+    it('omits Content Library block when entries are undefined', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput) // no contentLibraryEntries field
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).not.toContain('## Content Library')
+    })
+
+    it('system prompt contains Content Library preference instruction', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+      expect(args.system).toContain('Content Library entries as the primary source')
+    })
+  })
+
+  describe('Rate Card Roles integration (012-content-library-pipeline)', () => {
+    it('includes rate card roles block when markdown is provided', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        rateCardRolesMarkdown: '**Standard Hourly Rates by Role**\n\n| Role | Rate |\n|---|---|\n| PM | USD 175.00 |',
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('## Standard Rate Card by Role')
+      expect(args.prompt).toContain('PM | USD 175.00')
+    })
+
+    it('omits rate card roles block when markdown is empty string', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({ ...baseInput, rateCardRolesMarkdown: '' })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).not.toContain('## Standard Rate Card by Role')
+    })
+
+    it('omits rate card roles block when undefined', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput) // no rateCardRolesMarkdown field
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).not.toContain('## Standard Rate Card by Role')
+    })
+
+    it('system prompt contains rate card usage instruction', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+      expect(args.system).toContain('Standard Rate Card by Role data to populate per-role hourly rates')
+    })
+
+    it('includes both CL and rate card blocks when both provided', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        contentLibraryEntries: [{
+          id: 'cl-1', organizationId: 'org-1', category: 'Contact', name: 'Phone', content: '555-1234',
+          similarity: 0.8, createdBy: 'u1', createdAt: new Date(), updatedAt: new Date(),
+        }],
+        rateCardRolesMarkdown: '| Role | Rate |\n| Dev | USD 200.00 |',
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('## Content Library')
+      expect(args.prompt).toContain('## Standard Rate Card by Role')
+    })
+  })
 })

@@ -22,6 +22,8 @@ import { writeProposal } from '@/lib/ai/agents/proposal-writer'
 import { checkCoverage } from '@/lib/ai/agents/proposal-coverage-checker'
 import { updateDraftContent } from '@/lib/services/proposal-draft'
 import { computeKbCoveragePercentage } from '@/lib/services/kb-coverage-metric'
+import { fetchContentLibraryForProposal, formatRateCardRoles } from '@/lib/services/content-library-retrieval'
+import type { ContentLibraryEntryWithSimilarity } from '@/lib/services/content-library-retrieval'
 
 // ─── Private helpers ────────────────────────────────────────────────────────
 
@@ -100,13 +102,14 @@ export const generateProposal = inngest.createFunction(
 
       if (!draft || !rfp) throw new Error('Draft or RFP not found')
 
-      // Steps 2–6: Parallel fetches
+      // Steps 2–7: Parallel fetches (includes Content Library)
       const [
         customerContext,
         requirementResults,
         { supplierContext, companyProfile, learnings },
         requiredTemplates,
         allSituationalTemplates,
+        contentLibraryEntries,
       ] = await Promise.all([
         step.run('fetch-customer-context', async () => {
           if (!rfp.customerId) return null
@@ -144,6 +147,15 @@ export const generateProposal = inngest.createFunction(
               .where(and(eq(proposalTemplates.organizationId, organizationId), eq(proposalTemplates.isRequired, false)))
           } catch { return [] }
         }),
+        step.run('fetch-content-library', async () => {
+          try {
+            return await fetchContentLibraryForProposal(
+              organizationId,
+              rfp.parsedStructure?.fields ?? [],
+              openaiApiKey,
+            )
+          } catch { return [] }
+        }),
       // Inngest step.run returns Jsonify<T> which converts Date→string; cast back to original types
       ]) as unknown as [
         CustomerContext,
@@ -151,6 +163,7 @@ export const generateProposal = inngest.createFunction(
         { supplierContext: TypedSupplierContext; learnings: Learning[]; companyProfile: string | null },
         ProposalTemplate[],
         ProposalTemplate[],
+        ContentLibraryEntryWithSimilarity[],
       ]
 
       // Filter situational templates (OR logic)
@@ -158,8 +171,8 @@ export const generateProposal = inngest.createFunction(
         matchesSituational(t, rfp.rfpType, rfp.industryTags as string[] | null),
       )
 
-      // Step 7: Compute pricing
-      const pricingMarkdown = await step.run('compute-pricing', async () => {
+      // Step 7: Compute pricing + extract rate card roles
+      const { pricingMarkdown, rateCardRolesMarkdown } = await step.run('compute-pricing', async () => {
         const { rateCard, proposalDefaults } = await getRateCard(organizationId)
         const scopeLines = parseScopeLines(draft.clarifyingQuestions ?? [])
         const estimate = computePricingEstimate(
@@ -167,7 +180,10 @@ export const generateProposal = inngest.createFunction(
           scopeLines,
           proposalDefaults?.pricingModel ?? 'time_and_materials',
         )
-        return estimate.formattedMarkdown
+        return {
+          pricingMarkdown: estimate.formattedMarkdown,
+          rateCardRolesMarkdown: formatRateCardRoles(rateCard),
+        }
       })
 
       // Step 8: Generate proposal content
@@ -188,6 +204,8 @@ export const generateProposal = inngest.createFunction(
           organizationId,
           rfpName: rfp.name,
           rfpMetadata: rfp.extractedMetadata,
+          contentLibraryEntries,
+          rateCardRolesMarkdown,
         })
       })
 

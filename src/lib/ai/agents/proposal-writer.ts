@@ -5,6 +5,7 @@ import type { KnowledgeEntryWithSimilarity } from '@/lib/services/vector-search'
 import type { TypedSupplierContext, CustomerContext } from '@/lib/services/proposal-retrieval'
 import type { Learning } from '@/lib/db/schema/learnings'
 import type { ExtractedRfpMetadata } from '@/lib/db/schema/rfps'
+import type { ContentLibraryEntryWithSimilarity } from '@/lib/services/content-library-retrieval'
 
 export interface WriteProposalInput {
   rfpSections: Array<{ id: string; title: string; content: string }>
@@ -18,6 +19,8 @@ export interface WriteProposalInput {
   organizationId: string
   rfpName?: string
   rfpMetadata?: ExtractedRfpMetadata | null
+  contentLibraryEntries?: ContentLibraryEntryWithSimilarity[]
+  rateCardRolesMarkdown?: string
 }
 
 export interface WriteProposalResult {
@@ -37,6 +40,8 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
     organizationId,
     rfpName,
     rfpMetadata,
+    contentLibraryEntries,
+    rateCardRolesMarkdown,
   } = input
 
   const model = await getLanguageModelForOrg(organizationId)
@@ -121,6 +126,19 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
 
   promptBlocks.push(`## PRE-COMPUTED PRICING SECTION (insert verbatim)\n${pricingMarkdown}`)
 
+  // Content Library block — vendor profile data, contact info, etc.
+  if (contentLibraryEntries && contentLibraryEntries.length > 0) {
+    const clText = contentLibraryEntries
+      .map((e) => `[${e.category}] ${e.name}: ${e.content}`)
+      .join('\n\n')
+    promptBlocks.push(`## Content Library (Vendor Information)\n${clText}`)
+  }
+
+  // Per-role rate card block — individual role rates for rate card tables
+  if (rateCardRolesMarkdown && rateCardRolesMarkdown.trim()) {
+    promptBlocks.push(`## Standard Rate Card by Role (use to populate per-role rate tables)\n${rateCardRolesMarkdown}`)
+  }
+
   const { text } = await generateText({
     model,
     system: `You are an expert proposal writer generating a complete, professional first-pass proposal in response to an RFP.
@@ -132,7 +150,9 @@ CONTENT RULES:
 2. Draw heavily from the Knowledge Base Context, Case Studies, and Certifications sections below. Reference specific capabilities, past experience, and qualifications from these sources.
 3. If the knowledge base has relevant content, USE IT. Adapt and integrate it naturally into your response — do not ignore available context.
 4. For pricing sections, insert the pre-computed PRICING SECTION exactly as provided — do not modify or recalculate.
-5. Use [PLACEHOLDER: brief description] ONLY when the knowledge base has no relevant content AND the clarifying answers don't cover it.
+5. Use [PLACEHOLDER: brief description] ONLY when the knowledge base has no relevant content AND the clarifying answers AND the Content Library don't cover it.
+6. For vendor profile sections (company name, address, contact info, website, years in business), use Content Library entries as the primary source. Mark these with > *Source: Content Library — [entry name]*. When the same information appears in both Knowledge Base and Content Library, prefer the Content Library version for vendor profile fields.
+7. For rate card tables requested by the RFP, use the Standard Rate Card by Role data to populate per-role hourly rates. Do NOT use PLACEHOLDER for rates that are provided in the rate card data.
 
 IMPORTANT RESTRICTIONS:
 - Do NOT generate Terms & Conditions, Assumptions, Exclusions, Payment Terms, Change Management, IP Ownership, Liability, Force Majeure, or Warranty sections. These will be added separately by the system.
