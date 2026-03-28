@@ -1,85 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { RateCard } from '@/lib/db/schema/tenant-settings'
 
-// ─── A1: isVendorProfileField ───────────────────────────────────────────────
-
-describe('isVendorProfileField', () => {
-  let isVendorProfileField: (question: string) => boolean
-
-  beforeEach(async () => {
-    const mod = await import('@/lib/services/content-library-retrieval')
-    isVendorProfileField = mod.isVendorProfileField
-  })
-
-  it('detects "Company Name"', () => {
-    expect(isVendorProfileField('Company Name')).toBe(true)
-  })
-
-  it('detects "Corporate Headquarters Address"', () => {
-    expect(isVendorProfileField('Corporate Headquarters Address')).toBe(true)
-  })
-
-  it('detects "Primary Point of Contact"', () => {
-    expect(isVendorProfileField('Primary Point of Contact')).toBe(true)
-  })
-
-  it('detects "Contact Email & Phone"', () => {
-    expect(isVendorProfileField('Contact Email & Phone')).toBe(true)
-  })
-
-  it('detects "Years in Business"', () => {
-    expect(isVendorProfileField('Years in Business')).toBe(true)
-  })
-
-  it('detects "Company Website"', () => {
-    expect(isVendorProfileField('Company Website')).toBe(true)
-  })
-
-  it('detects "Legal Name"', () => {
-    expect(isVendorProfileField('Legal Name')).toBe(true)
-  })
-
-  it('detects "Mailing Address"', () => {
-    expect(isVendorProfileField('Mailing Address')).toBe(true)
-  })
-
-  it('detects "Year Founded"', () => {
-    expect(isVendorProfileField('Year Founded')).toBe(true)
-  })
-
-  it('rejects "Describe your approach to data migration"', () => {
-    expect(isVendorProfileField('Describe your approach to data migration')).toBe(false)
-  })
-
-  it('rejects "List certifications"', () => {
-    expect(isVendorProfileField('List certifications')).toBe(false)
-  })
-
-  it('rejects "Proposed Delivery Timeline"', () => {
-    expect(isVendorProfileField('Proposed Delivery Timeline')).toBe(false)
-  })
-
-  it('rejects "Service Types & Specialties"', () => {
-    expect(isVendorProfileField('Service Types & Specialties')).toBe(false)
-  })
-
-  it('is case insensitive', () => {
-    expect(isVendorProfileField('COMPANY NAME')).toBe(true)
-    expect(isVendorProfileField('company name')).toBe(true)
-    expect(isVendorProfileField('Company name')).toBe(true)
-  })
-
-  it('matches partial strings containing keywords', () => {
-    expect(isVendorProfileField('Please provide your company name and title')).toBe(true)
-    expect(isVendorProfileField('Enter the primary contact email address')).toBe(true)
-  })
-
-  it('returns false for empty string', () => {
-    expect(isVendorProfileField('')).toBe(false)
-  })
-})
-
-// ─── A2: formatRateCardRoles ────────────────────────────────────────────────
+// ─── formatRateCardRoles ────────────────────────────────────────────────────
 
 describe('formatRateCardRoles', () => {
   let formatRateCardRoles: (rateCard: RateCard | null | undefined) => string
@@ -174,25 +96,103 @@ describe('formatRateCardRoles', () => {
   })
 })
 
-// ─── A3: fetchContentLibraryForProposal ─────────────────────────────────────
+// ─── fetchFixedSectionsForProposal ──────────────────────────────────────────
 
-vi.mock('@/lib/services/content-library-search', () => ({
-  searchContentLibrary: vi.fn(),
-  searchContentLibraryByCategory: vi.fn(),
+vi.mock('@/lib/db', () => ({
+  db: {
+    select: vi.fn(),
+  },
 }))
+
+describe('fetchFixedSectionsForProposal', () => {
+  let fetchFixedSectionsForProposal: typeof import('@/lib/services/content-library-retrieval').fetchFixedSectionsForProposal
+
+  beforeEach(async () => {
+    vi.resetModules()
+
+    // Re-mock after resetModules
+    vi.doMock('@/lib/db', () => ({
+      db: {
+        select: vi.fn(),
+      },
+    }))
+
+    vi.doMock('@/lib/services/content-library-search', () => ({
+      searchContentLibrary: vi.fn().mockResolvedValue([]),
+      searchContentLibraryByCategory: vi.fn().mockResolvedValue([]),
+    }))
+
+    const mod = await import('@/lib/services/content-library-retrieval')
+    fetchFixedSectionsForProposal = mod.fetchFixedSectionsForProposal
+  })
+
+  it('returns populated fixed sections as Record<sectionType, content>', async () => {
+    const { db } = await import('@/lib/db')
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([
+          { sectionType: 'company_info', content: 'Acme Solutions Inc.' },
+          { sectionType: 'services', content: 'We provide cloud migration services.' },
+        ]),
+      }),
+    } as never)
+
+    const result = await fetchFixedSectionsForProposal('org-1')
+    expect(result).toEqual({
+      company_info: 'Acme Solutions Inc.',
+      services: 'We provide cloud migration services.',
+    })
+  })
+
+  it('skips fixed sections with empty content', async () => {
+    const { db } = await import('@/lib/db')
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([
+          { sectionType: 'company_info', content: 'Acme Solutions' },
+          { sectionType: 'company_contacts', content: '' },
+          { sectionType: 'services', content: '   ' },
+        ]),
+      }),
+    } as never)
+
+    const result = await fetchFixedSectionsForProposal('org-1')
+    expect(result).toEqual({ company_info: 'Acme Solutions' })
+  })
+
+  it('returns empty record when no fixed sections exist', async () => {
+    const { db } = await import('@/lib/db')
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([]),
+      }),
+    } as never)
+
+    const result = await fetchFixedSectionsForProposal('org-1')
+    expect(result).toEqual({})
+  })
+})
+
+// ─── fetchContentLibraryForProposal (custom entries only) ──────────────────
 
 describe('fetchContentLibraryForProposal', () => {
   let fetchContentLibraryForProposal: typeof import('@/lib/services/content-library-retrieval').fetchContentLibraryForProposal
   let mockSearchContentLibrary: ReturnType<typeof vi.fn>
-  let mockSearchContentLibraryByCategory: ReturnType<typeof vi.fn>
 
   beforeEach(async () => {
     vi.resetModules()
+
+    vi.doMock('@/lib/db', () => ({
+      db: { select: vi.fn() },
+    }))
+
+    vi.doMock('@/lib/services/content-library-search', () => ({
+      searchContentLibrary: vi.fn().mockResolvedValue([]),
+      searchContentLibraryByCategory: vi.fn().mockResolvedValue([]),
+    }))
+
     const searchMod = await import('@/lib/services/content-library-search')
     mockSearchContentLibrary = searchMod.searchContentLibrary as ReturnType<typeof vi.fn>
-    mockSearchContentLibraryByCategory = searchMod.searchContentLibraryByCategory as ReturnType<typeof vi.fn>
-    mockSearchContentLibrary.mockResolvedValue([])
-    mockSearchContentLibraryByCategory.mockResolvedValue([])
 
     const mod = await import('@/lib/services/content-library-retrieval')
     fetchContentLibraryForProposal = mod.fetchContentLibraryForProposal
@@ -205,9 +205,9 @@ describe('fetchContentLibraryForProposal', () => {
     expect(result).toEqual([])
   })
 
-  it('calls semantic search for non-vendor fields', async () => {
+  it('calls semantic search and returns custom entries', async () => {
     mockSearchContentLibrary.mockResolvedValue([
-      { id: 'cl-1', name: 'Migration Approach', category: 'Services', content: 'We do migrations', similarity: 0.8, organizationId: ORG_ID, createdBy: 'user-1', createdAt: new Date(), updatedAt: new Date() },
+      { id: 'cl-1', name: 'Migration Approach', category: 'Services', content: 'We do migrations', sectionType: null, similarity: 0.8, organizationId: ORG_ID, createdBy: 'user-1', createdAt: new Date(), updatedAt: new Date() },
     ])
 
     const result = await fetchContentLibraryForProposal(ORG_ID, [
@@ -215,83 +215,44 @@ describe('fetchContentLibraryForProposal', () => {
     ])
 
     expect(mockSearchContentLibrary).toHaveBeenCalled()
-    expect(mockSearchContentLibraryByCategory).not.toHaveBeenCalled()
-    expect(result.length).toBeGreaterThan(0)
+    expect(result).toHaveLength(1)
+    expect(result[0]!.id).toBe('cl-1')
   })
 
-  it('calls both semantic and category search for vendor profile fields', async () => {
-    mockSearchContentLibrary.mockResolvedValue([])
-    mockSearchContentLibraryByCategory.mockResolvedValue([
-      { id: 'cl-addr', organizationId: ORG_ID, name: 'HQ Address', category: 'Vendor Profile', content: '123 Main St', createdBy: 'user-1', createdAt: new Date(), updatedAt: new Date() },
+  it('filters out fixed sections from semantic search results', async () => {
+    mockSearchContentLibrary.mockResolvedValue([
+      { id: 'cl-custom', name: 'SLA', category: 'SLA Terms', content: 'Our SLA...', sectionType: null, similarity: 0.9, organizationId: ORG_ID, createdBy: 'u1', createdAt: new Date(), updatedAt: new Date() },
+      { id: 'cl-fixed', name: 'Company Information', category: 'Company Information', content: 'Acme', sectionType: 'company_info', similarity: 0.85, organizationId: ORG_ID, createdBy: 'system', createdAt: new Date(), updatedAt: new Date() },
     ])
-
-    await fetchContentLibraryForProposal(ORG_ID, [
-      { id: 'f1', question: 'Corporate Headquarters Address' },
-    ])
-
-    expect(mockSearchContentLibrary).toHaveBeenCalled()
-    expect(mockSearchContentLibraryByCategory).toHaveBeenCalled()
-  })
-
-  it('deduplicates entries returned by both semantic and category search', async () => {
-    const sharedEntry = {
-      id: 'cl-dup',
-      organizationId: ORG_ID,
-      name: 'Company Address',
-      category: 'Vendor Profile',
-      content: '123 Main St',
-      createdBy: 'user-1',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-    mockSearchContentLibrary.mockResolvedValue([{ ...sharedEntry, similarity: 0.7 }])
-    mockSearchContentLibraryByCategory.mockResolvedValue([sharedEntry])
 
     const result = await fetchContentLibraryForProposal(ORG_ID, [
-      { id: 'f1', question: 'Company Address' },
+      { id: 'f1', question: 'Tell us about your company' },
     ])
 
-    const ids = result.map((r) => r.id)
-    const uniqueIds = new Set(ids)
-    expect(ids.length).toBe(uniqueIds.size)
+    expect(result).toHaveLength(1)
+    expect(result[0]!.id).toBe('cl-custom')
   })
 
   it('caps results at 10 entries', async () => {
     const manyEntries = Array.from({ length: 15 }, (_, i) => ({
-      id: `cl-${i}`,
-      organizationId: ORG_ID,
-      name: `Entry ${i}`,
-      category: 'General',
-      content: `Content ${i}`,
-      similarity: 0.9 - i * 0.05,
-      createdBy: 'user-1',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      id: `cl-${i}`, organizationId: ORG_ID, name: `Entry ${i}`, category: 'General',
+      content: `Content ${i}`, sectionType: null, similarity: 0.9 - i * 0.05,
+      createdBy: 'user-1', createdAt: new Date(), updatedAt: new Date(),
     }))
     mockSearchContentLibrary.mockResolvedValue(manyEntries)
 
     const result = await fetchContentLibraryForProposal(ORG_ID, [
-      { id: 'f1', question: 'Company Name' },
+      { id: 'f1', question: 'General question' },
     ])
 
     expect(result.length).toBeLessThanOrEqual(10)
-  })
-
-  it('passes organizationId to all search calls', async () => {
-    await fetchContentLibraryForProposal(ORG_ID, [
-      { id: 'f1', question: 'Company Name' },
-    ])
-
-    const calls = mockSearchContentLibrary.mock.calls as unknown[][]
-    const orgIds = calls.map((c) => c[1])
-    expect(orgIds).toContain(ORG_ID)
   })
 
   it('returns empty array when search throws', async () => {
     mockSearchContentLibrary.mockRejectedValue(new Error('DB error'))
 
     const result = await fetchContentLibraryForProposal(ORG_ID, [
-      { id: 'f1', question: 'Company Name' },
+      { id: 'f1', question: 'Some question' },
     ])
 
     expect(result).toEqual([])

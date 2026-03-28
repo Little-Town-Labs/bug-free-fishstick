@@ -1,0 +1,41 @@
+# API Contract Changes: 013-fixed-content-library-sections
+# Only documents CHANGES to existing endpoints and new behavior.
+
+# ─── GET /api/content-library ───────────────────────────────────────────────
+# CHANGED: Now performs lazy initialization of fixed sections before returning.
+# Response shape unchanged — entries array now includes fixed section rows.
+#
+# New behavior:
+#   1. Check which fixed sections exist for the org
+#   2. Create any missing fixed sections with empty content
+#   3. Return all entries (fixed + custom)
+#
+# Response entries now include `sectionType` field:
+#   - Fixed sections: sectionType = "company_info" | "company_contacts" | etc.
+#   - Custom entries: sectionType = null
+#
+# New query parameter:
+#   ?type=fixed    — return only fixed sections
+#   ?type=custom   — return only custom entries
+#   (no param)     — return all (default, backward compatible)
+
+# ─── PATCH /api/content-library/[entryId] ──────────────────────────────────
+# CHANGED: When patching a fixed section (sectionType != null):
+#   - `category` and `name` fields are REJECTED (400) — read-only for fixed sections
+#   - Only `content` can be updated
+#   - Existing behavior preserved for custom entries
+
+# ─── DELETE /api/content-library/[entryId] ─────────────────────────────────
+# CHANGED: When deleting a fixed section (sectionType != null):
+#   - Returns 403 with error "Fixed sections cannot be deleted"
+#   - Existing behavior preserved for custom entries
+
+# ─── POST /api/content-library ─────────────────────────────────────────────
+# CHANGED: Category validation now warns (does not block) if category matches
+# a fixed section display name. Response includes `warning` field.
+# No sectionType accepted in POST body — only system creates fixed sections.
+
+# ─── Schema addition to response objects ───────────────────────────────────
+# All entry responses now include:
+#   sectionType: string | null
+#   description: string | null  (guidance text, only for fixed sections)

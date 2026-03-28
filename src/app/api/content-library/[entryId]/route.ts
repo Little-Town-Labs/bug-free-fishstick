@@ -45,6 +45,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: err.message }, { status: 401 })
     }
     const statusCode = (err as { statusCode?: number }).statusCode
+    if (statusCode === 400) {
+      return NextResponse.json({ error: (err as Error).message }, { status: 400 })
+    }
     if (statusCode === 404) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
@@ -63,6 +66,9 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: err.message }, { status: 401 })
     }
     const statusCode = (err as { statusCode?: number }).statusCode
+    if (statusCode === 403) {
+      return NextResponse.json({ error: (err as Error).message }, { status: 403 })
+    }
     if (statusCode === 404) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }

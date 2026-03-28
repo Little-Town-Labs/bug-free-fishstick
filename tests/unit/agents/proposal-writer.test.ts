@@ -293,6 +293,7 @@ describe('proposal-writer (F8 interface)', () => {
             category: 'Vendor Profile',
             name: 'HQ Address',
             content: '123 Main St, Austin TX 78701',
+            sectionType: null,
             similarity: 0.9,
             createdBy: 'user-1',
             createdAt: new Date(),
@@ -302,7 +303,7 @@ describe('proposal-writer (F8 interface)', () => {
       })
 
       const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
-      expect(args.prompt).toContain('## Content Library (Vendor Information)')
+      expect(args.prompt).toContain('## Content Library (Additional Vendor Information)')
       expect(args.prompt).toContain('[Vendor Profile] HQ Address: 123 Main St, Austin TX 78701')
     })
 
@@ -324,13 +325,13 @@ describe('proposal-writer (F8 interface)', () => {
       expect(args.prompt).not.toContain('## Content Library')
     })
 
-    it('system prompt contains Content Library preference instruction', async () => {
+    it('system prompt contains fixed section mapping rules', async () => {
       vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
       await writeProposal(baseInput)
 
       const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
-      expect(args.system).toContain('Content Library entries as the primary source')
+      expect(args.system).toContain('use the fixed section data provided above as the PRIMARY source')
     })
   })
 
@@ -382,7 +383,7 @@ describe('proposal-writer (F8 interface)', () => {
         ...baseInput,
         contentLibraryEntries: [{
           id: 'cl-1', organizationId: 'org-1', category: 'Contact', name: 'Phone', content: '555-1234',
-          similarity: 0.8, createdBy: 'u1', createdAt: new Date(), updatedAt: new Date(),
+          sectionType: null, similarity: 0.8, createdBy: 'u1', createdAt: new Date(), updatedAt: new Date(),
         }],
         rateCardRolesMarkdown: '| Role | Rate |\n| Dev | USD 200.00 |',
       })
@@ -390,6 +391,75 @@ describe('proposal-writer (F8 interface)', () => {
       const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
       expect(args.prompt).toContain('## Content Library')
       expect(args.prompt).toContain('## Standard Rate Card by Role')
+    })
+  })
+
+  describe('fixed sections prompt blocks', () => {
+    it('includes fixed section blocks when fixedSections is provided', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        fixedSections: {
+          company_info: 'Acme Solutions, founded 2014, HQ Austin TX',
+          company_contacts: 'James O\'Brien, VP Sales, james@acme.com',
+        },
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('## Company Information')
+      expect(args.prompt).toContain('Acme Solutions, founded 2014, HQ Austin TX')
+      expect(args.prompt).toContain('## Company Contacts')
+      expect(args.prompt).toContain("James O'Brien, VP Sales, james@acme.com")
+    })
+
+    it('omits fixed section blocks when fixedSections is empty', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        fixedSections: {},
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).not.toContain('## Company Information')
+      expect(args.prompt).not.toContain('## Company Contacts')
+    })
+
+    it('omits fixed section blocks when fixedSections is undefined', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({ ...baseInput })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).not.toContain('## Company Information')
+    })
+
+    it('includes mapping hints in fixed section headers', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        fixedSections: { certifications: 'ISO 27001, SOC 2 Type II' },
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('## Certifications (use for')
+      expect(args.prompt).toContain('ISO 27001, SOC 2 Type II')
+    })
+
+    it('includes fixed section mapping rules in system prompt', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        fixedSections: { company_info: 'Test' },
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+      expect(args.system).toContain('Company Information')
+      expect(args.system).toContain('Company Contacts')
+      expect(args.system).toContain('Do NOT use PLACEHOLDER for any field covered by a populated fixed section')
     })
   })
 })

@@ -1,5 +1,6 @@
 import { generateText } from 'ai'
 import { getLanguageModelForOrg } from '@/lib/ai/providers'
+import { FIXED_SECTIONS } from '@/lib/constants/fixed-sections'
 import type { ClarifyingQuestion } from '@/lib/db/schema/proposal-drafts'
 import type { KnowledgeEntryWithSimilarity } from '@/lib/services/vector-search'
 import type { TypedSupplierContext, CustomerContext } from '@/lib/services/proposal-retrieval'
@@ -21,6 +22,7 @@ export interface WriteProposalInput {
   rfpMetadata?: ExtractedRfpMetadata | null
   contentLibraryEntries?: ContentLibraryEntryWithSimilarity[]
   rateCardRolesMarkdown?: string
+  fixedSections?: Record<string, string>
 }
 
 export interface WriteProposalResult {
@@ -42,6 +44,7 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
     rfpMetadata,
     contentLibraryEntries,
     rateCardRolesMarkdown,
+    fixedSections,
   } = input
 
   const model = await getLanguageModelForOrg(organizationId)
@@ -126,12 +129,21 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
 
   promptBlocks.push(`## PRE-COMPUTED PRICING SECTION (insert verbatim)\n${pricingMarkdown}`)
 
-  // Content Library block — vendor profile data, contact info, etc.
+  // Fixed sections — deterministic vendor data blocks
+  if (fixedSections && Object.keys(fixedSections).length > 0) {
+    for (const def of FIXED_SECTIONS) {
+      const content = fixedSections[def.sectionType]
+      if (!content) continue
+      promptBlocks.push(`## ${def.displayName} (use for ${def.description.toLowerCase().replace(/\.$/, '')})\n${content}`)
+    }
+  }
+
+  // Content Library block — custom entries matched via semantic search
   if (contentLibraryEntries && contentLibraryEntries.length > 0) {
     const clText = contentLibraryEntries
       .map((e) => `[${e.category}] ${e.name}: ${e.content}`)
       .join('\n\n')
-    promptBlocks.push(`## Content Library (Vendor Information)\n${clText}`)
+    promptBlocks.push(`## Content Library (Additional Vendor Information)\n${clText}`)
   }
 
   // Per-role rate card block — individual role rates for rate card tables
@@ -151,7 +163,14 @@ CONTENT RULES:
 3. If the knowledge base has relevant content, USE IT. Adapt and integrate it naturally into your response — do not ignore available context.
 4. For pricing sections, insert the pre-computed PRICING SECTION exactly as provided — do not modify or recalculate.
 5. Use [PLACEHOLDER: brief description] ONLY when the knowledge base has no relevant content AND the clarifying answers AND the Content Library don't cover it.
-6. For vendor profile sections (company name, address, contact info, website, years in business), use Content Library entries as the primary source. Mark these with > *Source: Content Library — [entry name]*. When the same information appears in both Knowledge Base and Content Library, prefer the Content Library version for vendor profile fields.
+6. For vendor profile sections, use the fixed section data provided above as the PRIMARY source:
+   - Company legal name, HQ address, website, years in business, overview → use "Company Information" section
+   - Point of contact, email, phone, contact details → use "Company Contacts" section
+   - Core services, capabilities, methodology → use "Services" section
+   - Specializations, industry expertise → use "Specialties" section
+   - Certifications, compliance, attestations → use "Certifications" section
+   - Case studies, references, past projects → use "Past Performance" section
+   When a fixed section provides data for an RFP question, use it verbatim. Do NOT use PLACEHOLDER for any field covered by a populated fixed section. Mark these with > *Source: Content Library — [section name]*.
 7. For rate card tables requested by the RFP, use the Standard Rate Card by Role data to populate per-role hourly rates. Do NOT use PLACEHOLDER for rates that are provided in the rate card data.
 
 IMPORTANT RESTRICTIONS:

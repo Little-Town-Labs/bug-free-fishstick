@@ -20,7 +20,9 @@ import {
   getEntry,
   updateEntry,
   deleteEntry,
+  ensureFixedSections,
 } from '@/lib/services/proposal-content-library'
+import { FIXED_SECTIONS } from '@/lib/constants/fixed-sections'
 
 const mockEntry = {
   id: 'entry-1',
@@ -29,6 +31,19 @@ const mockEntry = {
   category: 'Pricing',
   name: 'Standard Pricing',
   content: 'Our standard pricing is...',
+  sectionType: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+}
+
+const mockFixedEntry = {
+  id: 'fixed-1',
+  organizationId: 'org-1',
+  createdBy: 'system',
+  category: 'Company Information',
+  name: 'Company Information',
+  content: 'Acme Solutions is...',
+  sectionType: 'company_info',
   createdAt: new Date(),
   updatedAt: new Date(),
 }
@@ -168,6 +183,103 @@ describe('proposal-content-library service', () => {
       await expect(deleteEntry('entry-1', 'org-2')).rejects.toMatchObject({
         statusCode: 404,
       })
+    })
+
+    it('throws 403 when trying to delete a fixed section', async () => {
+      mockSelectWithLimit([mockFixedEntry])
+      await expect(deleteEntry('fixed-1', 'org-1')).rejects.toMatchObject({
+        statusCode: 403,
+      })
+      expect(db.delete).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('updateEntry guards for fixed sections', () => {
+    it('rejects category changes on fixed sections', async () => {
+      mockSelectWithLimit([mockFixedEntry])
+      await expect(
+        updateEntry('fixed-1', 'org-1', { category: 'New Category' })
+      ).rejects.toMatchObject({ statusCode: 400 })
+    })
+
+    it('rejects name changes on fixed sections', async () => {
+      mockSelectWithLimit([mockFixedEntry])
+      await expect(
+        updateEntry('fixed-1', 'org-1', { name: 'New Name' })
+      ).rejects.toMatchObject({ statusCode: 400 })
+    })
+
+    it('allows content changes on fixed sections', async () => {
+      // getEntry call
+      mockSelectWithLimit([mockFixedEntry])
+      // update call
+      mockUpdate([{ ...mockFixedEntry, content: 'Updated content' }])
+      const result = await updateEntry('fixed-1', 'org-1', { content: 'Updated content' })
+      expect(result.content).toBe('Updated content')
+    })
+
+    it('allows all field changes on custom entries', async () => {
+      mockSelectWithLimit([mockEntry])
+      mockUpdate([{ ...mockEntry, category: 'New Cat', name: 'New Name' }])
+      const result = await updateEntry('entry-1', 'org-1', { category: 'New Cat', name: 'New Name' })
+      expect(result.category).toBe('New Cat')
+    })
+  })
+
+  describe('ensureFixedSections', () => {
+    it('creates all 6 fixed sections when none exist', async () => {
+      // Mock: select returns no existing fixed sections
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([]),
+        }),
+      } as never)
+
+      // Mock: insert with onConflictDoNothing
+      const mockReturning = vi.fn().mockResolvedValue([])
+      const mockOnConflictDoNothing = vi.fn().mockReturnValue({ returning: mockReturning })
+      const mockValues = vi.fn().mockReturnValue({ onConflictDoNothing: mockOnConflictDoNothing })
+      vi.mocked(db.insert).mockReturnValue({ values: mockValues } as never)
+
+      await ensureFixedSections('org-1', 'system')
+
+      expect(db.insert).toHaveBeenCalledTimes(FIXED_SECTIONS.length)
+    })
+
+    it('only creates missing sections when some exist', async () => {
+      // Mock: 2 sections already exist
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            { sectionType: 'company_info' },
+            { sectionType: 'services' },
+          ]),
+        }),
+      } as never)
+
+      const mockReturning = vi.fn().mockResolvedValue([])
+      const mockOnConflictDoNothing = vi.fn().mockReturnValue({ returning: mockReturning })
+      const mockValues = vi.fn().mockReturnValue({ onConflictDoNothing: mockOnConflictDoNothing })
+      vi.mocked(db.insert).mockReturnValue({ values: mockValues } as never)
+
+      await ensureFixedSections('org-1', 'system')
+
+      // Should only insert the 4 missing sections
+      expect(db.insert).toHaveBeenCalledTimes(4)
+    })
+
+    it('is idempotent when all sections exist', async () => {
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(
+            FIXED_SECTIONS.map((s) => ({ sectionType: s.sectionType }))
+          ),
+        }),
+      } as never)
+
+      await ensureFixedSections('org-1', 'system')
+
+      expect(db.insert).not.toHaveBeenCalled()
     })
   })
 })

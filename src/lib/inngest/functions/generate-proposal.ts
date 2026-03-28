@@ -22,7 +22,7 @@ import { writeProposal } from '@/lib/ai/agents/proposal-writer'
 import { checkCoverage } from '@/lib/ai/agents/proposal-coverage-checker'
 import { updateDraftContent } from '@/lib/services/proposal-draft'
 import { computeKbCoveragePercentage } from '@/lib/services/kb-coverage-metric'
-import { fetchContentLibraryForProposal, formatRateCardRoles } from '@/lib/services/content-library-retrieval'
+import { fetchContentLibraryForProposal, fetchFixedSectionsForProposal, formatRateCardRoles } from '@/lib/services/content-library-retrieval'
 import type { ContentLibraryEntryWithSimilarity } from '@/lib/services/content-library-retrieval'
 
 // ─── Private helpers ────────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ export const generateProposal = inngest.createFunction(
         { supplierContext, companyProfile, learnings },
         requiredTemplates,
         allSituationalTemplates,
-        contentLibraryEntries,
+        { fixedSections, customEntries: contentLibraryEntries },
       ] = await Promise.all([
         step.run('fetch-customer-context', async () => {
           if (!rfp.customerId) return null
@@ -149,12 +149,16 @@ export const generateProposal = inngest.createFunction(
         }),
         step.run('fetch-content-library', async () => {
           try {
-            return await fetchContentLibraryForProposal(
-              organizationId,
-              rfp.parsedStructure?.fields ?? [],
-              openaiApiKey,
-            )
-          } catch { return [] }
+            const [fixedSections, customEntries] = await Promise.all([
+              fetchFixedSectionsForProposal(organizationId),
+              fetchContentLibraryForProposal(
+                organizationId,
+                rfp.parsedStructure?.fields ?? [],
+                openaiApiKey,
+              ),
+            ])
+            return { fixedSections, customEntries }
+          } catch { return { fixedSections: {} as Record<string, string>, customEntries: [] as ContentLibraryEntryWithSimilarity[] } }
         }),
       // Inngest step.run returns Jsonify<T> which converts Date→string; cast back to original types
       ]) as unknown as [
@@ -163,7 +167,7 @@ export const generateProposal = inngest.createFunction(
         { supplierContext: TypedSupplierContext; learnings: Learning[]; companyProfile: string | null },
         ProposalTemplate[],
         ProposalTemplate[],
-        ContentLibraryEntryWithSimilarity[],
+        { fixedSections: Record<string, string>; customEntries: ContentLibraryEntryWithSimilarity[] },
       ]
 
       // Filter situational templates (OR logic)
@@ -206,6 +210,7 @@ export const generateProposal = inngest.createFunction(
           rfpMetadata: rfp.extractedMetadata,
           contentLibraryEntries,
           rateCardRolesMarkdown,
+          fixedSections,
         })
       })
 

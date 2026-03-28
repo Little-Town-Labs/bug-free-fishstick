@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth, AuthError } from '@/lib/utils/auth'
-import { createEntry, listEntries } from '@/lib/services/proposal-content-library'
+import { createEntry, listEntries, ensureFixedSections } from '@/lib/services/proposal-content-library'
 
 const CreateEntrySchema = z.object({
   category: z.string().min(1).max(100),
@@ -12,8 +12,11 @@ const CreateEntrySchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAuth()
+    await ensureFixedSections(auth.orgId, 'system')
     const category = request.nextUrl.searchParams.get('category') ?? undefined
-    const entries = await listEntries(auth.orgId, category)
+    const rawType = request.nextUrl.searchParams.get('type')
+    const typeFilter = rawType === 'fixed' || rawType === 'custom' ? rawType : undefined
+    const entries = await listEntries(auth.orgId, category, typeFilter)
     return NextResponse.json({ entries }, { status: 200 })
   } catch (err) {
     if (err instanceof AuthError) {

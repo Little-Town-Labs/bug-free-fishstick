@@ -3,12 +3,15 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { ProposalContentLibraryEntry } from '@/lib/db/schema/proposal-content-library'
+import { FIXED_SECTIONS } from '@/lib/constants/fixed-sections'
 
 interface ContentLibraryFormProps {
   entry?: ProposalContentLibraryEntry
   onSave: (entry: ProposalContentLibraryEntry) => void
   onCancel: () => void
 }
+
+const FIXED_DISPLAY_NAMES: ReadonlySet<string> = new Set(FIXED_SECTIONS.map((s) => s.displayName))
 
 const CATEGORY_SUGGESTIONS = [
   'Pricing',
@@ -18,7 +21,7 @@ const CATEGORY_SUGGESTIONS = [
   'SLA Terms',
   'Company Overview',
   'Technical Specs',
-]
+].filter((s) => !FIXED_DISPLAY_NAMES.has(s))
 
 export function ContentLibraryForm({ entry, onSave, onCancel }: ContentLibraryFormProps) {
   const [category, setCategory] = useState(entry?.category ?? '')

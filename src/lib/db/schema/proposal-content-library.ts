@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, uuid, index, vector } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, uuid, index, uniqueIndex, vector } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 
 export const proposalContentLibrary = pgTable(
   'proposal_content_library',
@@ -8,6 +9,7 @@ export const proposalContentLibrary = pgTable(
     category: text('category').notNull(),
     name: text('name').notNull(),
     content: text('content').notNull(),
+    sectionType: text('section_type'),
     embedding: vector('embedding', { dimensions: 1536 }),
     createdBy: text('created_by').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -16,6 +18,10 @@ export const proposalContentLibrary = pgTable(
   (table) => [
     index('content_library_org_idx').on(table.organizationId),
     index('content_library_category_idx').on(table.organizationId, table.category),
+    index('content_library_section_type_idx').on(table.organizationId, table.sectionType),
+    uniqueIndex('content_library_org_section_type_uniq')
+      .on(table.organizationId, table.sectionType)
+      .where(sql`section_type IS NOT NULL`),
   ]
 )
 

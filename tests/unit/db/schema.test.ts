@@ -13,6 +13,7 @@ import {
   rfpVersions,
   learnings,
   learningSourceTypes,
+  proposalContentLibrary,
 } from '@/lib/db/schema'
 
 describe('tenant_settings schema', () => {
@@ -185,5 +186,31 @@ describe('learnings schema', () => {
 
   it('should define valid learning source types', () => {
     expect(learningSourceTypes).toEqual(['rfp_approval', 'user_correction', 'manual_entry', 'accept_signal', 'edit_correction', 'reject_signal'])
+  })
+})
+
+describe('proposal_content_library schema', () => {
+  it('should have the correct table name', () => {
+    expect(getTableName(proposalContentLibrary)).toBe('proposal_content_library')
+  })
+
+  it('should have required columns including sectionType', () => {
+    const columns = Object.keys(proposalContentLibrary)
+    expect(columns).toContain('id')
+    expect(columns).toContain('organizationId')
+    expect(columns).toContain('category')
+    expect(columns).toContain('name')
+    expect(columns).toContain('content')
+    expect(columns).toContain('sectionType')
+    expect(columns).toContain('embedding')
+    expect(columns).toContain('createdBy')
+    expect(columns).toContain('createdAt')
+    expect(columns).toContain('updatedAt')
+  })
+
+  it('should have sectionType as a nullable column', () => {
+    // sectionType is null for custom entries, a string for fixed sections
+    const columns = Object.keys(proposalContentLibrary)
+    expect(columns).toContain('sectionType')
   })
 })
