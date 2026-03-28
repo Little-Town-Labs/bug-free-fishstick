@@ -18,6 +18,7 @@ vi.mock('@/lib/services/proposal-content-library', () => ({
   getEntry: vi.fn(),
   updateEntry: vi.fn(),
   deleteEntry: vi.fn(),
+  ensureFixedSections: vi.fn().mockResolvedValue(undefined),
 }))
 
 import { requireAuth, AuthError } from '@/lib/utils/auth'
@@ -82,7 +83,7 @@ describe('content-library API', () => {
       vi.mocked(listEntries).mockResolvedValue([mockEntry] as never)
       const req = createRequest('GET', 'http://localhost/api/content-library?category=Pricing')
       await listHandler(req)
-      expect(listEntries).toHaveBeenCalledWith('org-1', 'Pricing')
+      expect(listEntries).toHaveBeenCalledWith('org-1', 'Pricing', undefined)
     })
 
     it('returns 401 when not authenticated', async () => {
