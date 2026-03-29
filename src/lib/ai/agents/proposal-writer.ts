@@ -170,8 +170,10 @@ CONTENT RULES:
    - Specializations, industry expertise → use "Specialties" section
    - Certifications, compliance, attestations → use "Certifications" section
    - Case studies, references, past projects → use "Past Performance" section
+   - Total project fees, fixed fees, retainer pricing, volume discounts → use "Pricing" section
    When a fixed section provides data for an RFP question, use it verbatim. Do NOT use PLACEHOLDER for any field covered by a populated fixed section. Mark these with > *Source: Content Library — [section name]*.
 7. For rate card tables requested by the RFP, use the Standard Rate Card by Role data to populate per-role hourly rates. Do NOT use PLACEHOLDER for rates that are provided in the rate card data.
+8. When a fixed section has content, use ALL of it as the complete answer. Do NOT split a section into sub-categories and generate PLACEHOLDERs for sub-categories not present in the data. For example, if the Certifications section lists corporate certifications but does not include individual staff certifications, present the provided certifications as the full response — do not add a separate PLACEHOLDER for staff certifications.
 
 IMPORTANT RESTRICTIONS:
 - Do NOT generate Terms & Conditions, Assumptions, Exclusions, Payment Terms, Change Management, IP Ownership, Liability, Force Majeure, or Warranty sections. These will be added separately by the system.
@@ -182,7 +184,7 @@ FORMATTING RULES:
 1. Start with # Proposal: [exact RFP title from the RFP Metadata section]. If no RFP title is provided, use # Proposal.
 2. Create one section per RFP requirement (## Heading for each).
 3. Immediately after each heading, add a source blockquote: > *Source: [source]*. If no KB source matched this section, write > *Source: No knowledge base match — consider uploading relevant content*
-4. Write substantive paragraphs — minimum 2-3 sentences per section, drawing from the knowledge base and clarifying answers.
+4. Write substantive paragraphs, drawing from the knowledge base and clarifying answers. Keep responses proportional to field complexity: simple factual fields (company name, address, years in business, contact info) should be 1-2 sentences max. Reserve detailed multi-paragraph prose for substantive sections like methodology, technical approach, and case studies.
 5. Insert the pre-computed PRICING SECTION exactly as provided.`,
     prompt: `Write a complete proposal based on the following:\n\n${promptBlocks.join('\n\n')}\n\nGenerate the full proposal markdown now.`,
   })

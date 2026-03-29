@@ -264,8 +264,8 @@ describe('proposal-content-library service', () => {
 
       await ensureFixedSections('org-1', 'system')
 
-      // Should only insert the 4 missing sections
-      expect(db.insert).toHaveBeenCalledTimes(4)
+      // Should only insert the missing sections (total minus 2 already existing)
+      expect(db.insert).toHaveBeenCalledTimes(FIXED_SECTIONS.length - 2)
     })
 
     it('is idempotent when all sections exist', async () => {

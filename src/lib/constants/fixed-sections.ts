@@ -41,6 +41,13 @@ export const FIXED_SECTIONS = [
       'Case studies, notable client engagements (anonymized if needed), project outcomes, references.',
     sortOrder: 6,
   },
+  {
+    sectionType: 'pricing' as const,
+    displayName: 'Pricing',
+    description:
+      'Fixed project fees, retainer rates, volume discounts, payment terms, and any standard pricing not captured in the per-role rate card.',
+    sortOrder: 7,
+  },
 ] as const
 
 export type FixedSectionType = (typeof FIXED_SECTIONS)[number]['sectionType']

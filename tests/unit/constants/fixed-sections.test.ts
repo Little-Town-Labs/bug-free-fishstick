@@ -8,8 +8,8 @@ import {
 } from '@/lib/constants/fixed-sections'
 
 describe('FIXED_SECTIONS constant', () => {
-  it('defines exactly 6 sections', () => {
-    expect(FIXED_SECTIONS).toHaveLength(6)
+  it('defines exactly 7 sections', () => {
+    expect(FIXED_SECTIONS).toHaveLength(7)
   })
 
   it('has unique sectionType identifiers', () => {
@@ -17,9 +17,9 @@ describe('FIXED_SECTIONS constant', () => {
     expect(new Set(types).size).toBe(types.length)
   })
 
-  it('has sequential sort orders from 1 to 6', () => {
+  it('has sequential sort orders from 1 to 7', () => {
     const orders = FIXED_SECTIONS.map((s: FixedSectionDefinition) => s.sortOrder)
-    expect(orders).toEqual([1, 2, 3, 4, 5, 6])
+    expect(orders).toEqual([1, 2, 3, 4, 5, 6, 7])
   })
 
   it('has non-empty displayName for every section', () => {
@@ -42,12 +42,13 @@ describe('FIXED_SECTIONS constant', () => {
     expect(types).toContain('specialties')
     expect(types).toContain('certifications')
     expect(types).toContain('past_performance')
+    expect(types).toContain('pricing')
   })
 })
 
 describe('FIXED_SECTION_TYPES', () => {
-  it('is a set of all 6 section type strings', () => {
-    expect(FIXED_SECTION_TYPES.size).toBe(6)
+  it('is a set of all 7 section type strings', () => {
+    expect(FIXED_SECTION_TYPES.size).toBe(7)
     expect(FIXED_SECTION_TYPES.has('company_info')).toBe(true)
     expect(FIXED_SECTION_TYPES.has('past_performance')).toBe(true)
   })
