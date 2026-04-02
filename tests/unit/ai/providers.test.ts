@@ -40,7 +40,7 @@ describe('LLM Provider Abstraction', () => {
       expect(createAnthropic).toHaveBeenCalledWith({
         apiKey: 'test-claude-key',
       })
-      expect(mockAnthropic).toHaveBeenCalledWith('claude-sonnet-4-6')
+      expect(mockAnthropic).toHaveBeenCalledWith('claude-opus-4-6')
       expect(model).toBe(mockModel)
     })
 
