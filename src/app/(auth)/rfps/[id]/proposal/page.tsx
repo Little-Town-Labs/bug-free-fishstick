@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
@@ -146,6 +146,9 @@ export default function ProposalWizardPage() {
   const [draft, setDraft] = useState<ProposalDraft | null>(null)
   const [error, setError] = useState<string | null>(null)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [pollFailures, setPollFailures] = useState(0)
+  const pollFailuresRef = useRef(0)
 
   // Step 1: create a new draft
   useEffect(() => {
@@ -178,6 +181,50 @@ export default function ProposalWizardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Elapsed time counter while generating
+  useEffect(() => {
+    if (step !== 'viewing' || draft?.status !== 'generating') {
+      setElapsedSeconds(0)
+      return
+    }
+    const timer = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
+    return () => clearInterval(timer)
+  }, [step, draft?.status])
+
+  // Single poll fetch — shared by interval and manual retry
+  const pollDraftStatus = useCallback(async () => {
+    const draftId = draft?.id ?? existingDraftId
+    if (!draftId) return
+
+    try {
+      const res = await fetch(`/api/rfps/${rfpId}/proposals/${draftId}`)
+      if (res.ok) {
+        const updated = (await res.json()) as ProposalDraft
+        pollFailuresRef.current = 0
+        setPollFailures(0)
+
+        if (updated.status !== draft?.status) {
+          setDraft(updated)
+          if (updated.status === 'draft') {
+            toast.success('Proposal generated!')
+          } else if (updated.status === 'error') {
+            toast.error(updated.generationError ?? 'Generation failed')
+          }
+          if (updated.status !== 'generating' && pollingRef.current) {
+            clearInterval(pollingRef.current)
+            pollingRef.current = null
+          }
+        }
+      } else {
+        pollFailuresRef.current += 1
+        setPollFailures(pollFailuresRef.current)
+      }
+    } catch {
+      pollFailuresRef.current += 1
+      setPollFailures(pollFailuresRef.current)
+    }
+  }, [draft?.id, draft?.status, existingDraftId, rfpId])
+
   // Step 3: poll for completion when viewing
   useEffect(() => {
     if (step !== 'viewing') return
@@ -200,21 +247,7 @@ export default function ProposalWizardPage() {
 
     if (draft.status !== 'generating') return
 
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/rfps/${rfpId}/proposals/${draftId}`)
-        if (res.ok) {
-          const updated = (await res.json()) as ProposalDraft
-          setDraft(updated)
-          if (updated.status !== 'generating') {
-            clearInterval(pollingRef.current!)
-            pollingRef.current = null
-          }
-        }
-      } catch {
-        // ignore transient errors
-      }
-    }, POLL_INTERVAL_MS)
+    pollingRef.current = setInterval(pollDraftStatus, POLL_INTERVAL_MS)
 
     return () => {
       if (pollingRef.current) {
@@ -223,7 +256,7 @@ export default function ProposalWizardPage() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, draft?.status, rfpId, existingDraftId])
+  }, [step, draft?.status, rfpId, existingDraftId, pollDraftStatus])
 
   function handleAnswersSubmitted(updatedDraft: ProposalDraft) {
     setDraft(updatedDraft)
@@ -289,9 +322,48 @@ export default function ProposalWizardPage() {
       {step === 'viewing' && (
         <div className="space-y-4">
           {!draft || draft.status === 'generating' ? (
-            <div className="flex items-center gap-3 text-muted-foreground" role="status" aria-live="polite">
-              <Spinner />
-              <span>Generating your proposal…</span>
+            <div className="space-y-3" role="status" aria-live="polite">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <Spinner />
+                <span>
+                  Generating your proposal…{' '}
+                  {elapsedSeconds > 0 && (
+                    <span className="tabular-nums">
+                      ({elapsedSeconds < 60
+                        ? `${elapsedSeconds}s`
+                        : `${Math.floor(elapsedSeconds / 60)}m ${String(elapsedSeconds % 60).padStart(2, '0')}s`})
+                    </span>
+                  )}
+                </span>
+              </div>
+              {elapsedSeconds >= 10 && (
+                <p className="text-xs text-muted-foreground/70 pl-8">
+                  This typically takes 60–90 seconds with complex RFPs.
+                </p>
+              )}
+              {pollFailures >= 3 && (
+                <div className="flex items-center gap-2 pl-8">
+                  <p className="text-xs text-amber-600">
+                    Having trouble checking status.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={pollDraftStatus}
+                    className="text-xs text-primary underline-offset-4 hover:underline"
+                  >
+                    Retry now
+                  </button>
+                </div>
+              )}
+              {pollFailures < 3 && draft?.status === 'generating' && (
+                <button
+                  type="button"
+                  onClick={pollDraftStatus}
+                  className="text-xs text-muted-foreground/60 underline-offset-4 hover:underline pl-8"
+                >
+                  Check status
+                </button>
+              )}
             </div>
           ) : null}
 
