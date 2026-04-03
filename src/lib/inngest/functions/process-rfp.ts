@@ -260,7 +260,10 @@ export const processRfp = inngest.createFunction(
 
       // Auto-populate dueDate from extracted submission deadline (user data takes precedence)
       if (!rfp.dueDate && analyzed.metadata?.submissionDeadline) {
-        updatePayload.dueDate = analyzed.metadata.submissionDeadline
+        const parsed = new Date(analyzed.metadata.submissionDeadline)
+        if (!isNaN(parsed.getTime())) {
+          updatePayload.dueDate = parsed
+        }
       }
 
       // Auto-populate customerCompanyName from extracted issuing org (user data takes precedence)

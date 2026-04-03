@@ -1099,7 +1099,7 @@ describe('process-rfp Inngest workflow', () => {
       await (processRfp as unknown as (...args: unknown[]) => Promise<unknown>)({ event, step })
 
       expect(setMock).toHaveBeenCalledWith(
-        expect.objectContaining({ dueDate: '2026-04-15' }),
+        expect.objectContaining({ dueDate: new Date('2026-04-15') }),
       )
     })
 
