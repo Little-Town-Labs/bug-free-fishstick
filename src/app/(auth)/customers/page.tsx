@@ -66,12 +66,16 @@ export default function CustomersPage() {
 
     try {
       setCreating(true)
+      const description = newDescription.trim()
       const res = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName.trim(), description: newDescription.trim() || null }),
+        body: JSON.stringify({ name: newName.trim(), ...(description ? { description } : {}) }),
       })
-      if (!res.ok) throw new Error('Failed to create customer')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to create customer')
+      }
       setNewName('')
       setNewDescription('')
       setDialogOpen(false)
