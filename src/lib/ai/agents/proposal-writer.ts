@@ -1,6 +1,7 @@
 import { generateText } from 'ai'
 import { getLanguageModelForOrg } from '@/lib/ai/providers'
 import { FIXED_SECTIONS } from '@/lib/constants/fixed-sections'
+import { mapSectionsToAnswers } from '@/lib/ai/utils/section-answer-mapper'
 import type { ClarifyingQuestion } from '@/lib/db/schema/proposal-drafts'
 import type { KnowledgeEntryWithSimilarity } from '@/lib/services/vector-search'
 import type { TypedSupplierContext, CustomerContext } from '@/lib/services/proposal-retrieval'
@@ -49,8 +50,16 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
 
   const model = await getLanguageModelForOrg(organizationId)
 
-  const sectionsText = rfpSections
-    .map((s) => `### ${s.title}\n${s.content}`)
+  const annotatedSections = mapSectionsToAnswers(rfpSections, clarifyingAnswers)
+  const sectionsText = annotatedSections
+    .map((s) => {
+      const clarification = s.hasClarification
+        ? s.relevantAnswers
+            .map((a) => `> **User clarification:** Q: ${a.question}\n> A: ${a.answer}`)
+            .join('\n')
+        : '> *No user clarification provided — infer response from knowledge base and context.*'
+      return `### ${s.title}\n${s.content}\n${clarification}`
+    })
     .join('\n\n')
 
   const requirementText = requirementResults.length > 0
@@ -73,16 +82,10 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
     ? learnings.map((l) => `- [${l.sourceType}] ${l.content}`).join('\n')
     : '(No learnings available.)'
 
-  const answersText = clarifyingAnswers.length > 0
-    ? clarifyingAnswers
-        .map((a) => `Q (${a.rfpSection}): ${a.question}\nA: ${a.answer || '(skipped)'}`)
-        .join('\n\n')
-    : '(No clarifying answers provided.)'
-
   // Build prompt sections conditionally
   const promptBlocks: string[] = []
 
-  promptBlocks.push(`## RFP Requirements\n${sectionsText}`)
+  promptBlocks.push(`## RFP Requirements (respond to EVERY section below — ${rfpSections.length} total)\n${sectionsText}`)
 
   if (companyProfile && companyProfile.trim()) {
     promptBlocks.push(`## Company Profile\n${companyProfile}`)
@@ -104,7 +107,6 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
   }
 
   promptBlocks.push(`## Learnings\n${learningsText}`)
-  promptBlocks.push(`## Scope & Clarifying Question Answers\n${answersText}`)
 
   // RFP metadata block — use extracted metadata when available, fallback to rfpName
   const proposalTitle = rfpMetadata?.title ?? rfpName ?? null
@@ -157,6 +159,8 @@ export async function writeProposal(input: WriteProposalInput): Promise<WritePro
 
 YOUR PRIMARY GOAL: Answer every RFP requirement using the knowledge base context, case studies, certifications, and learnings provided. Do NOT simply restate or copy what the RFP asks — provide the vendor's actual response with specific, substantive content.
 
+CRITICAL COVERAGE RULE: The proposal MUST contain one ## section for EVERY ### requirement listed under "RFP Requirements" below. Sections with user clarifications should incorporate those answers. Sections WITHOUT user clarifications must STILL be fully addressed using knowledge base context, case studies, certifications, and company profile. Do not skip any section regardless of whether the user provided clarifying answers for it.
+
 CONTENT RULES:
 1. For each RFP requirement, write a response that directly addresses what the buyer is asking for. If the RFP says "Describe your approach to X," describe the approach using the knowledge base — don't repeat the RFP text.
 2. Draw heavily from the Knowledge Base Context, Case Studies, and Certifications sections below. Reference specific capabilities, past experience, and qualifications from these sources.
@@ -186,7 +190,7 @@ FORMATTING RULES:
 3. Immediately after each heading, add a source blockquote: > *Source: [source]*. If no KB source matched this section, write > *Source: No knowledge base match — consider uploading relevant content*
 4. Write substantive paragraphs, drawing from the knowledge base and clarifying answers. Keep responses proportional to field complexity: simple factual fields (company name, address, years in business, contact info) should be 1-2 sentences max. Reserve detailed multi-paragraph prose for substantive sections like methodology, technical approach, and case studies.
 5. Insert the pre-computed PRICING SECTION exactly as provided.`,
-    prompt: `Write a complete proposal based on the following:\n\n${promptBlocks.join('\n\n')}\n\nGenerate the full proposal markdown now.`,
+    prompt: `Write a complete proposal based on the following:\n\n${promptBlocks.join('\n\n')}\n\nThe proposal MUST contain exactly ${rfpSections.length} requirement sections (one ## section per ### RFP requirement listed above). Generate the full proposal markdown now.`,
   })
 
   if (!text || typeof text !== 'string') {
