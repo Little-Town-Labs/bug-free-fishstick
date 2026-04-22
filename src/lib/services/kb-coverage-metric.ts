@@ -2,7 +2,7 @@
 // how much of the proposal is backed by KB content vs. generated from scratch.
 
 const SECTION_HEADING_RE = /^## .+/gm
-const NO_MATCH_INDICATOR = 'No knowledge base match'
+const NO_MATCH_INDICATOR = 'No content library match'
 
 export function computeKbCoveragePercentage(markdown: string): number {
   if (!markdown) return 0

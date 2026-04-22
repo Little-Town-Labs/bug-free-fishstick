@@ -187,7 +187,7 @@ IMPORTANT RESTRICTIONS:
 FORMATTING RULES:
 1. Start with # Proposal: [exact RFP title from the RFP Metadata section]. If no RFP title is provided, use # Proposal.
 2. Create one section per RFP requirement (## Heading for each).
-3. Immediately after each heading, add a source blockquote: > *Source: [source]*. If no KB source matched this section, write > *Source: No knowledge base match — consider uploading relevant content*
+3. Immediately after each heading, add a source blockquote: > *Source: [source]*. If no KB source matched this section, write > *Source: No content library match — research and complete before submission*
 4. Write substantive paragraphs, drawing from the knowledge base and clarifying answers. Keep responses proportional to field complexity: simple factual fields (company name, address, years in business, contact info) should be 1-2 sentences max. Reserve detailed multi-paragraph prose for substantive sections like methodology, technical approach, and case studies.
 5. Insert the pre-computed PRICING SECTION exactly as provided.`,
     prompt: `Write a complete proposal based on the following:\n\n${promptBlocks.join('\n\n')}\n\nThe proposal MUST contain exactly ${rfpSections.length} requirement sections (one ## section per ### RFP requirement listed above). Generate the full proposal markdown now.`,
