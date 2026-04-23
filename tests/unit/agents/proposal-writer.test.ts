@@ -394,6 +394,81 @@ describe('proposal-writer (F8 interface)', () => {
     })
   })
 
+  describe('RFP section coverage (inline answers)', () => {
+    it('system prompt contains CRITICAL COVERAGE RULE', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
+      expect(args.system).toContain('CRITICAL COVERAGE RULE')
+      expect(args.system).toContain('Do not skip any section regardless of whether the user provided clarifying answers')
+    })
+
+    it('user prompt includes exact section count', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      const multiSectionInput = {
+        ...baseInput,
+        rfpSections: [
+          { id: 'f1', title: 'Company Background', content: 'Describe your company.' },
+          { id: 'f2', title: 'Technical Approach', content: 'Describe approach.' },
+          { id: 'f3', title: 'QA Framework', content: 'Describe QA.' },
+        ],
+      }
+      await writeProposal(multiSectionInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('MUST contain exactly 3 requirement sections')
+    })
+
+    it('inlines answered questions under their matching RFP section', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        rfpSections: [
+          { id: 'f1', title: 'Schedule', content: 'Provide timeline.' },
+          { id: 'f2', title: 'Company Background', content: 'Describe your company.' },
+        ],
+        clarifyingAnswers: [
+          { id: 'q1', question: 'Timeline?', rfpSection: 'Schedule', answer: '6 months' },
+        ],
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      // Schedule section should have the inlined answer
+      expect(args.prompt).toContain('User clarification')
+      expect(args.prompt).toContain('6 months')
+      // Company Background should have the "no clarification" marker
+      expect(args.prompt).toContain('No user clarification provided')
+    })
+
+    it('marks all sections as unclarified when all answers are null', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal({
+        ...baseInput,
+        clarifyingAnswers: [
+          { id: 'q1', question: 'Timeline?', rfpSection: 'Schedule', answer: null },
+        ],
+      })
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('No user clarification provided')
+      expect(args.prompt).not.toContain('User clarification')
+    })
+
+    it('prompt heading includes respond to EVERY section', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).toContain('respond to EVERY section below')
+    })
+  })
+
   describe('fixed sections prompt blocks', () => {
     it('includes fixed section blocks when fixedSections is provided', async () => {
       vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
@@ -446,6 +521,15 @@ describe('proposal-writer (F8 interface)', () => {
       const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
       expect(args.prompt).toContain('## Certifications (use for')
       expect(args.prompt).toContain('ISO 27001, SOC 2 Type II')
+    })
+
+    it('does not include a separate Scope & Clarifying Question Answers block', async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
+
+      await writeProposal(baseInput)
+
+      const args = vi.mocked(generateText).mock.calls[0]![0] as { prompt: string }
+      expect(args.prompt).not.toContain('## Scope & Clarifying Question Answers')
     })
 
     it('includes fixed section mapping rules in system prompt', async () => {
