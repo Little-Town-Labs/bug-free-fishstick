@@ -23,7 +23,7 @@ export default function LandingPage() {
             <div className="flex size-8 items-center justify-center rounded-lg bg-brand">
               <FileText className="size-4 text-brand-foreground" />
             </div>
-            <span className="text-lg font-bold tracking-tight">TTS RFP Automator</span>
+            <span className="text-lg font-bold tracking-tight">RocketRFP</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -329,10 +329,10 @@ export default function LandingPage() {
             <div className="flex size-6 items-center justify-center rounded bg-brand">
               <FileText className="size-3 text-brand-foreground" />
             </div>
-            TTS RFP Automator
+            RocketRFP
           </div>
           <div className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} TTS. All rights reserved.
+            &copy; {new Date().getFullYear()} Timeless Technology Solutions. All rights reserved.
           </div>
         </div>
       </footer>

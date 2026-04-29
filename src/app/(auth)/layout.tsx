@@ -59,7 +59,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 <FileText className="size-4 text-brand-foreground" />
               </div>
               <span className="font-display font-semibold text-sm tracking-tight">
-                RFP Automator
+                RocketRFP
               </span>
             </Link>
             <Button
@@ -123,7 +123,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
             <Menu className="size-5" />
           </Button>
-          <span className="ml-2 font-display font-semibold text-sm">RFP Automator</span>
+          <span className="ml-2 font-display font-semibold text-sm">RocketRFP</span>
         </header>
 
         <main className="flex-1">{children}</main>

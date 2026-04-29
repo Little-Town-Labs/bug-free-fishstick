@@ -13,7 +13,7 @@ export default function SignUpPage() {
             <div className="flex size-8 items-center justify-center rounded-lg bg-brand">
               <FileText className="size-4 text-brand-foreground" />
             </div>
-            <span className="font-display font-semibold text-lg tracking-tight">RFP Automator</span>
+            <span className="font-display font-semibold text-lg tracking-tight">RocketRFP</span>
           </Link>
           <div>
             <h1 className="font-display text-4xl font-bold mb-4">Start winning more bids</h1>

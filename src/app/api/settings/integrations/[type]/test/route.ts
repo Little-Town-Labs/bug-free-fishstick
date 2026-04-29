@@ -34,7 +34,7 @@ export async function POST(
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'Test message from RFP Automator :white_check_mark:' }),
+        body: JSON.stringify({ text: 'Test message from RocketRFP :white_check_mark:' }),
       })
       return NextResponse.json({
         success: response.ok,

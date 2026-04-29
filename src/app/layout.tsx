@@ -24,7 +24,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'RFP Automator',
+  title: 'RocketRFP',
   description: 'AI-powered RFP response automation platform',
 }
 
