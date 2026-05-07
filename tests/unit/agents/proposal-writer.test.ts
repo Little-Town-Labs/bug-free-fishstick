@@ -154,13 +154,13 @@ describe('proposal-writer (F8 interface)', () => {
       expect(args.system).toContain('source blockquote')
     })
 
-    it('system prompt includes "No knowledge base match" gap indicator', async () => {
+    it('system prompt includes "No content library match" gap indicator', async () => {
       vi.mocked(generateText).mockResolvedValue({ text: mockMarkdown } as unknown as Awaited<ReturnType<typeof generateText>>)
 
       await writeProposal(baseInput)
 
       const args = vi.mocked(generateText).mock.calls[0]![0] as { system: string }
-      expect(args.system).toContain('No knowledge base match')
+      expect(args.system).toContain('No content library match')
     })
 
     it('prompt includes KB entry titles in knowledge base context', async () => {

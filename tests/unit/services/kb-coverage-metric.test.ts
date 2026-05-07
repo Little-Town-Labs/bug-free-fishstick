@@ -14,7 +14,7 @@ Content here.
 Content here.
 
 ## Section 3
-> *Source: No knowledge base match — consider uploading relevant content*
+> *Source: No content library match — consider uploading relevant content*
 Content here.
 
 ## Section 4
@@ -34,7 +34,7 @@ Content here.
 Content here.
 
 ## Section 8
-> *Source: No knowledge base match — consider uploading relevant content*
+> *Source: No content library match — consider uploading relevant content*
 Content here.
 
 ## Section 9
@@ -52,10 +52,10 @@ Content here.`
     const markdown = `# Proposal
 
 ## Section 1
-> *Source: No knowledge base match — consider uploading relevant content*
+> *Source: No content library match — consider uploading relevant content*
 
 ## Section 2
-> *Source: No knowledge base match — consider uploading relevant content*`
+> *Source: No content library match — consider uploading relevant content*`
 
     expect(computeKbCoveragePercentage(markdown)).toBe(0)
   })
