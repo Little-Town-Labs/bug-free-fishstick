@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, isAdmin, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { tenantSettings, llmProviders } from '@/lib/db/schema'
@@ -60,7 +61,7 @@ export async function GET() {
   } catch (error) {
     console.error('[GET /api/settings]', error)
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -125,7 +126,7 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error('[PATCH /api/settings]', error)
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
@@ -52,7 +53,7 @@ export async function POST(
     return NextResponse.json({ rfp: updated[0] })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+      return authErrorResponse(err)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

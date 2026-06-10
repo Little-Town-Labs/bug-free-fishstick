@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import {
   upsertIntegrationConfig,
@@ -34,7 +35,7 @@ export async function PUT(
     return NextResponse.json({ integration: summary }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -59,7 +60,7 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

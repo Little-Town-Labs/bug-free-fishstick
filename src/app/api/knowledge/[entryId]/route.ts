@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { db } from '@/lib/db'
 import { knowledgeEntries } from '@/lib/db/schema/knowledge-entries'
 import { eq, and, isNull } from 'drizzle-orm'
@@ -29,7 +30,7 @@ export async function DELETE(
     return new Response(null, { status: 204 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     throw error
   }

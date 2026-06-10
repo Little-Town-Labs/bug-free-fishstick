@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { getRateCard, upsertRateCard } from '@/lib/services/rate-card'
 import { createRateCardPatchSchema } from '@/lib/utils/validation'
 
@@ -10,7 +11,7 @@ export async function GET() {
     return NextResponse.json(result)
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     console.error('[GET /api/settings/rate-card]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -47,7 +48,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     console.error('[PATCH /api/settings/rate-card]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

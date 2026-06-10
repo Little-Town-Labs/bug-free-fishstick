@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { clerkClient } from '@clerk/nextjs/server'
 import { requireAuthLimited, isAdmin, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 
 export async function POST(request: NextRequest) {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ invitation }, { status: 201 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     console.error('[POST /api/users/invite]', error instanceof Error ? error.message : String(error))
     const message =
