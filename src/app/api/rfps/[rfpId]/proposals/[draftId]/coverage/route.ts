@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { proposalDrafts, rfps, proposalTemplates } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -9,7 +9,7 @@ type Params = { params: Promise<{ rfpId: string; draftId: string }> }
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
-    const { orgId } = await requireAuth()
+    const { orgId } = await requireAuthLimited()
     const { rfpId, draftId } = await params
 
     // Fetch draft (tenant-scoped)

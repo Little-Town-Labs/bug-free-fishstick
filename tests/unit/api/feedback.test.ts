@@ -5,7 +5,7 @@ const mockDbSelect = vi.fn()
 const mockInngestSend = vi.fn()
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: () => mockRequireAuth(),
+  requireAuthLimited: () => mockRequireAuth(),
   AuthError: class AuthError extends Error {
     statusCode: number
     constructor(message: string, statusCode: number) {

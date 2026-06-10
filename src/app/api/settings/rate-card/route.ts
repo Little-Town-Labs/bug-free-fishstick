@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { getRateCard, upsertRateCard } from '@/lib/services/rate-card'
 import { createRateCardPatchSchema } from '@/lib/utils/validation'
 
 export async function GET() {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const result = await getRateCard(auth.orgId)
     return NextResponse.json(result)
   } catch (error) {
@@ -19,7 +19,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
 
     let body: unknown
     try {

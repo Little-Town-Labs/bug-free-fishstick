@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { learnings } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -8,7 +9,7 @@ import { captureManualLearning } from '@/lib/services/learning-capture'
 // GET /api/learnings?customerId=xxx — any authenticated member
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const customerId = request.nextUrl.searchParams.get('customerId')
 
     const whereClause = customerId
@@ -29,8 +30,8 @@ export async function GET(request: NextRequest) {
 // POST /api/learnings — any authenticated member can add manual learning
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth()
-    const body = await request.json()
+    const auth = await requireAuthLimited()
+    const body = await readJsonBody(request)
 
     if (!body.content || typeof body.content !== 'string' || !body.content.trim()) {
       return NextResponse.json({ error: 'content is required' }, { status: 400 })

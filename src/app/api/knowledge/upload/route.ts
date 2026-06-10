@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse, after } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { knowledgeEntries, KnowledgeEntryType } from '@/lib/db/schema/knowledge-entries'
 import { inngest } from '@/lib/inngest/client'
 import { put } from '@vercel/blob'
+import { sanitizeFilename } from '@/lib/storage/blob'
 import { parsePdf } from '@/lib/documents/pdf-parser'
 import { parseWord } from '@/lib/documents/word-parser'
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited('upload')
 
-    const rateLimited = await checkRateLimit(auth.userId, 'upload')
-    if (rateLimited) return rateLimited
 
     const formData = await request.formData()
     const file = formData.get('file') as File | null
@@ -48,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Upload file and parse content in parallel
     const [blob, content] = await Promise.all([
-      put(`knowledge/${auth.orgId}/company/${file.name}`, file, { access: 'public' }),
+      put(`knowledge/${auth.orgId}/company/${sanitizeFilename(file.name)}`, file, { access: 'public' }),
       file.arrayBuffer().then((buf) => {
         const buffer = Buffer.from(buf)
         if (file.name.endsWith('.pdf') || file.type === 'application/pdf') {

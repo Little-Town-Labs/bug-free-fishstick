@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
+  requireAuthLimited: vi.fn(),
   isAdmin: vi.fn().mockReturnValue(false),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
@@ -21,7 +21,7 @@ vi.mock('@/lib/db', () => {
   return { db: chain }
 })
 
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { GET } from '@/app/api/rfps/[rfpId]/download/route'
 
@@ -38,7 +38,7 @@ function makeParams(rfpId = 'rfp-1') {
 describe('GET /api/rfps/[rfpId]/download', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(requireAuth).mockResolvedValue(mockUser as never)
+    vi.mocked(requireAuthLimited).mockResolvedValue(mockUser as never)
 
     const dbAny = db as any // eslint-disable-line @typescript-eslint/no-explicit-any
     dbAny.select.mockReturnValue(dbAny)
@@ -47,7 +47,7 @@ describe('GET /api/rfps/[rfpId]/download', () => {
   })
 
   it('returns 401 when not authenticated', async () => {
-    vi.mocked(requireAuth).mockRejectedValue(new (AuthError as unknown as new (msg: string, code: number) => Error)('Unauthorized', 401))
+    vi.mocked(requireAuthLimited).mockRejectedValue(new (AuthError as unknown as new (msg: string, code: number) => Error)('Unauthorized', 401))
 
     const res = await GET(makeRequest(), makeParams())
     expect(res.status).toBe(401)

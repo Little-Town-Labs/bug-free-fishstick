@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 
 // Mock dependencies
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
+  requireAuthLimited: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
       super(message)
@@ -30,7 +30,7 @@ vi.mock('@/lib/db', () => ({
 }))
 
 import { PUT as updateResponse } from '@/app/api/rfps/[rfpId]/responses/[fieldId]/route'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 
 function createMockRequest(
@@ -73,7 +73,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
         updatedAt: new Date('2024-01-01T12:00:00.000Z'),
       }
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -94,7 +94,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
     })
 
     it('should return 400 when responseText is missing', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
 
       const request = createMockRequest('PUT', BASE_URL, {
         status: 'manually_filled',
@@ -107,7 +107,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(new AuthError('Unauthorized', 401))
+      vi.mocked(requireAuthLimited).mockRejectedValue(new AuthError('Unauthorized', 401))
 
       const request = createMockRequest('PUT', BASE_URL, {
         responseText: 'My answer',
@@ -137,7 +137,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
         updatedAt: new Date('2024-01-01T12:00:00.000Z'),
       }
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve([mockExistingResponse])),
@@ -176,7 +176,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
         updatedAt: new Date('2024-01-01T12:00:00.000Z'),
       }
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -209,7 +209,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
         updatedAt: existingUpdatedAt,
       }
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve([mockExistingResponse])),
@@ -249,7 +249,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
         updatedAt: new Date('2024-01-01T11:00:00.000Z'),
       }
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve([mockExistingResponse])),
@@ -284,7 +284,7 @@ describe('PUT /api/rfps/[rfpId]/responses/[fieldId] - auto-save', () => {
         updatedAt: new Date(),
       }
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn(() => ({

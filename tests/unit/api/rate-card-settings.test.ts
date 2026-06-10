@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAdmin: vi.fn(),
+  requireAdminLimited: vi.fn(),
   getAuthContext: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
@@ -17,7 +17,7 @@ vi.mock('@/lib/services/rate-card', () => ({
   upsertRateCard: vi.fn(),
 }))
 
-import { requireAdmin } from '@/lib/utils/auth'
+import { requireAdminLimited } from '@/lib/utils/auth'
 import { getRateCard, upsertRateCard } from '@/lib/services/rate-card'
 import { GET, PATCH } from '@/app/api/settings/rate-card/route'
 
@@ -54,7 +54,7 @@ function createPatchRequest(body: unknown): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+  vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
   vi.mocked(getRateCard).mockResolvedValue({ rateCard: null, proposalDefaults: null })
   vi.mocked(upsertRateCard).mockResolvedValue(undefined)
 })
@@ -66,7 +66,7 @@ beforeEach(() => {
 describe('GET /api/settings/rate-card', () => {
   it('returns 401 when unauthenticated', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Authentication required', 401))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Authentication required', 401))
 
     const res = await GET()
     expect(res.status).toBe(401)
@@ -74,14 +74,14 @@ describe('GET /api/settings/rate-card', () => {
 
   it('returns 403 when authenticated user is not an admin', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
 
     const res = await GET()
     expect(res.status).toBe(403)
   })
 
   it('returns 500 on unexpected server error', async () => {
-    vi.mocked(requireAdmin).mockRejectedValue(new Error('DB connection refused'))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new Error('DB connection refused'))
 
     const res = await GET()
     expect(res.status).toBe(500)
@@ -122,7 +122,7 @@ describe('GET /api/settings/rate-card', () => {
 describe('PATCH /api/settings/rate-card', () => {
   it('returns 401 when unauthenticated', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Authentication required', 401))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Authentication required', 401))
 
     const res = await PATCH(createPatchRequest(validPatchBody))
     expect(res.status).toBe(401)
@@ -130,7 +130,7 @@ describe('PATCH /api/settings/rate-card', () => {
 
   it('returns 403 when authenticated user is not an admin', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
 
     const res = await PATCH(createPatchRequest(validPatchBody))
     expect(res.status).toBe(403)

@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireAuthLimited: vi.fn(),
+  requireAdminLimited: vi.fn(),
   isAdmin: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(
@@ -28,7 +28,7 @@ vi.mock('@/lib/services/learning-capture', () => ({
 }))
 
 import { GET, POST } from '@/app/api/learnings/route'
-import { requireAuth } from '@/lib/utils/auth'
+import { requireAuthLimited } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { captureManualLearning } from '@/lib/services/learning-capture'
 
@@ -66,7 +66,7 @@ describe('Learnings API Routes', () => {
 
   describe('GET /api/learnings', () => {
     it('returns 200 with learnings array', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(authCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(authCtx)
 
       const mockChain = {
         from: vi.fn().mockReturnThis(),
@@ -84,7 +84,7 @@ describe('Learnings API Routes', () => {
     })
 
     it('filters by customerId when provided', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(authCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(authCtx)
 
       const mockChain = {
         from: vi.fn().mockReturnThis(),
@@ -107,7 +107,7 @@ describe('Learnings API Routes', () => {
 
     it('returns 401 when unauthenticated', async () => {
       const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new AuthErrorClass('Unauthorized', 401)
       )
 
@@ -120,7 +120,7 @@ describe('Learnings API Routes', () => {
 
   describe('POST /api/learnings', () => {
     it('creates manual_entry learning, returns 201', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(authCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(authCtx)
       vi.mocked(captureManualLearning).mockResolvedValue({
         ...mockLearningRow,
         sourceType: 'manual_entry',
@@ -145,7 +145,7 @@ describe('Learnings API Routes', () => {
     })
 
     it('returns 400 when content is missing', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(authCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(authCtx)
 
       const req = createMockRequest('POST', undefined, { customerId: 'cust-456' })
       const res = await POST(req)
@@ -156,7 +156,7 @@ describe('Learnings API Routes', () => {
     })
 
     it('returns 400 when content is empty string', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(authCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(authCtx)
 
       const req = createMockRequest('POST', undefined, { content: '   ' })
       const res = await POST(req)
@@ -166,7 +166,7 @@ describe('Learnings API Routes', () => {
 
     it('returns 401 when unauthenticated', async () => {
       const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new AuthErrorClass('Unauthorized', 401)
       )
 

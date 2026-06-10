@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { eq, and } from 'drizzle-orm'
@@ -11,9 +12,9 @@ export async function POST(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const authContext = await requireAdmin()
+    const authContext = await requireAdminLimited()
     const { rfpId } = await params
-    const { assignedUserId } = await request.json()
+    const { assignedUserId } = await readJsonBody(request)
 
     if (!assignedUserId || typeof assignedUserId !== 'string') {
       return NextResponse.json({ error: 'assignedUserId is required' }, { status: 400 })

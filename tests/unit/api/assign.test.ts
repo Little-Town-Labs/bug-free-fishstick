@@ -15,7 +15,7 @@ vi.mock('@/lib/db/schema/rfps', () => ({
 }))
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAdmin: vi.fn(),
+  requireAdminLimited: vi.fn(),
   isAdmin: vi.fn().mockReturnValue(true),
   AuthError: class AuthError extends Error {
     statusCode: number
@@ -32,9 +32,9 @@ vi.mock('drizzle-orm', () => ({
 }))
 
 import { POST } from '@/app/api/rfps/[rfpId]/assign/route'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 
-const mockRequireAdmin = vi.mocked(requireAdmin)
+const mockRequireAdmin = vi.mocked(requireAdminLimited)
 
 describe('POST /api/rfps/[rfpId]/assign', () => {
   beforeEach(() => {

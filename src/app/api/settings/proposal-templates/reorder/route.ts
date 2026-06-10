@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { reorderProposalTemplates } from '@/lib/services/proposalTemplates'
 import { reorderProposalTemplatesSchema } from '@/lib/utils/validation'
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
 
     let body: unknown
     try {

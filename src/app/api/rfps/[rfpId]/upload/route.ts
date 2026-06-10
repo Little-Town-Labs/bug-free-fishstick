@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { put } from '@vercel/blob'
+import { sanitizeFilename } from '@/lib/storage/blob'
 import { eq, and } from 'drizzle-orm'
 
 export async function POST(
@@ -11,10 +11,8 @@ export async function POST(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited('upload')
 
-    const rateLimited = await checkRateLimit(auth.userId, 'upload')
-    if (rateLimited) return rateLimited
     const { rfpId } = await params
 
     const formData = await request.formData()
@@ -48,8 +46,19 @@ export async function POST(
       )
     }
 
+    // Verify the RFP exists and belongs to this org before writing to storage
+    const [existingRfp] = await db
+      .select({ id: rfps.id })
+      .from(rfps)
+      .where(and(eq(rfps.id, rfpId), eq(rfps.organizationId, auth.orgId)))
+      .limit(1)
+
+    if (!existingRfp) {
+      return NextResponse.json({ error: 'RFP not found' }, { status: 404 })
+    }
+
     // Upload to Vercel Blob
-    const pathname = `rfps/${rfpId}/${file.name}`
+    const pathname = `rfps/${rfpId}/${sanitizeFilename(file.name)}`
     const blob = await put(pathname, file, { access: 'public' })
 
     // Update RFP with file URL

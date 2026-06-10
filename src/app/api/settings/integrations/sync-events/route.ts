@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { listSyncEvents, type SyncEventFilters } from '@/lib/services/integration-config'
 import type { SyncEventStatus } from '@/lib/db/schema/sync-events'
 import type { IntegrationType } from '@/lib/services/integration-config'
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const searchParams = request.nextUrl.searchParams
 
     const filters: SyncEventFilters = {}

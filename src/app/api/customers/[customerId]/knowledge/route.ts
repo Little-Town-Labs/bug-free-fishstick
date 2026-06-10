@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { knowledgeEntries, KnowledgeEntryType } from '@/lib/db/schema/knowledge-entries'
 import { createKnowledgeEntrySchema } from '@/lib/utils/validation'
@@ -11,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { customerId } = await params
 
     const url = new URL(request.url)
@@ -56,9 +57,9 @@ export async function POST(
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const { customerId } = await params
-    const body = await request.json()
+    const body = await readJsonBody(request)
 
     const parsed = createKnowledgeEntrySchema.safeParse({
       ...body,

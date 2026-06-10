@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireAuthLimited: vi.fn(),
+  requireAdminLimited: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
       super(message)
@@ -20,7 +20,7 @@ vi.mock('@/lib/services/proposalTemplates', () => ({
   reorderProposalTemplates: vi.fn(),
 }))
 
-import { requireAuth, requireAdmin } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited } from '@/lib/utils/auth'
 import {
   listProposalTemplates,
   createProposalTemplate,
@@ -108,8 +108,8 @@ function createDeleteRequest(id: string): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  vi.mocked(requireAuth).mockResolvedValue(mockMember)
-  vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+  vi.mocked(requireAuthLimited).mockResolvedValue(mockMember)
+  vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
   vi.mocked(listProposalTemplates).mockResolvedValue([mockTemplate])
   vi.mocked(createProposalTemplate).mockResolvedValue(mockTemplate)
   vi.mocked(updateProposalTemplate).mockResolvedValue(mockTemplate)
@@ -131,16 +131,16 @@ describe('GET /api/settings/proposal-templates', () => {
     expect(body.templates[0].id).toBe(mockTemplate.id)
   })
 
-  it('returns 403 when requireAdmin throws AuthError(403)', async () => {
+  it('returns 403 when requireAdminLimited throws AuthError(403)', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
 
     const res = await GET()
     expect(res.status).toBe(403)
   })
 
   it('returns 500 on unexpected error', async () => {
-    vi.mocked(requireAdmin).mockRejectedValue(new Error('DB connection refused'))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new Error('DB connection refused'))
 
     const res = await GET()
     expect(res.status).toBe(500)
@@ -202,9 +202,9 @@ describe('POST /api/settings/proposal-templates', () => {
     expect(body.error).toBeDefined()
   })
 
-  it('returns 403 when requireAdmin throws AuthError(403)', async () => {
+  it('returns 403 when requireAdminLimited throws AuthError(403)', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
 
     const res = await POST(createPostRequest(validCreateBody))
     expect(res.status).toBe(403)
@@ -250,7 +250,7 @@ describe('POST /api/settings/proposal-templates/reorder', () => {
 
   it('returns 403 for non-admin', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
 
     const res = await REORDER(createReorderRequest(validReorderBody))
     expect(res.status).toBe(403)
@@ -297,7 +297,7 @@ describe('PATCH /api/settings/proposal-templates/[id]', () => {
 
   it('returns 403 for non-admin', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
 
     const res = await PATCH(createPatchRequest(templateId, { title: 'Updated Title' }), {
       params: Promise.resolve({ id: templateId }),
@@ -358,7 +358,7 @@ describe('DELETE /api/settings/proposal-templates/[id]', () => {
 
   it('returns 403 for non-admin', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
 
     const res = await DELETE(createDeleteRequest(templateId), {
       params: Promise.resolve({ id: templateId }),

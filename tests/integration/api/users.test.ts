@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
+  requireAuthLimited: vi.fn(),
   isAdmin: vi.fn().mockReturnValue(true),
   AuthError: class AuthError extends Error {
     constructor(
@@ -51,11 +51,11 @@ vi.mock('@clerk/nextjs/server', () => ({
 }))
 
 import { GET, POST } from '@/app/api/users/route'
-import { requireAuth, isAdmin } from '@/lib/utils/auth'
+import { requireAuthLimited, isAdmin } from '@/lib/utils/auth'
 import { NextRequest } from 'next/server'
 
 describe('Users API Routes', () => {
-  const auth = requireAuth as ReturnType<typeof vi.fn>
+  const auth = requireAuthLimited as ReturnType<typeof vi.fn>
   const adminCheck = isAdmin as ReturnType<typeof vi.fn>
 
   const mockAuth = {

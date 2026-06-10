@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { knowledgeSearchSchema } from '@/lib/utils/validation'
 import { searchSimilar } from '@/lib/services/vector-search'
 
@@ -8,9 +9,9 @@ export async function POST(
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { customerId } = await params
-    const body = await request.json()
+    const body = await readJsonBody(request)
 
     const parsed = knowledgeSearchSchema.safeParse(body)
     if (!parsed.success) {

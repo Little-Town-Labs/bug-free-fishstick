@@ -1,5 +1,16 @@
 import { put, del } from '@vercel/blob'
 
+/**
+ * Sanitizes a user-supplied filename for safe use in a blob storage pathname.
+ * Strips directory components and replaces characters outside [a-zA-Z0-9._-]
+ * so names containing '/' or '..' cannot alter the storage path.
+ */
+export function sanitizeFilename(fileName: string): string {
+  const base = fileName.split(/[/\\]/).pop() ?? ''
+  const cleaned = base.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/^\.+/, '')
+  return cleaned || 'upload'
+}
+
 export interface UploadOptions {
   organizationId: string
   rfpId: string

@@ -33,7 +33,7 @@ vi.mock('@/lib/db/schema/rfps', () => ({
 }))
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
+  requireAuthLimited: vi.fn(),
   isAdmin: vi.fn().mockReturnValue(true),
   AuthError: class AuthError extends Error {
     statusCode: number
@@ -58,9 +58,9 @@ vi.mock('@/lib/services/integration-config', () => ({
 }))
 
 import { PATCH } from '@/app/api/rfps/[rfpId]/outcome/route'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 
-const mockRequireAuth = vi.mocked(requireAuth)
+const mockRequireAuth = vi.mocked(requireAuthLimited)
 
 const mockRfp = {
   id: 'rfp-1',

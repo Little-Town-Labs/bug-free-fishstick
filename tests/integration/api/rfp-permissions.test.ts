@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireAuthLimited: vi.fn(),
+  requireAdminLimited: vi.fn(),
   isAdmin: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(
@@ -47,7 +47,7 @@ vi.mock('@/lib/db', () => ({
 
 import { GET as listRfps } from '@/app/api/rfps/route'
 import { PUT as updateRfp } from '@/app/api/rfps/[rfpId]/route'
-import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, isAdmin, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 
 function createMockRequest(
@@ -89,7 +89,7 @@ describe('RFP Permission Filtering', () => {
 
   describe('GET /api/rfps - role-based filtering', () => {
     it('admin (org:admin) sees all tenant RFPs', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(adminContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(adminContext)
       vi.mocked(isAdmin).mockReturnValue(true)
 
       const allRfps = [mockRfpAdmin, mockRfpUser]
@@ -107,7 +107,7 @@ describe('RFP Permission Filtering', () => {
     })
 
     it('user (org:member) sees only their assigned RFPs', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(userContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(userContext)
       vi.mocked(isAdmin).mockReturnValue(false)
 
       const assignedOnly = [mockRfpUser]
@@ -127,7 +127,7 @@ describe('RFP Permission Filtering', () => {
 
     it('user cannot see RFPs from another org', async () => {
       const crossOrgContext = { userId: 'user_member', orgId: 'org_other', orgRole: 'org:member' }
-      vi.mocked(requireAuth).mockResolvedValue(crossOrgContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(crossOrgContext)
       vi.mocked(isAdmin).mockReturnValue(false)
 
       // DB returns empty because orgId filter + assignedUserId filter excludes cross-org
@@ -145,7 +145,7 @@ describe('RFP Permission Filtering', () => {
     })
 
     it('returns 401 when unauthenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new (AuthError as unknown as new (msg: string, code: number) => Error)(
           'Authentication required',
           401
@@ -160,7 +160,7 @@ describe('RFP Permission Filtering', () => {
 
   describe('PUT /api/rfps/:rfpId - assignment update', () => {
     it('admin can update assignedUserId', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(adminContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(adminContext)
       vi.mocked(isAdmin).mockReturnValue(true)
 
       const updatedRfp = { ...mockRfpAdmin, assignedUserId: 'user_member' }
@@ -187,7 +187,7 @@ describe('RFP Permission Filtering', () => {
     })
 
     it('non-admin cannot update assignedUserId (returns 403)', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(userContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(userContext)
       vi.mocked(isAdmin).mockReturnValue(false)
 
       const request = createMockRequest(

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { listIntegrationConfigs } from '@/lib/services/integration-config'
 
 export async function GET() {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const configs = await listIntegrationConfigs(auth.orgId)
     return NextResponse.json({ integrations: configs }, { status: 200 })
   } catch (error) {

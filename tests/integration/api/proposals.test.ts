@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
+  requireAuthLimited: vi.fn(),
   isAdmin: vi.fn().mockReturnValue(false),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
@@ -21,7 +21,7 @@ vi.mock('@/lib/services/proposal-draft', () => ({
   cancelDraft: vi.fn(),
 }))
 
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import {
   createDraft,
   submitAnswers,
@@ -73,7 +73,7 @@ function routeParams(rfpId: string, draftId?: string) {
 describe('proposals API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(requireAuth).mockResolvedValue(mockUser)
+    vi.mocked(requireAuthLimited).mockResolvedValue(mockUser)
   })
 
   describe('POST /api/rfps/[rfpId]/proposals', () => {
@@ -101,7 +101,7 @@ describe('proposals API', () => {
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new (AuthError as unknown as new (msg: string, code: number) => Error)('Unauthorized', 401)
       )
 

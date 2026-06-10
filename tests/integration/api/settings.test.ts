@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireAuthLimited: vi.fn(),
+  requireAdminLimited: vi.fn(),
   isAdmin: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(
@@ -31,7 +31,7 @@ vi.mock('@/lib/services/encryption', () => ({
 }))
 
 import { GET, PATCH } from '@/app/api/settings/route'
-import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, isAdmin, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 
 function createMockRequest(
@@ -68,7 +68,7 @@ describe('Settings API Routes', () => {
 
   describe('GET /api/settings', () => {
     it('returns 200 with settings for authenticated user', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(memberCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(memberCtx)
       vi.mocked(isAdmin).mockReturnValue(false)
 
       vi.mocked(db.select).mockReturnValue({
@@ -88,7 +88,7 @@ describe('Settings API Routes', () => {
     })
 
     it('returns llmApiKeyConfigured=true when key is set', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(memberCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(memberCtx)
       vi.mocked(isAdmin).mockReturnValue(false)
 
       vi.mocked(db.select).mockReturnValue({
@@ -107,7 +107,7 @@ describe('Settings API Routes', () => {
     })
 
     it('returns llmApiKeyConfigured=false when key is null', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(memberCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(memberCtx)
       vi.mocked(isAdmin).mockReturnValue(false)
 
       const rowWithNoKey = { ...mockSettingsRow, llmApiKeyEncrypted: null }
@@ -126,7 +126,7 @@ describe('Settings API Routes', () => {
     })
 
     it('returns default settings when no settings row exists', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(memberCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(memberCtx)
       vi.mocked(isAdmin).mockReturnValue(false)
 
       vi.mocked(db.select).mockReturnValue({
@@ -148,7 +148,7 @@ describe('Settings API Routes', () => {
     })
 
     it('returns 401 when unauthenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new (AuthError as unknown as new (msg: string, code: number) => Error)(
           'Authentication required',
           401
@@ -162,7 +162,7 @@ describe('Settings API Routes', () => {
 
   describe('PATCH /api/settings', () => {
     it('admin can update llmProvider', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(adminCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(adminCtx)
       vi.mocked(isAdmin).mockReturnValue(true)
       vi.mocked(db.execute).mockResolvedValue({} as never)
 
@@ -175,7 +175,7 @@ describe('Settings API Routes', () => {
     })
 
     it('admin can update llmApiKey (stored encrypted, not returned)', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(adminCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(adminCtx)
       vi.mocked(isAdmin).mockReturnValue(true)
       vi.mocked(db.execute).mockResolvedValue({} as never)
 
@@ -190,7 +190,7 @@ describe('Settings API Routes', () => {
     })
 
     it('non-admin gets 403', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(memberCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(memberCtx)
       vi.mocked(isAdmin).mockReturnValue(false)
 
       const request = createMockRequest('PATCH', undefined, { llmProvider: 'openai' })
@@ -200,7 +200,7 @@ describe('Settings API Routes', () => {
     })
 
     it('returns 400 for invalid llmProvider value', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(adminCtx)
+      vi.mocked(requireAuthLimited).mockResolvedValue(adminCtx)
       vi.mocked(isAdmin).mockReturnValue(true)
 
       const request = createMockRequest('PATCH', undefined, { llmProvider: 'invalid-provider' })
@@ -210,7 +210,7 @@ describe('Settings API Routes', () => {
     })
 
     it('returns 401 when unauthenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new (AuthError as unknown as new (msg: string, code: number) => Error)(
           'Authentication required',
           401

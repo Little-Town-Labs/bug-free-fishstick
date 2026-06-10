@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import {
   listProposalTemplates,
   createProposalTemplate,
@@ -8,7 +8,7 @@ import { createProposalTemplateSchema } from '@/lib/utils/validation'
 
 export async function GET() {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const templates = await listProposalTemplates(auth.orgId)
     return NextResponse.json({ templates })
   } catch (error) {
@@ -22,7 +22,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
 
     let body: unknown
     try {

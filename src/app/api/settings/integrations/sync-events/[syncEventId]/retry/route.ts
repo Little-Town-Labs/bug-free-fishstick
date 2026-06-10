@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { getSyncEvent } from '@/lib/services/integration-config'
 import { inngest } from '@/lib/inngest/client'
 
@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ syncEventId: string }> }
 ) {
   try {
-    await requireAdmin()
+    await requireAdminLimited()
     const { syncEventId } = await params
 
     const syncEvent = await getSyncEvent(syncEventId)

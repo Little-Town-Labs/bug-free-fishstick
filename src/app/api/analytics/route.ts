@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, isAdmin, AuthError } from '@/lib/utils/auth'
 import { queryAnalyticsSnapshots, type AnalyticsFilters } from '@/lib/services/analytics'
 import { getRedis } from '@/lib/storage/kv'
 import crypto from 'crypto'
@@ -16,7 +16,7 @@ function buildFiltersHash(filters: AnalyticsFilters): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { searchParams } = new URL(request.url)
 
     const filters: AnalyticsFilters = {

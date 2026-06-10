@@ -21,8 +21,8 @@ vi.mock('next/server', async (importOriginal) => {
 
 // Mock dependencies
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireAuthLimited: vi.fn(),
+  requireAdminLimited: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
       super(message)
@@ -78,7 +78,7 @@ import { GET as listEntries, POST as createEntry } from '@/app/api/knowledge/rou
 import { POST as uploadDocument } from '@/app/api/knowledge/upload/route'
 import { DELETE as deleteEntry } from '@/app/api/knowledge/[entryId]/route'
 
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { inngest } from '@/lib/inngest/client'
 
@@ -132,7 +132,7 @@ describe('Org-Level Knowledge API Routes', () => {
         createMockKnowledgeEntry({ customerId: undefined, organizationId: 'org_456' }),
       ]
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -148,11 +148,11 @@ describe('Org-Level Knowledge API Routes', () => {
       const data = await response.json()
       expect(data.entries).toBeDefined()
       expect(Array.isArray(data.entries)).toBe(true)
-      expect(requireAuth).toHaveBeenCalled()
+      expect(requireAuthLimited).toHaveBeenCalled()
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(new AuthError('Unauthorized', 401))
+      vi.mocked(requireAuthLimited).mockRejectedValue(new AuthError('Unauthorized', 401))
 
       const request = createMockRequest('GET')
       const response = await listEntries(request)
@@ -172,7 +172,7 @@ describe('Org-Level Knowledge API Routes', () => {
         type: 'company_doc',
       })
 
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.insert).mockReturnValue({
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedEntry])),
@@ -196,7 +196,7 @@ describe('Org-Level Knowledge API Routes', () => {
     })
 
     it('should return 400 on invalid body (missing required fields)', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
 
       const request = createMockRequest('POST', 'http://localhost:3000/api/knowledge', {
         type: 'company_doc',
@@ -210,7 +210,7 @@ describe('Org-Level Knowledge API Routes', () => {
     })
 
     it('should return 403 when not admin', async () => {
-      vi.mocked(requireAdmin).mockRejectedValue(new AuthError('Admin access required', 403))
+      vi.mocked(requireAdminLimited).mockRejectedValue(new AuthError('Admin access required', 403))
 
       const request = createMockRequest('POST', 'http://localhost:3000/api/knowledge', {
         title: 'Test',
@@ -232,7 +232,7 @@ describe('Org-Level Knowledge API Routes', () => {
         type: 'past_rfp',
       })
 
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.insert).mockReturnValue({
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedEntry])),
@@ -258,7 +258,7 @@ describe('Org-Level Knowledge API Routes', () => {
     })
 
     it('should return 400 when no file attached', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
 
       const formData = new FormData()
       formData.append('type', 'past_rfp')
@@ -277,7 +277,7 @@ describe('Org-Level Knowledge API Routes', () => {
     })
 
     it('should return 403 when not admin', async () => {
-      vi.mocked(requireAdmin).mockRejectedValue(new AuthError('Admin access required', 403))
+      vi.mocked(requireAdminLimited).mockRejectedValue(new AuthError('Admin access required', 403))
 
       const formData = new FormData()
       const file = new File(['test content'], 'proposal.pdf', { type: 'application/pdf' })
@@ -298,7 +298,7 @@ describe('Org-Level Knowledge API Routes', () => {
 
   describe('DELETE /api/knowledge/[entryId]', () => {
     it('should return 204 on success (admin)', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
       } as never)
@@ -315,7 +315,7 @@ describe('Org-Level Knowledge API Routes', () => {
     })
 
     it('should return 404 when entry not found', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 0 })),
       } as never)
@@ -334,7 +334,7 @@ describe('Org-Level Knowledge API Routes', () => {
     })
 
     it('should return 403 when not admin', async () => {
-      vi.mocked(requireAdmin).mockRejectedValue(new AuthError('Admin access required', 403))
+      vi.mocked(requireAdminLimited).mockRejectedValue(new AuthError('Admin access required', 403))
 
       const request = createMockRequest(
         'DELETE',

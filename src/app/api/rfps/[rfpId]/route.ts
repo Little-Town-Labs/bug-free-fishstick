@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, isAdmin, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { eq, and } from 'drizzle-orm'
@@ -24,7 +24,7 @@ export async function GET(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { rfpId } = await params
 
     const [rfp] = await db
@@ -51,7 +51,7 @@ export async function PUT(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { rfpId } = await params
 
     let body: unknown
@@ -100,7 +100,7 @@ export async function DELETE(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { rfpId } = await params
 
     const result = await db

@@ -21,8 +21,8 @@ vi.mock('next/server', async (importOriginal) => {
 
 // Mock dependencies
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireAuthLimited: vi.fn(),
+  requireAdminLimited: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
       super(message)
@@ -86,7 +86,7 @@ import { POST as uploadDocument } from '@/app/api/customers/[customerId]/knowled
 import { POST as searchKnowledge } from '@/app/api/customers/[customerId]/knowledge/search/route'
 import { GET as getEntry, DELETE as deleteEntry } from '@/app/api/customers/[customerId]/knowledge/[entryId]/route'
 
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { inngest } from '@/lib/inngest/client'
 import { searchSimilar } from '@/lib/services/vector-search'
@@ -149,7 +149,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         createMockKnowledgeEntry({ customerId, organizationId: 'org_456' }),
       ]
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -168,11 +168,11 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
       const data = await response.json()
       expect(data.entries).toBeDefined()
       expect(Array.isArray(data.entries)).toBe(true)
-      expect(requireAuth).toHaveBeenCalled()
+      expect(requireAuthLimited).toHaveBeenCalled()
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(new AuthError('Unauthorized', 401))
+      vi.mocked(requireAuthLimited).mockRejectedValue(new AuthError('Unauthorized', 401))
 
       const request = createMockRequest(
         'GET',
@@ -195,7 +195,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         type: 'company_doc',
       })
 
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.insert).mockReturnValue({
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedEntry])),
@@ -219,7 +219,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 403 when not admin', async () => {
-      vi.mocked(requireAdmin).mockRejectedValue(
+      vi.mocked(requireAdminLimited).mockRejectedValue(
         new AuthError('Admin access required', 403)
       )
 
@@ -234,7 +234,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 400 on invalid body', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
 
       const request = createMockRequest(
         'POST',
@@ -258,7 +258,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         type: 'company_doc',
       })
 
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(blobPut).mockResolvedValue({
         url: 'https://blob.vercel-storage.com/doc.pdf',
         downloadUrl: 'https://blob.vercel-storage.com/doc.pdf',
@@ -292,7 +292,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 400 when no file attached', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
 
       const formData = new FormData()
       formData.append('type', 'company_doc')
@@ -312,7 +312,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 403 when not admin', async () => {
-      vi.mocked(requireAdmin).mockRejectedValue(
+      vi.mocked(requireAdminLimited).mockRejectedValue(
         new AuthError('Admin access required', 403)
       )
 
@@ -344,7 +344,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         { entry: createMockKnowledgeEntry({ customerId }), similarity: 0.85 },
       ]
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(searchSimilar).mockResolvedValue(mockResults as never)
 
       const request = createMockRequest(
@@ -362,7 +362,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 400 on empty query', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
 
       const request = createMockRequest(
         'POST',
@@ -385,7 +385,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
         organizationId: 'org_456',
       })
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -409,7 +409,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 404 when not found', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -434,7 +434,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
 
   describe('DELETE /api/customers/[customerId]/knowledge/[entryId] (delete)', () => {
     it('should return 204 on success (admin)', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
       } as never)
@@ -451,7 +451,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 403 when not admin', async () => {
-      vi.mocked(requireAdmin).mockRejectedValue(
+      vi.mocked(requireAdminLimited).mockRejectedValue(
         new AuthError('Admin access required', 403)
       )
 
@@ -467,7 +467,7 @@ describe('Knowledge API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 404 when not found', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 0 })),
       } as never)

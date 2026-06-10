@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAdmin: vi.fn(),
-  requireAuth: vi.fn(),
+  requireAdminLimited: vi.fn(),
+  requireAuthLimited: vi.fn(),
   isAdmin: vi.fn().mockReturnValue(true),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
@@ -51,7 +51,7 @@ vi.mock('@/lib/inngest/client', () => ({
   inngest: { send: vi.fn() },
 }))
 
-import { requireAdmin } from '@/lib/utils/auth'
+import { requireAdminLimited } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { inngest } from '@/lib/inngest/client'
 import { POST } from '@/app/api/rfps/[rfpId]/finalize/route'
@@ -68,7 +68,7 @@ const mockRfp = {
 describe('POST /api/rfps/[rfpId]/finalize — Inngest event', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(requireAdmin).mockResolvedValue(mockAdmin as never)
+    vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin as never)
 
     const dbAny = db as any // eslint-disable-line @typescript-eslint/no-explicit-any
     dbAny.select.mockReturnValue(dbAny)

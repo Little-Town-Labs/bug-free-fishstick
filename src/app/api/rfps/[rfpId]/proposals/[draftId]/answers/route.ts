@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { submitAnswers } from '@/lib/services/proposal-draft'
 
 type Params = { params: Promise<{ rfpId: string; draftId: string }> }
@@ -16,7 +16,7 @@ const answersSchema = z.object({
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
-    const { orgId } = await requireAuth()
+    const { orgId } = await requireAuthLimited()
     const { draftId } = await params
 
     let body: unknown

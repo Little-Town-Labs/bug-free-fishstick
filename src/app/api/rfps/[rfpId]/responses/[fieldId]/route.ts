@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { rfpResponses } from '@/lib/db/schema/rfp-responses'
 import type { NewRfpResponse } from '@/lib/db/schema/rfp-responses'
@@ -11,9 +12,9 @@ export async function PUT(
   { params }: { params: Promise<{ rfpId: string; fieldId: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { rfpId, fieldId } = await params
-    const body = await request.json()
+    const body = await readJsonBody(request)
 
     // Validate required field
     if (!body.responseText && body.responseText !== '') {

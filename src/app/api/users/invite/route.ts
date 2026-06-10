@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { clerkClient } from '@clerk/nextjs/server'
-import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { requireAuthLimited, isAdmin, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited('strict')
 
     if (!isAdmin(auth.orgRole)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
-    const rateLimited = await checkRateLimit(auth.userId, 'strict')
-    if (rateLimited) return rateLimited
-
-    const body = await request.json()
+    const body = await readJsonBody(request)
 
     if (!body.email || typeof body.email !== 'string') {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 })

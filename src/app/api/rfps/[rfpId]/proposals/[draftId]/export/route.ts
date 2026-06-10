@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { getDraft } from '@/lib/services/proposal-draft'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema'
@@ -9,7 +9,7 @@ type Params = { params: Promise<{ rfpId: string; draftId: string }> }
 
 export async function GET(req: NextRequest, { params }: Params) {
   try {
-    const { orgId } = await requireAuth()
+    const { orgId } = await requireAuthLimited()
     const { rfpId, draftId } = await params
 
     const draft = await getDraft(draftId, orgId)

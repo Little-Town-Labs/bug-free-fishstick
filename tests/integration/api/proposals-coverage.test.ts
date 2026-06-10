@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
+  requireAuthLimited: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
       super(message)
@@ -33,7 +33,7 @@ vi.mock('drizzle-orm', () => ({
   and: vi.fn(),
 }))
 
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { checkCoverage } from '@/lib/ai/agents/proposal-coverage-checker'
 import { POST } from '@/app/api/rfps/[rfpId]/proposals/[draftId]/coverage/route'
@@ -124,7 +124,7 @@ function setupDbMocks(opts: { draftExists?: boolean; rfpExists?: boolean } = {})
 describe('POST /api/rfps/[rfpId]/proposals/[draftId]/coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(requireAuth).mockResolvedValue(mockUser)
+    vi.mocked(requireAuthLimited).mockResolvedValue(mockUser)
     vi.mocked(checkCoverage).mockResolvedValue(mockCoverageReport)
   })
 
@@ -177,7 +177,7 @@ describe('POST /api/rfps/[rfpId]/proposals/[draftId]/coverage', () => {
   })
 
   it('returns 401 when unauthenticated', async () => {
-    vi.mocked(requireAuth).mockRejectedValue(new AuthError('Unauthorized', 401))
+    vi.mocked(requireAuthLimited).mockRejectedValue(new AuthError('Unauthorized', 401))
     setupDbMocks()
     const res = await POST(createRequest(), routeParams())
 

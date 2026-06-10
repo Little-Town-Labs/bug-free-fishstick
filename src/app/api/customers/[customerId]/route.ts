@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { customers } from '@/lib/db/schema/customers'
 import { knowledgeEntries } from '@/lib/db/schema/knowledge-entries'
@@ -12,7 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { customerId } = await params
 
     const [customer] = await db
@@ -54,9 +55,9 @@ export async function PATCH(
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const { customerId } = await params
-    const body = await request.json()
+    const body = await readJsonBody(request)
 
     const parsed = updateCustomerSchema.safeParse(body)
     if (!parsed.success) {
@@ -90,7 +91,7 @@ export async function DELETE(
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const { customerId } = await params
 
     const result = await db
