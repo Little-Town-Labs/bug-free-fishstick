@@ -64,6 +64,7 @@ vi.mock('@/lib/services/vector-search', () => ({
 }))
 
 vi.mock('@vercel/blob', () => ({
+  get: vi.fn(),
   put: vi.fn(() =>
     Promise.resolve({
       url: 'https://blob.vercel-storage.com/doc.pdf',

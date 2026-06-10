@@ -58,6 +58,7 @@ vi.mock('@upstash/redis', () => ({
 }))
 
 vi.mock('@vercel/blob', () => ({
+  get: vi.fn(),
   put: vi.fn(() =>
     Promise.resolve({
       url: 'https://blob.vercel-storage.com/file.pdf',
@@ -676,6 +677,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
                 {
                   id: 'rfp_1',
                   status: 'finalized',
+                  originalFileType: 'pdf',
                   completedFileUrl: 'https://blob.vercel-storage.com/completed.pdf',
                 },
               ])
@@ -684,12 +686,10 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         })),
       } as never)
 
-      // Mock fetch for blob download
+      // The @vercel/blob `get` mock returns undefined, so downloadFile
+      // falls back to plain fetch — mock that fetch here.
       global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          blob: () => Promise.resolve(new Blob(['PDF content'])),
-        } as Response)
+        Promise.resolve(new Response(Buffer.from('PDF content'), { status: 200 }))
       )
 
       const request = createMockRequest(
@@ -698,8 +698,9 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       )
       const response = await downloadRfp(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
 
-      expect(response.status).toBe(302)
-      expect(response.headers.get('location')).toBeTruthy()
+      expect(response.status).toBe(200)
+      expect(response.headers.get('Content-Type')).toBe('application/pdf')
+      expect(response.headers.get('Content-Disposition')).toContain('attachment')
     })
 
     it('should return 404 if no completed file', async () => {
