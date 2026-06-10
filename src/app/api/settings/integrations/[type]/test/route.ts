@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { getIntegrationConfigWithCredentials, type IntegrationType } from '@/lib/services/integration-config'
 
 const VALID_TYPES: IntegrationType[] = ['slack', 'salesforce', 'hubspot']
@@ -9,7 +9,7 @@ export async function POST(
   { params }: { params: Promise<{ type: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const { type } = await params
 
     if (!VALID_TYPES.includes(type as IntegrationType)) {

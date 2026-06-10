@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse, after } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { knowledgeEntries, KnowledgeEntryType } from '@/lib/db/schema/knowledge-entries'
+import { customers } from '@/lib/db/schema/customers'
 import { inngest } from '@/lib/inngest/client'
+import { eq, and } from 'drizzle-orm'
 import { put } from '@vercel/blob'
+import { sanitizeFilename } from '@/lib/storage/blob'
 import { parsePdf } from '@/lib/documents/pdf-parser'
 import { parseWord } from '@/lib/documents/word-parser'
 
@@ -13,10 +15,8 @@ export async function POST(
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited('upload')
 
-    const rateLimited = await checkRateLimit(auth.userId, 'upload')
-    if (rateLimited) return rateLimited
     const { customerId } = await params
 
     const formData = await request.formData()
@@ -50,9 +50,20 @@ export async function POST(
       return NextResponse.json({ error: 'Type and title are required' }, { status: 400 })
     }
 
+    // Verify the customer exists and belongs to this org before writing to storage
+    const [existingCustomer] = await db
+      .select({ id: customers.id })
+      .from(customers)
+      .where(and(eq(customers.id, customerId), eq(customers.organizationId, auth.orgId)))
+      .limit(1)
+
+    if (!existingCustomer) {
+      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+    }
+
     // Upload file and parse content in parallel
     const [blob, content] = await Promise.all([
-      put(`knowledge/${auth.orgId}/${customerId}/${file.name}`, file, { access: 'public' }),
+      put(`knowledge/${auth.orgId}/${customerId}/${sanitizeFilename(file.name)}`, file, { access: 'public' }),
       file.arrayBuffer().then((buf) => {
         const buffer = Buffer.from(buf)
         if (file.name.endsWith('.pdf') || file.type === 'application/pdf') {

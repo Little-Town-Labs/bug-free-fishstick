@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { getEntry, updateEntry, deleteEntry } from '@/lib/services/proposal-content-library'
 
 const PatchEntrySchema = z.object({
@@ -13,7 +14,7 @@ type Params = { params: Promise<{ entryId: string }> }
 
 export async function GET(_request: NextRequest, { params }: Params) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { entryId } = await params
     const entry = await getEntry(entryId, auth.orgId)
     return NextResponse.json({ entry }, { status: 200 })
@@ -31,9 +32,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { entryId } = await params
-    const body = await request.json()
+    const body = await readJsonBody(request)
     const parsed = PatchEntrySchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 })
@@ -57,7 +58,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { entryId } = await params
     await deleteEntry(entryId, auth.orgId)
     return new NextResponse(null, { status: 204 })

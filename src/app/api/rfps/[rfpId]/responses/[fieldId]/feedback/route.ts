@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { inngest } from '@/lib/inngest/client'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
@@ -10,7 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ rfpId: string; fieldId: string }> }
 ) {
   try {
-    const authContext = await requireAuth()
+    const authContext = await requireAuthLimited()
     const { rfpId, fieldId } = await params
 
     // Verify RFP belongs to org
@@ -24,7 +25,7 @@ export async function POST(
       return NextResponse.json({ error: 'RFP not found' }, { status: 404 })
     }
 
-    const body = await request.json()
+    const body = await readJsonBody(request)
     const { type, originalText, correctedText } = body
 
     if (!type || !['accept', 'edit', 'reject'].includes(type)) {

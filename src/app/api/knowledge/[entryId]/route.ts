@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { knowledgeEntries } from '@/lib/db/schema/knowledge-entries'
 import { eq, and, isNull } from 'drizzle-orm'
@@ -9,7 +9,7 @@ export async function DELETE(
   { params }: { params: Promise<{ entryId: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const { entryId } = await params
 
     const result = await db

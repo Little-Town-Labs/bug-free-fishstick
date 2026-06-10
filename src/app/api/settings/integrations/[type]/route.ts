@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import {
   upsertIntegrationConfig,
   deleteIntegrationConfig,
@@ -13,7 +14,7 @@ export async function PUT(
   { params }: { params: Promise<{ type: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const { type } = await params
 
     if (!VALID_TYPES.includes(type as IntegrationType)) {
@@ -23,7 +24,7 @@ export async function PUT(
       )
     }
 
-    const body = await request.json() as { credentials: Record<string, unknown>; config?: Record<string, unknown> }
+    const body = await readJsonBody(request) as { credentials: Record<string, unknown>; config?: Record<string, unknown> }
 
     if (!body.credentials || typeof body.credentials !== 'object') {
       return NextResponse.json({ error: 'credentials is required' }, { status: 400 })
@@ -44,7 +45,7 @@ export async function DELETE(
   { params }: { params: Promise<{ type: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const { type } = await params
 
     if (!VALID_TYPES.includes(type as IntegrationType)) {

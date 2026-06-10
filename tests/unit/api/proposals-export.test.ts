@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
+  requireAuthLimited: vi.fn(),
   isAdmin: vi.fn().mockReturnValue(false),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
@@ -25,7 +25,7 @@ vi.mock('@/lib/db', () => {
   return { db: chain }
 })
 
-import { requireAuth } from '@/lib/utils/auth'
+import { requireAuthLimited } from '@/lib/utils/auth'
 import { getDraft } from '@/lib/services/proposal-draft'
 import { db } from '@/lib/db'
 import { GET as exportHandler } from '@/app/api/rfps/[rfpId]/proposals/[draftId]/export/route'
@@ -60,7 +60,7 @@ function rfpDraftParams(rfpId: string, draftId: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  vi.mocked(requireAuth).mockResolvedValue(mockUser)
+  vi.mocked(requireAuthLimited).mockResolvedValue(mockUser)
   // Re-wire chain after clearAllMocks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chain = db as any
@@ -141,7 +141,7 @@ describe('GET /api/rfps/[rfpId]/proposals/[draftId]/export', () => {
   describe('error cases', () => {
     it('returns 401 when unauthenticated', async () => {
       const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-      vi.mocked(requireAuth).mockRejectedValue(new AuthErrorClass('Unauthorized', 401))
+      vi.mocked(requireAuthLimited).mockRejectedValue(new AuthErrorClass('Unauthorized', 401))
 
       const res = await exportHandler(
         createRequest('/api/rfps/rfp-1/proposals/draft-1/export'),

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { proposalContentLibrary } from '@/lib/db/schema/proposal-content-library'
 import { eq, and, isNull } from 'drizzle-orm'
@@ -7,7 +7,7 @@ import { inngest } from '@/lib/inngest/client'
 
 export async function POST() {
   try {
-    const authContext = await requireAdmin()
+    const authContext = await requireAdminLimited()
 
     const unembedded = await db
       .select({ id: proposalContentLibrary.id })

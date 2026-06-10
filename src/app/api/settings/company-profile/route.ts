@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { getCompanyProfile, upsertCompanyProfile } from '@/lib/services/company-profile'
 import { updateCompanyProfileSchema } from '@/lib/utils/validation'
 
 export async function GET() {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const result = await getCompanyProfile(auth.orgId)
     return NextResponse.json(result)
   } catch (error) {
@@ -19,7 +19,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
 
     let body: unknown
     try {

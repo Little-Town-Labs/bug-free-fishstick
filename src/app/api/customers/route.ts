@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { customers } from '@/lib/db/schema/customers'
 import { createCustomerSchema } from '@/lib/utils/validation'
@@ -7,7 +8,7 @@ import { eq } from 'drizzle-orm'
 
 export async function GET() {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
 
     const customersList = await db
       .select()
@@ -25,8 +26,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAdmin()
-    const body = await request.json()
+    const auth = await requireAdminLimited()
+    const body = await readJsonBody(request)
 
     const parsed = createCustomerSchema.safeParse(body)
     if (!parsed.success) {

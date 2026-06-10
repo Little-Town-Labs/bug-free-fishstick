@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, isAdmin, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { tenantSettings, llmProviders } from '@/lib/db/schema'
 import type { LlmProvider } from '@/lib/db/schema'
@@ -16,7 +17,7 @@ const DEFAULT_SETTINGS = {
 // GET /api/settings — any authenticated org member
 export async function GET() {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
 
     const [rowResult, keyRowResult] = await Promise.allSettled([
       db.select({
@@ -69,13 +70,13 @@ export async function GET() {
 // Pass null for a key to delete it (e.g. { openaiApiKey: null })
 export async function PATCH(request: NextRequest) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
 
     if (!isAdmin(auth.orgRole)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
-    const body = await request.json()
+    const body = await readJsonBody(request)
 
     if (body.llmProvider !== undefined && !llmProviders.includes(body.llmProvider)) {
       return NextResponse.json({ error: 'Invalid LLM provider' }, { status: 400 })

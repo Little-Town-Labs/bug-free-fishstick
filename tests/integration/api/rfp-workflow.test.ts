@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireAuthLimited: vi.fn(),
+  requireAdminLimited: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
       super(message)
@@ -47,7 +47,7 @@ import { POST as returnRfp } from '@/app/api/rfps/[rfpId]/return/route'
 import { POST as finalizeRfp } from '@/app/api/rfps/[rfpId]/finalize/route'
 import { GET as getVersions } from '@/app/api/rfps/[rfpId]/versions/route'
 
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { validateTransition, WorkflowError } from '@/lib/services/rfp-workflow'
 import { createVersionSnapshot } from '@/lib/services/rfp-versions'
@@ -99,7 +99,7 @@ describe('RFP Workflow API Routes', () => {
   // ─── POST /submit ────────────────────────────────────────────────────────────
   describe('POST /api/rfps/[rfpId]/submit', () => {
     it('returns 200 when draft RFP is submitted successfully', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockUser)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockUser)
       mockSelectRfp(mockDraftRfp)
       mockUpdateRfp({ ...mockDraftRfp, status: 'submitted' })
 
@@ -112,7 +112,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 404 when RFP not found', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockUser)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockUser)
       mockSelectRfp(null)
 
       const req = createRequest('POST', 'http://localhost/api/rfps/nonexistent/submit')
@@ -122,7 +122,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 409 when transition is invalid', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockUser)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockUser)
       mockSelectRfp(mockSubmittedRfp)
       vi.mocked(validateTransition).mockImplementation(() => {
         throw new WorkflowError('Invalid transition: submitted → submitted', 409)
@@ -135,7 +135,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(new AuthError('Unauthorized', 401))
+      vi.mocked(requireAuthLimited).mockRejectedValue(new AuthError('Unauthorized', 401))
 
       const req = createRequest('POST', 'http://localhost/api/rfps/rfp_1/submit')
       const res = await submitRfp(req, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
@@ -147,7 +147,7 @@ describe('RFP Workflow API Routes', () => {
   // ─── POST /approve ────────────────────────────────────────────────────────────
   describe('POST /api/rfps/[rfpId]/approve', () => {
     it('returns 200 when admin approves submitted RFP', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
       mockSelectRfp(mockSubmittedRfp)
       mockUpdateRfp({ ...mockSubmittedRfp, status: 'approved' })
 
@@ -160,7 +160,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 403 when non-admin calls approve', async () => {
-      vi.mocked(requireAdmin).mockRejectedValue(new AuthError('Admin access required', 403))
+      vi.mocked(requireAdminLimited).mockRejectedValue(new AuthError('Admin access required', 403))
 
       const req = createRequest('POST', 'http://localhost/api/rfps/rfp_1/approve')
       const res = await approveRfp(req, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
@@ -169,7 +169,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 404 when RFP not found', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
       mockSelectRfp(null)
 
       const req = createRequest('POST', 'http://localhost/api/rfps/nonexistent/approve')
@@ -179,7 +179,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 409 when RFP is not in submitted status', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
       mockSelectRfp(mockDraftRfp)
       vi.mocked(validateTransition).mockImplementation(() => {
         throw new WorkflowError('Invalid transition: draft → approved', 409)
@@ -195,7 +195,7 @@ describe('RFP Workflow API Routes', () => {
   // ─── POST /return ─────────────────────────────────────────────────────────────
   describe('POST /api/rfps/[rfpId]/return', () => {
     it('returns 200 when admin returns RFP with comments', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
       mockSelectRfp(mockSubmittedRfp)
       mockUpdateRfp({ ...mockSubmittedRfp, status: 'draft', returnComments: 'Needs more detail' })
 
@@ -210,7 +210,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 400 when comments are missing', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
 
       const req = createRequest('POST', 'http://localhost/api/rfps/rfp_1/return', {})
       const res = await returnRfp(req, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
@@ -219,7 +219,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 403 when non-admin calls return', async () => {
-      vi.mocked(requireAdmin).mockRejectedValue(new AuthError('Admin access required', 403))
+      vi.mocked(requireAdminLimited).mockRejectedValue(new AuthError('Admin access required', 403))
 
       const req = createRequest('POST', 'http://localhost/api/rfps/rfp_1/return', {
         comments: 'Needs work',
@@ -230,7 +230,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 404 when RFP not found', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
       mockSelectRfp(null)
 
       const req = createRequest('POST', 'http://localhost/api/rfps/nonexistent/return', {
@@ -242,7 +242,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 409 when transition is invalid', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
       mockSelectRfp(mockDraftRfp)
       vi.mocked(validateTransition).mockImplementation(() => {
         throw new WorkflowError('Invalid transition: draft → draft', 409)
@@ -260,7 +260,7 @@ describe('RFP Workflow API Routes', () => {
   // ─── POST /finalize ───────────────────────────────────────────────────────────
   describe('POST /api/rfps/[rfpId]/finalize', () => {
     it('returns 200 and creates version snapshot when admin finalizes', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
       mockSelectRfp(mockApprovedRfp)
       mockUpdateRfp({ ...mockApprovedRfp, status: 'finalized' })
       vi.mocked(createVersionSnapshot).mockResolvedValue({
@@ -286,7 +286,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 403 when non-admin calls finalize', async () => {
-      vi.mocked(requireAdmin).mockRejectedValue(new AuthError('Admin access required', 403))
+      vi.mocked(requireAdminLimited).mockRejectedValue(new AuthError('Admin access required', 403))
 
       const req = createRequest('POST', 'http://localhost/api/rfps/rfp_1/finalize')
       const res = await finalizeRfp(req, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
@@ -295,7 +295,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 404 when RFP not found', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
       mockSelectRfp(null)
 
       const req = createRequest('POST', 'http://localhost/api/rfps/nonexistent/finalize')
@@ -305,7 +305,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 409 when RFP is not in approved status', async () => {
-      vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
       mockSelectRfp(mockSubmittedRfp)
       vi.mocked(validateTransition).mockImplementation(() => {
         throw new WorkflowError('Invalid transition: submitted → finalized', 409)
@@ -321,7 +321,7 @@ describe('RFP Workflow API Routes', () => {
   // ─── GET /versions ────────────────────────────────────────────────────────────
   describe('GET /api/rfps/[rfpId]/versions', () => {
     it('returns 200 with list of versions', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockUser)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockUser)
       // First select: verify RFP exists
       vi.mocked(db.select)
         .mockReturnValueOnce({
@@ -359,7 +359,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 404 when RFP not found', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockUser)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockUser)
       mockSelectRfp(null)
 
       const req = createRequest('GET', 'http://localhost/api/rfps/nonexistent/versions')
@@ -369,7 +369,7 @@ describe('RFP Workflow API Routes', () => {
     })
 
     it('returns 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(new AuthError('Unauthorized', 401))
+      vi.mocked(requireAuthLimited).mockRejectedValue(new AuthError('Unauthorized', 401))
 
       const req = createRequest('GET', 'http://localhost/api/rfps/rfp_1/versions')
       const res = await getVersions(req, { params: Promise.resolve({ rfpId: 'rfp_1' }) })

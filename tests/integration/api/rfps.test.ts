@@ -3,8 +3,8 @@ import { NextRequest } from 'next/server'
 
 // Mock dependencies
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireAuthLimited: vi.fn(),
+  requireAdminLimited: vi.fn(),
   isAdmin: vi.fn().mockReturnValue(true),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
@@ -82,7 +82,7 @@ import {
 } from '@/app/api/rfps/[rfpId]/responses/[fieldId]/route'
 import { GET as downloadRfp } from '@/app/api/rfps/[rfpId]/download/route'
 
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { inngest } from '@/lib/inngest/client'
 import { put as blobPut } from '@vercel/blob'
@@ -150,7 +150,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         },
       ]
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve(mockRfps)),
@@ -164,11 +164,11 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       const data = await response.json()
       expect(data.rfps).toBeDefined()
       expect(Array.isArray(data.rfps)).toBe(true)
-      expect(requireAuth).toHaveBeenCalled()
+      expect(requireAuthLimited).toHaveBeenCalled()
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new AuthError('Unauthorized', 401)
       )
 
@@ -181,17 +181,26 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
 
   describe('POST /api/rfps (create)', () => {
     it('should return 201 with created RFP', async () => {
+      const customerId = '11111111-1111-4111-8111-111111111111'
       const mockCreatedRfp = {
         id: 'rfp_new',
         organizationId: 'org_456',
-        customerId: 'cust_1',
+        customerId,
         name: 'New RFP',
         status: 'draft' as const,
         createdAt: new Date(),
         updatedAt: new Date(),
       }
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
+      // Customer org-ownership pre-check must find the customer
+      vi.mocked(db.select).mockReturnValueOnce({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            limit: vi.fn(() => Promise.resolve([{ id: customerId }])),
+          })),
+        })),
+      } as never)
       vi.mocked(db.insert).mockReturnValue({
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedRfp])),
@@ -200,7 +209,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
 
       const request = createMockRequest('POST', 'http://localhost:3000/api/rfps', {
         name: 'New RFP',
-        customerId: 'cust_1',
+        customerId,
       })
       const response = await createRfp(request)
 
@@ -211,7 +220,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 400 on invalid request body (missing name)', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
 
       const request = createMockRequest('POST', 'http://localhost:3000/api/rfps', {
         customerId: 'cust_1',
@@ -225,7 +234,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 400 on invalid request body (missing customerId)', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
 
       const request = createMockRequest('POST', 'http://localhost:3000/api/rfps', {
         name: 'New RFP',
@@ -239,7 +248,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new AuthError('Unauthorized', 401)
       )
 
@@ -265,7 +274,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         updatedAt: new Date(),
       }
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -284,7 +293,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 404 when RFP not found', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -302,7 +311,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new AuthError('Unauthorized', 401)
       )
 
@@ -325,7 +334,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         updatedAt: new Date(),
       }
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -348,7 +357,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 404 when RFP not found', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -370,7 +379,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
 
   describe('DELETE /api/rfps/[rfpId] (delete)', () => {
     it('should return 204 on successful delete', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
       } as never)
@@ -382,7 +391,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 404 when not found', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 0 })),
       } as never)
@@ -396,7 +405,15 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
 
   describe('POST /api/rfps/[rfpId]/upload', () => {
     it('should return 200 with file URL after upload', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
+      // RFP org-ownership pre-check must find the RFP before the blob upload
+      vi.mocked(db.select).mockReturnValueOnce({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            limit: vi.fn(() => Promise.resolve([{ id: 'rfp_1' }])),
+          })),
+        })),
+      } as never)
       vi.mocked(blobPut).mockResolvedValue({
         url: 'https://blob.vercel-storage.com/rfp_1/file.pdf',
         downloadUrl: 'https://blob.vercel-storage.com/rfp_1/file.pdf',
@@ -424,7 +441,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 400 on missing file', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
 
       const formData = new FormData()
       // no file attached
@@ -444,7 +461,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
 
   describe('POST /api/rfps/[rfpId]/process', () => {
     it('should return 202 (accepted) and send Inngest event', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -481,7 +498,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 409 if already processing', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -512,7 +529,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
 
   describe('GET /api/rfps/[rfpId]/status', () => {
     it('should return 200 with processing status and automation percentage', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       // First call: fetch RFP record
       vi.mocked(db.select).mockReturnValueOnce({
         from: vi.fn(() => ({
@@ -576,7 +593,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         },
       ]
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve(mockResponses)),
@@ -606,7 +623,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
         status: 'manually_filled' as const,
       }
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -631,7 +648,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 400 on invalid update body', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
 
       const request = createMockRequest(
         'PUT',
@@ -650,7 +667,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
 
   describe('GET /api/rfps/[rfpId]/download', () => {
     it('should return 200 with file buffer (PDF or DOCX)', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -686,7 +703,7 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 404 if no completed file', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({

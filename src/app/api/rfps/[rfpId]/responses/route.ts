@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { rfpResponses } from '@/lib/db/schema/rfp-responses'
 import { eq } from 'drizzle-orm'
@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    await requireAuth()
+    await requireAuthLimited()
     const { rfpId } = await params
 
     const responses = await db

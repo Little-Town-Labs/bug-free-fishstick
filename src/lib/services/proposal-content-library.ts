@@ -2,7 +2,7 @@ import { db } from '@/lib/db'
 import { proposalContentLibrary } from '@/lib/db/schema'
 import { eq, and, ilike, isNotNull, isNull } from 'drizzle-orm'
 import { inngest } from '@/lib/inngest/client'
-import { FIXED_SECTIONS, FIXED_SECTION_TYPES } from '@/lib/constants/fixed-sections'
+import { FIXED_SECTIONS } from '@/lib/constants/fixed-sections'
 import type {
   ProposalContentLibraryEntry,
   NewProposalContentLibraryEntry,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { createEntry, listEntries, ensureFixedSections } from '@/lib/services/proposal-content-library'
 
 const CreateEntrySchema = z.object({
@@ -11,7 +12,7 @@ const CreateEntrySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     await ensureFixedSections(auth.orgId, 'system')
     const category = request.nextUrl.searchParams.get('category') ?? undefined
     const rawType = request.nextUrl.searchParams.get('type')
@@ -28,8 +29,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth()
-    const body = await request.json()
+    const auth = await requireAuthLimited()
+    const body = await readJsonBody(request)
     const parsed = CreateEntrySchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 })

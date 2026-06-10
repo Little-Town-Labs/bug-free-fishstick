@@ -3,8 +3,8 @@ import { NextRequest } from 'next/server'
 
 // Mock dependencies
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireAuthLimited: vi.fn(),
+  requireAdminLimited: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
       super(message)
@@ -50,7 +50,7 @@ import {
   DELETE as deleteCustomer,
 } from '@/app/api/customers/[customerId]/route'
 
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 
 import { createMockCustomer } from '../../factories/index'
@@ -87,7 +87,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         createMockCustomer({ id: 'cust_2', organizationId: 'org_456', name: 'Beta Inc' }),
       ]
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => Promise.resolve(mockCustomers)),
@@ -100,11 +100,11 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
       const data = await response.json()
       expect(data.customers).toBeDefined()
       expect(Array.isArray(data.customers)).toBe(true)
-      expect(requireAuth).toHaveBeenCalled()
+      expect(requireAuthLimited).toHaveBeenCalled()
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new AuthError('Unauthorized', 401)
       )
 
@@ -123,8 +123,8 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         name: 'New Customer',
       })
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.insert).mockReturnValue({
         values: vi.fn(() => ({
           returning: vi.fn(() => Promise.resolve([mockCreatedCustomer])),
@@ -145,8 +145,8 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 403 when not admin', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockMemberContext)
-      vi.mocked(requireAdmin).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockMemberContext)
+      vi.mocked(requireAdminLimited).mockRejectedValue(
         new AuthError('Forbidden', 403)
       )
 
@@ -161,8 +161,8 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 400 on invalid body (missing name)', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
 
       const request = createMockRequest(
         'POST',
@@ -185,7 +185,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         name: 'Acme Corp',
       })
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       // Mock 3 db.select calls: customer fetch, knowledge count, rfp count
       vi.mocked(db.select)
         .mockReturnValueOnce({
@@ -222,7 +222,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 404 when not found', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -243,7 +243,7 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(requireAuth).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockRejectedValue(
         new AuthError('Unauthorized', 401)
       )
 
@@ -265,8 +265,8 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
         name: 'Updated Customer Name',
       })
 
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -289,8 +289,8 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 403 when not admin', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockMemberContext)
-      vi.mocked(requireAdmin).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockMemberContext)
+      vi.mocked(requireAdminLimited).mockRejectedValue(
         new AuthError('Forbidden', 403)
       )
 
@@ -305,8 +305,8 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 404 when not found', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.update).mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -328,8 +328,8 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
 
   describe('DELETE /api/customers/[customerId] (delete)', () => {
     it('should return 204 on success (admin)', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
       } as never)
@@ -344,8 +344,8 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 403 when not admin', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockMemberContext)
-      vi.mocked(requireAdmin).mockRejectedValue(
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockMemberContext)
+      vi.mocked(requireAdminLimited).mockRejectedValue(
         new AuthError('Forbidden', 403)
       )
 
@@ -359,8 +359,8 @@ describe('Customer API Routes - Contract Tests (TDD Red Phase)', () => {
     })
 
     it('should return 404 when not found', async () => {
-      vi.mocked(requireAuth).mockResolvedValue(mockAuthContext)
-      vi.mocked(requireAdmin).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
+      vi.mocked(requireAdminLimited).mockResolvedValue(mockAuthContext)
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn(() => Promise.resolve({ rowCount: 0 })),
       } as never)

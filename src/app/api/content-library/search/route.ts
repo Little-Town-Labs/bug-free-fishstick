@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { searchContentLibrary } from '@/lib/services/content-library-search'
 
 export async function GET(request: NextRequest) {
   try {
-    const authContext = await requireAuth()
+    const authContext = await requireAuthLimited()
     const query = request.nextUrl.searchParams.get('q')
     const limitParam = request.nextUrl.searchParams.get('limit')
 

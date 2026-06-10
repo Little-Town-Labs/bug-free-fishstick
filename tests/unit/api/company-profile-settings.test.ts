@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireAuthLimited: vi.fn(),
+  requireAdminLimited: vi.fn(),
   getAuthContext: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(message: string, public statusCode: number) {
@@ -18,7 +18,7 @@ vi.mock('@/lib/services/company-profile', () => ({
   upsertCompanyProfile: vi.fn(),
 }))
 
-import { requireAuth, requireAdmin } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited } from '@/lib/utils/auth'
 import { getCompanyProfile, upsertCompanyProfile } from '@/lib/services/company-profile'
 import { GET, PATCH } from '@/app/api/settings/company-profile/route'
 
@@ -35,8 +35,8 @@ function createPatchRequest(body: unknown): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  vi.mocked(requireAuth).mockResolvedValue(mockMember)
-  vi.mocked(requireAdmin).mockResolvedValue(mockAdmin)
+  vi.mocked(requireAuthLimited).mockResolvedValue(mockMember)
+  vi.mocked(requireAdminLimited).mockResolvedValue(mockAdmin)
   vi.mocked(getCompanyProfile).mockResolvedValue({ companyProfile: null })
   vi.mocked(upsertCompanyProfile).mockResolvedValue(undefined)
 })
@@ -48,14 +48,14 @@ beforeEach(() => {
 describe('GET /api/settings/company-profile', () => {
   it('returns 401 when unauthenticated', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAuth).mockRejectedValue(new AuthErrorClass('Authentication required', 401))
+    vi.mocked(requireAuthLimited).mockRejectedValue(new AuthErrorClass('Authentication required', 401))
 
     const res = await GET()
     expect(res.status).toBe(401)
   })
 
   it('returns 500 on unexpected server error', async () => {
-    vi.mocked(requireAuth).mockRejectedValue(new Error('DB connection refused'))
+    vi.mocked(requireAuthLimited).mockRejectedValue(new Error('DB connection refused'))
 
     const res = await GET()
     expect(res.status).toBe(500)
@@ -80,7 +80,7 @@ describe('GET /api/settings/company-profile', () => {
   })
 
   it('allows non-admin authenticated members to read profile', async () => {
-    vi.mocked(requireAuth).mockResolvedValue(mockMember)
+    vi.mocked(requireAuthLimited).mockResolvedValue(mockMember)
     vi.mocked(getCompanyProfile).mockResolvedValue({ companyProfile: '# About' })
 
     const res = await GET()
@@ -92,10 +92,10 @@ describe('GET /api/settings/company-profile', () => {
     expect(vi.mocked(getCompanyProfile)).toHaveBeenCalledWith('org_test')
   })
 
-  it('does NOT call requireAdmin for GET (any member can read)', async () => {
+  it('does NOT call requireAdminLimited for GET (any member can read)', async () => {
     await GET()
-    expect(vi.mocked(requireAdmin)).not.toHaveBeenCalled()
-    expect(vi.mocked(requireAuth)).toHaveBeenCalled()
+    expect(vi.mocked(requireAdminLimited)).not.toHaveBeenCalled()
+    expect(vi.mocked(requireAuthLimited)).toHaveBeenCalled()
   })
 })
 
@@ -106,7 +106,7 @@ describe('GET /api/settings/company-profile', () => {
 describe('PATCH /api/settings/company-profile', () => {
   it('returns 401 when unauthenticated', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Authentication required', 401))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Authentication required', 401))
 
     const res = await PATCH(createPatchRequest({ companyProfile: '# Corp' }))
     expect(res.status).toBe(401)
@@ -114,7 +114,7 @@ describe('PATCH /api/settings/company-profile', () => {
 
   it('returns 403 when authenticated user is not an admin', async () => {
     const AuthErrorClass = (await import('@/lib/utils/auth')).AuthError
-    vi.mocked(requireAdmin).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
+    vi.mocked(requireAdminLimited).mockRejectedValue(new AuthErrorClass('Admin access required', 403))
 
     const res = await PATCH(createPatchRequest({ companyProfile: '# Corp' }))
     expect(res.status).toBe(403)

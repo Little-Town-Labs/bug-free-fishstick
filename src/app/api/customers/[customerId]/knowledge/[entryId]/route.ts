@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, requireAdmin, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
 import { knowledgeEntries } from '@/lib/db/schema/knowledge-entries'
 import { eq, and } from 'drizzle-orm'
@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ customerId: string; entryId: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { customerId, entryId } = await params
 
     const [entry] = await db
@@ -52,7 +52,7 @@ export async function DELETE(
   { params }: { params: Promise<{ customerId: string; entryId: string }> }
 ) {
   try {
-    const auth = await requireAdmin()
+    const auth = await requireAdminLimited()
     const { customerId, entryId } = await params
 
     const result = await db

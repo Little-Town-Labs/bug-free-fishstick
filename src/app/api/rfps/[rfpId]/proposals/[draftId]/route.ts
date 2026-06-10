@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { getDraft, updateDraft, cancelDraft } from '@/lib/services/proposal-draft'
 
 type Params = { params: Promise<{ rfpId: string; draftId: string }> }
 
 export async function GET(req: NextRequest, { params }: Params) {
   try {
-    const { orgId } = await requireAuth()
+    const { orgId } = await requireAuthLimited()
     const { draftId } = await params
 
     const draft = await getDraft(draftId, orgId)
@@ -24,10 +25,10 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
-    const { orgId } = await requireAuth()
+    const { orgId } = await requireAuthLimited()
     const { draftId } = await params
 
-    const body = await req.json()
+    const body = await readJsonBody(req)
     const patch: { markdownContent?: string; status?: 'draft' | 'finalized' } = {}
     if (typeof body.markdownContent === 'string') patch.markdownContent = body.markdownContent
     if (body.status === 'draft' || body.status === 'finalized') patch.status = body.status
@@ -47,7 +48,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
-    const { orgId } = await requireAuth()
+    const { orgId } = await requireAuthLimited()
     const { draftId } = await params
 
     const draft = await cancelDraft(draftId, orgId)

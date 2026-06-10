@@ -16,7 +16,7 @@ vi.mock('@/lib/storage/kv', () => ({
 }))
 
 vi.mock('@/lib/utils/auth', () => ({
-  requireAuth: vi.fn(),
+  requireAuthLimited: vi.fn(),
   AuthError: class AuthError extends Error {
     statusCode: number
     constructor(msg: string, code: number) {
@@ -27,9 +27,9 @@ vi.mock('@/lib/utils/auth', () => ({
 }))
 
 import { GET, POST } from '@/app/api/rfps/[rfpId]/presence/route'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 
-const mockRequireAuth = vi.mocked(requireAuth)
+const mockRequireAuth = vi.mocked(requireAuthLimited)
 
 describe('GET /api/rfps/[rfpId]/presence', () => {
   beforeEach(() => {

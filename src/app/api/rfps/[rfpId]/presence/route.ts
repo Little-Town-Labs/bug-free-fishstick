@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/utils/auth'
+import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { readJsonBody } from '@/lib/utils/request'
 import { getRedis } from '@/lib/storage/kv'
 
 const PRESENCE_TTL = 30 // seconds
@@ -22,7 +23,7 @@ export async function GET(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    await requireAuth()
+    await requireAuthLimited()
     const { rfpId } = await params
 
     // Scan for all presence keys for this RFP
@@ -62,9 +63,9 @@ export async function POST(
   { params }: { params: Promise<{ rfpId: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAuthLimited()
     const { rfpId } = await params
-    const body = await request.json().catch(() => ({}))
+    const body = await readJsonBody(request).catch(() => ({}))
 
     const entry: PresenceEntry = {
       userId: auth.userId,
