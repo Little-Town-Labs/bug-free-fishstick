@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { eq, and } from 'drizzle-orm'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { rfpVersions } from '@/lib/db/schema/rfp-versions'
@@ -32,7 +33,7 @@ export async function GET(
     return NextResponse.json({ versions })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     throw error
   }

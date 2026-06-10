@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { createEntry, listEntries, ensureFixedSections } from '@/lib/services/proposal-content-library'
 
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ entries }, { status: 200 })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: 401 })
+      return authErrorResponse(err)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ entry }, { status: 201 })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: 401 })
+      return authErrorResponse(err)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

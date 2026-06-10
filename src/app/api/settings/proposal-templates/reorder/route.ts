@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { reorderProposalTemplates } from '@/lib/services/proposalTemplates'
 import { reorderProposalTemplatesSchema } from '@/lib/utils/validation'
 
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     if (error instanceof Error && error.message === 'INVALID_IDS') {
       return NextResponse.json(

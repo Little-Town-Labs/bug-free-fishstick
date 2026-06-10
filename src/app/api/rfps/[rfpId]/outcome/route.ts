@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
@@ -91,7 +92,7 @@ export async function PATCH(
     return NextResponse.json({ rfp: updated }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     console.error('[PATCH /api/rfps/[rfpId]/outcome]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

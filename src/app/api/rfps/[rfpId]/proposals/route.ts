@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { createDraft, listDrafts } from '@/lib/services/proposal-draft'
 
 type Params = { params: Promise<{ rfpId: string }> }
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     return NextResponse.json({ drafts })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+      return authErrorResponse(err)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ draft }, { status: 201 })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+      return authErrorResponse(err)
     }
     const statusCode = (err as NodeJS.ErrnoException & { statusCode?: number }).statusCode
     if (statusCode === 422) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { db } from '@/lib/db'
 import { knowledgeEntries, KnowledgeEntryType } from '@/lib/db/schema/knowledge-entries'
 import { inngest } from '@/lib/inngest/client'
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ entry: created }, { status: 201 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     console.error('[POST /api/knowledge/upload]', error instanceof Error ? error.message : String(error))
     const message =

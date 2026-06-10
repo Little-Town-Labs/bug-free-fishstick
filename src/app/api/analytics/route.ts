@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, isAdmin, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { queryAnalyticsSnapshots, type AnalyticsFilters } from '@/lib/services/analytics'
 import { getRedis } from '@/lib/storage/kv'
 import crypto from 'crypto'
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     console.error('[GET /api/analytics]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { eq, and } from 'drizzle-orm'
@@ -74,7 +75,7 @@ export async function GET(
     })
   } catch (error) {
     if (error instanceof AuthError) {
-      return new Response(JSON.stringify({ error: error.message }), { status: error.statusCode })
+      return authErrorResponse(error)
     }
     return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500 })
   }

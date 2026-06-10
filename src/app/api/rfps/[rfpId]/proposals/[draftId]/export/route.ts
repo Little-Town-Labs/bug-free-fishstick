@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { getDraft } from '@/lib/services/proposal-draft'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema'
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+      return authErrorResponse(err)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

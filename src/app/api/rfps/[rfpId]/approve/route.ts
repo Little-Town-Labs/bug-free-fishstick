@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { eq, and } from 'drizzle-orm'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { db } from '@/lib/db'
 import { rfps } from '@/lib/db/schema/rfps'
 import { validateTransition, WorkflowError } from '@/lib/services/rfp-workflow'
@@ -60,7 +61,7 @@ export async function POST(
     return NextResponse.json({ rfp: updated })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     if (error instanceof WorkflowError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })

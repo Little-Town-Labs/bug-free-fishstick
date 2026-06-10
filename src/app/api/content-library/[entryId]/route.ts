@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { getEntry, updateEntry, deleteEntry } from '@/lib/services/proposal-content-library'
 
@@ -20,7 +21,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     return NextResponse.json({ entry }, { status: 200 })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: 401 })
+      return authErrorResponse(err)
     }
     const statusCode = (err as { statusCode?: number }).statusCode
     if (statusCode === 404) {
@@ -43,7 +44,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ entry }, { status: 200 })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: 401 })
+      return authErrorResponse(err)
     }
     const statusCode = (err as { statusCode?: number }).statusCode
     if (statusCode === 400) {
@@ -64,7 +65,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     return new NextResponse(null, { status: 204 })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: 401 })
+      return authErrorResponse(err)
     }
     const statusCode = (err as { statusCode?: number }).statusCode
     if (statusCode === 403) {

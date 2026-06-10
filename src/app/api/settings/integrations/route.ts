@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { listIntegrationConfigs } from '@/lib/services/integration-config'
 
 export async function GET() {
@@ -9,7 +10,7 @@ export async function GET() {
     return NextResponse.json({ integrations: configs }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

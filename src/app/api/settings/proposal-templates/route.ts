@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import {
   listProposalTemplates,
   createProposalTemplate,
@@ -13,7 +14,7 @@ export async function GET() {
     return NextResponse.json({ templates })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     console.error('[GET /api/settings/proposal-templates]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ template }, { status: 201 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     console.error('[POST /api/settings/proposal-templates]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
