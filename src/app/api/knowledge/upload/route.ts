@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Upload file and parse content in parallel
     const [blob, content] = await Promise.all([
-      put(`knowledge/${auth.orgId}/company/${sanitizeFilename(file.name)}`, file, { access: 'public' }),
+      put(`knowledge/${auth.orgId}/company/${sanitizeFilename(file.name)}`, file, { access: 'private' }),
       file.arrayBuffer().then((buf) => {
         const buffer = Buffer.from(buf)
         if (file.name.endsWith('.pdf') || file.type === 'application/pdf') {

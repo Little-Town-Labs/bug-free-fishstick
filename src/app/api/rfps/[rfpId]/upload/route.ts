@@ -59,7 +59,7 @@ export async function POST(
 
     // Upload to Vercel Blob
     const pathname = `rfps/${rfpId}/${sanitizeFilename(file.name)}`
-    const blob = await put(pathname, file, { access: 'public' })
+    const blob = await put(pathname, file, { access: 'private' })
 
     // Update RFP with file URL
     await db

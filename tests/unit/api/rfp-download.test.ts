@@ -12,6 +12,10 @@ vi.mock('@/lib/utils/auth', () => ({
   },
 }))
 
+vi.mock('@/lib/storage/blob', () => ({
+  downloadFile: vi.fn(),
+}))
+
 vi.mock('@/lib/db', () => {
   const limit = vi.fn()
   const chain = { select: vi.fn(), from: vi.fn(), where: vi.fn(), limit }
@@ -23,6 +27,7 @@ vi.mock('@/lib/db', () => {
 
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
 import { db } from '@/lib/db'
+import { downloadFile } from '@/lib/storage/blob'
 import { GET } from '@/app/api/rfps/[rfpId]/download/route'
 
 const mockUser = { userId: 'user-1', orgId: 'org-1', orgRole: 'org:member' }
@@ -61,18 +66,43 @@ describe('GET /api/rfps/[rfpId]/download', () => {
     expect(res.status).toBe(404)
   })
 
-  it('returns 302 redirect when completedFileUrl exists', async () => {
+  it('proxies the completed document bytes when completedFileUrl exists', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(db as any).limit.mockResolvedValue([{
       id: 'rfp-1',
       organizationId: 'org-1',
+      originalFileType: 'pdf',
       completedFileUrl: 'https://blob.example.com/completed.pdf',
       completedFileError: null,
     }])
+    vi.mocked(downloadFile).mockResolvedValue(Buffer.from([1, 2, 3]))
 
     const res = await GET(makeRequest(), makeParams())
-    expect(res.status).toBe(302)
-    expect(res.headers.get('Location')).toBe('https://blob.example.com/completed.pdf')
+    expect(res.status).toBe(200)
+    expect(downloadFile).toHaveBeenCalledWith('https://blob.example.com/completed.pdf')
+    expect(res.headers.get('Content-Type')).toBe('application/pdf')
+    expect(res.headers.get('Content-Disposition')).toBe('attachment; filename="completed-rfp.pdf"')
+    const body = Buffer.from(await res.arrayBuffer())
+    expect(Array.from(body)).toEqual([1, 2, 3])
+  })
+
+  it('serves docx completed documents with the docx content type', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(db as any).limit.mockResolvedValue([{
+      id: 'rfp-1',
+      organizationId: 'org-1',
+      originalFileType: 'docx',
+      completedFileUrl: 'https://blob.example.com/completed.docx',
+      completedFileError: null,
+    }])
+    vi.mocked(downloadFile).mockResolvedValue(Buffer.from([4, 5]))
+
+    const res = await GET(makeRequest(), makeParams())
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Content-Type')).toBe(
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+    expect(res.headers.get('Content-Disposition')).toBe('attachment; filename="completed-rfp.docx"')
   })
 
   it('returns 404 with completedFileError when no URL and error exists', async () => {
