@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { customers } from '@/lib/db/schema/customers'
@@ -18,7 +19,7 @@ export async function GET() {
     return NextResponse.json({ customers: customersList }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     throw error
   }
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ customer: created }, { status: 201 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     throw error
   }

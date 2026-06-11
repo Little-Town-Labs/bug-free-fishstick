@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { inngest } from '@/lib/inngest/client'
 import { db } from '@/lib/db'
@@ -49,7 +50,7 @@ export async function POST(
     return NextResponse.json({ queued: true }, { status: 202 })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+      return authErrorResponse(err)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

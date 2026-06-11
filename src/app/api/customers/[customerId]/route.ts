@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { customers } from '@/lib/db/schema/customers'
@@ -44,7 +45,7 @@ export async function GET(
     }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     throw error
   }
@@ -80,7 +81,7 @@ export async function PATCH(
     return NextResponse.json({ customer: updated }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     throw error
   }
@@ -105,7 +106,7 @@ export async function DELETE(
     return new Response(null, { status: 204 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     throw error
   }

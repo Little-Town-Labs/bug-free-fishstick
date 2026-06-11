@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { getDraft, updateDraft, cancelDraft } from '@/lib/services/proposal-draft'
 
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     return NextResponse.json(draft)
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+      return authErrorResponse(err)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -37,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json(draft)
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+      return authErrorResponse(err)
     }
     const statusCode = (err as NodeJS.ErrnoException & { statusCode?: number }).statusCode
     if (statusCode === 404) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -55,7 +56,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     return NextResponse.json(draft)
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+      return authErrorResponse(err)
     }
     const statusCode = (err as NodeJS.ErrnoException & { statusCode?: number }).statusCode
     if (statusCode === 404) return NextResponse.json({ error: 'Not found' }, { status: 404 })

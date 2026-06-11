@@ -1,5 +1,4 @@
 import { Ratelimit } from '@upstash/ratelimit'
-import { NextResponse } from 'next/server'
 import { getRedis } from '@/lib/storage/kv'
 
 export type RateLimitTier = 'standard' | 'strict' | 'upload'
@@ -29,15 +28,31 @@ function getLimiters(): Record<RateLimitTier, Ratelimit> | null {
   return _limiters
 }
 
+export interface RateLimitExceeded {
+  limit: number
+  remaining: number
+  reset: number
+}
+
+/** Builds the standard rate-limit response headers for a 429. */
+export function rateLimitHeaders(info: RateLimitExceeded): Record<string, string> {
+  return {
+    'X-RateLimit-Limit': info.limit.toString(),
+    'X-RateLimit-Remaining': info.remaining.toString(),
+    'X-RateLimit-Reset': info.reset.toString(),
+    'Retry-After': Math.max(0, Math.ceil((info.reset - Date.now()) / 1000)).toString(),
+  }
+}
+
 /**
  * Check rate limit for a given identifier (typically userId or orgId).
- * Returns null if allowed, or a NextResponse with 429 if rate-limited.
+ * Returns null if allowed, or the limit details when rate-limited.
  * Skips rate limiting gracefully when Redis is unavailable.
  */
 export async function checkRateLimit(
   identifier: string,
   tier: RateLimitTier = 'standard'
-): Promise<NextResponse | null> {
+): Promise<RateLimitExceeded | null> {
   const limiters = getLimiters()
   if (!limiters) return null // Redis unavailable — allow request
 
@@ -46,18 +61,7 @@ export async function checkRateLimit(
     const { success, limit, remaining, reset } = await limiter.limit(identifier)
 
     if (!success) {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        {
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': limit.toString(),
-            'X-RateLimit-Remaining': remaining.toString(),
-            'X-RateLimit-Reset': reset.toString(),
-            'Retry-After': Math.ceil((reset - Date.now()) / 1000).toString(),
-          },
-        }
-      )
+      return { limit, remaining, reset }
     }
   } catch (error) {
     console.error('[rate-limit] Redis unreachable, allowing request:', error instanceof Error ? error.message : String(error))

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { submitAnswers } from '@/lib/services/proposal-draft'
 
 type Params = { params: Promise<{ rfpId: string; draftId: string }> }
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ draft }, { status: 202 })
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+      return authErrorResponse(err)
     }
     const statusCode = (err as NodeJS.ErrnoException & { statusCode?: number }).statusCode
     if (statusCode === 404) return NextResponse.json({ error: 'Not found' }, { status: 404 })

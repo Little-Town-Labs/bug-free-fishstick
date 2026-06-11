@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { db } from '@/lib/db'
 import { proposalDrafts, rfps, proposalTemplates } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json(coverageReport)
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.statusCode })
+      return authErrorResponse(err)
     }
     return NextResponse.json({ error: 'Coverage evaluation failed' }, { status: 500 })
   }

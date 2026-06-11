@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { knowledgeSearchSchema } from '@/lib/utils/validation'
 import { searchSimilar } from '@/lib/services/vector-search'
@@ -31,7 +32,7 @@ export async function POST(
     return NextResponse.json({ results }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     throw error
   }

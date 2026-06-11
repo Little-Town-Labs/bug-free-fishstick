@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import {
   updateProposalTemplate,
   deleteProposalTemplate,
@@ -50,7 +51,7 @@ export async function PATCH(
     return NextResponse.json({ template })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     if (error instanceof Error && error.message === 'isRequired and evaluateCoverage cannot both be true') {
       return NextResponse.json({ error: error.message }, { status: 422 })
@@ -80,7 +81,7 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     console.error('[DELETE /api/settings/proposal-templates/[id]]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

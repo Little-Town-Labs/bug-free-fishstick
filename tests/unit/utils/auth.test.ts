@@ -5,6 +5,12 @@ vi.mock('@clerk/nextjs/server', () => ({
   auth: vi.fn(),
 }))
 
+// Mock only checkRateLimit; keep the real rateLimitHeaders
+vi.mock('@/lib/utils/rate-limit', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/utils/rate-limit')>()
+  return { ...actual, checkRateLimit: vi.fn().mockResolvedValue(null) }
+})
+
 describe('Auth Utilities', () => {
   let mockAuth: ReturnType<typeof vi.fn>
 
@@ -183,6 +189,91 @@ describe('Auth Utilities', () => {
         expect(error).toBeInstanceOf(AuthError)
         expect((error as { statusCode: number }).statusCode).toBe(401)
       }
+    })
+  })
+
+  describe('requireAuthLimited', () => {
+    it('returns auth context when not rate-limited', async () => {
+      mockAuth.mockResolvedValue({
+        userId: 'user_123',
+        orgId: 'org_456',
+        orgRole: 'org:member',
+      })
+      const { checkRateLimit } = await import('@/lib/utils/rate-limit')
+      vi.mocked(checkRateLimit).mockResolvedValue(null)
+
+      const { requireAuthLimited } = await import('@/lib/utils/auth')
+      const result = await requireAuthLimited('strict')
+
+      expect(result.userId).toBe('user_123')
+      expect(checkRateLimit).toHaveBeenCalledWith('user_123', 'strict')
+    })
+
+    it('throws AuthError 429 with rate-limit headers when limited', async () => {
+      mockAuth.mockResolvedValue({
+        userId: 'user_123',
+        orgId: 'org_456',
+        orgRole: 'org:member',
+      })
+      const reset = Date.now() + 30_000
+      const { checkRateLimit } = await import('@/lib/utils/rate-limit')
+      vi.mocked(checkRateLimit).mockResolvedValue({ limit: 60, remaining: 0, reset })
+
+      const { requireAuthLimited, AuthError } = await import('@/lib/utils/auth')
+
+      try {
+        await requireAuthLimited()
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AuthError)
+        const authError = error as InstanceType<typeof AuthError>
+        expect(authError.statusCode).toBe(429)
+        expect(authError.headers).toMatchObject({
+          'X-RateLimit-Limit': '60',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': reset.toString(),
+        })
+        expect(Number(authError.headers!['Retry-After'])).toBeGreaterThan(0)
+      }
+    })
+  })
+
+  describe('requireAdminLimited', () => {
+    it('throws AuthError 429 with headers for rate-limited admin', async () => {
+      mockAuth.mockResolvedValue({
+        userId: 'user_123',
+        orgId: 'org_456',
+        orgRole: 'org:admin',
+      })
+      const { checkRateLimit } = await import('@/lib/utils/rate-limit')
+      vi.mocked(checkRateLimit).mockResolvedValue({ limit: 10, remaining: 0, reset: Date.now() + 1000 })
+
+      const { requireAdminLimited, AuthError } = await import('@/lib/utils/auth')
+
+      try {
+        await requireAdminLimited('strict')
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AuthError)
+        const authError = error as InstanceType<typeof AuthError>
+        expect(authError.statusCode).toBe(429)
+        expect(authError.headers!['X-RateLimit-Limit']).toBe('10')
+      }
+    })
+
+    it('throws 403 before consuming rate limit for non-admin', async () => {
+      mockAuth.mockResolvedValue({
+        userId: 'user_123',
+        orgId: 'org_456',
+        orgRole: 'org:member',
+      })
+      const { checkRateLimit } = await import('@/lib/utils/rate-limit')
+      vi.mocked(checkRateLimit).mockResolvedValue(null)
+
+      const { requireAdminLimited } = await import('@/lib/utils/auth')
+
+      await expect(requireAdminLimited()).rejects.toThrow('Admin access required')
+      expect(checkRateLimit).not.toHaveBeenCalled()
     })
   })
 

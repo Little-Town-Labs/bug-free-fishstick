@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { getIntegrationConfigWithCredentials, type IntegrationType } from '@/lib/services/integration-config'
 
 const VALID_TYPES: IntegrationType[] = ['slack', 'salesforce', 'hubspot']
@@ -66,7 +67,7 @@ export async function POST(
     return NextResponse.json({ success: false, message: 'Unknown integration type' }, { status: 400 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

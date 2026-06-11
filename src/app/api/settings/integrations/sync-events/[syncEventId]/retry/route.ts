@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { getSyncEvent } from '@/lib/services/integration-config'
 import { inngest } from '@/lib/inngest/client'
 
@@ -31,7 +32,7 @@ export async function POST(
     return NextResponse.json({ ok: true, syncEventId }, { status: 202 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

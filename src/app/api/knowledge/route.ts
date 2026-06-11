@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuthLimited, requireAdminLimited, AuthError } from '@/lib/utils/auth'
+import { authErrorResponse } from '@/lib/utils/api-error'
 import { readJsonBody } from '@/lib/utils/request'
 import { db } from '@/lib/db'
 import { knowledgeEntries, KnowledgeEntryType } from '@/lib/db/schema/knowledge-entries'
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ entries }, { status: 200 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     throw error
   }
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ entry: created }, { status: 201 })
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return authErrorResponse(error)
     }
     throw error
   }
