@@ -1,0 +1,67 @@
+flowchart LR
+    User([User / Browser])
+
+    subgraph Client["Client (Next.js App Router, React 19)"]
+        Pages["(auth) Dashboard Pages<br/>rfps · knowledge · content-library<br/>analytics · settings"]
+        UI["shadcn/ui + feature components"]
+    end
+
+    subgraph Edge["Edge / Middleware"]
+        MW["middleware.ts<br/>Clerk auth gate"]
+    end
+
+    subgraph API["API Routes (src/app/api)"]
+        RFPAPI["/api/rfps/*<br/>upload · process · responses ·<br/>approve · submit · proposals · stream"]
+        KBAPI["/api/knowledge/*<br/>/api/content-library/*"]
+        SettingsAPI["/api/settings/*<br/>rate-card · integrations · templates"]
+        AnalyticsAPI["/api/analytics"]
+        Webhooks["/api/webhooks/clerk<br/>/api/inngest (serve)"]
+    end
+
+    subgraph Services["Domain Services (src/lib/services)"]
+        Workflow["rfp-workflow<br/>rate-card · pricing-computation<br/>proposal-draft · content-library-*<br/>vector-search · encryption · sse-publisher"]
+    end
+
+    subgraph AI["AI Agents (src/lib/ai)"]
+        Agents["document-analyzer<br/>response-generator · quality-checker<br/>rfp-classifier · proposal-writer<br/>proposal-coverage-checker"]
+        Providers["providers.ts (Claude / OpenAI / Azure)<br/>embeddings.ts"]
+    end
+
+    subgraph Jobs["Background Jobs (Inngest)"]
+        Process["process-rfp"]
+        GenProp["generate-proposal"]
+        Export["export-document · generate-completed-document"]
+        Embed["generate-embeddings · chunk-document<br/>content-library-embedding"]
+        Learn["extract-learnings · capture-learning"]
+        Analytics["compute-snapshots · compute-org-snapshot"]
+        Integ["slack-notify · crm-sync-rfp · retry-failed-sync"]
+    end
+
+    subgraph Docs["Document I/O (src/lib/documents)"]
+        Parsers["pdf-parser · word-parser"]
+        Writers["pdf-output · word-output"]
+    end
+
+    subgraph Data["Data & Storage"]
+        DB[("Neon Postgres<br/>+ pgvector<br/>18 schema files")]
+        Blob[("Vercel Blob<br/>files")]
+        KV[("Upstash Redis / KV<br/>cache · rate-limit · SSE")]
+    end
+
+    External["External: Clerk · OpenAI · Anthropic · Slack · CRM"]
+
+    User --> Pages --> MW --> API
+    Pages -.SSE.-> RFPAPI
+    API --> Services
+    API -->|emit events| Jobs
+    Webhooks --> Jobs
+    Services --> DB
+    Services --> KV
+    Services --> AI
+    Jobs --> AI
+    Jobs --> Docs
+    Jobs --> DB
+    Jobs --> Blob
+    Jobs --> External
+    AI --> Providers --> External
+    MW --> External

@@ -1,0 +1,32 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#0B1B3B"
+    primaryTextColor: "#F8FAFC"
+    primaryBorderColor: "#FF6B35"
+    lineColor: "#3B82F6"
+    fontFamily: "Inter, sans-serif"
+---
+flowchart LR
+    A[/"📄 RFP Input<br/>PDF • Word • Portal Link"/]:::input --> L1
+    subgraph L1["LOOP 1 — SMART INTAKE"]
+        direction TB
+        B["Parse &<br/>Extract"] --> C["Identify<br/>Questions &<br/>Deliverables"] --> D["Structured<br/>Requirements<br/>Checklist"]
+    end
+    L1 --> H{{"👤 Human<br/>Review"}}:::human
+    H --> L2
+    subgraph L2["LOOP 2 — DRAFTING CANVAS"]
+        direction TB
+        E["Match to<br/>Knowledge Base"] --> F["AI-Generated<br/>Draft"] --> G["Side-by-Side<br/>Edit & Refine"]
+    end
+    L2 --> O[/"✅ Completed<br/>Proposal<br/>PDF • Word • Web"/]:::output
+    KB[("🧠 Knowledge Base<br/>Past wins • Specs • Bios")]:::kb
+    KB -.-> E
+    O -.->|"Won?<br/>feed back"| KB
+    classDef input fill:#3B82F6,stroke:#0B1B3B,color:#fff,stroke-width:2px
+    classDef output fill:#FF6B35,stroke:#0B1B3B,color:#fff,stroke-width:2px
+    classDef human fill:#F8FAFC,stroke:#FF6B35,color:#0B1B3B,stroke-width:2px
+    classDef kb fill:#0B1B3B,stroke:#FF6B35,color:#F8FAFC,stroke-width:2px
+    style L1 fill:#F8FAFC,stroke:#0B1B3B,color:#0B1B3B
+    style L2 fill:#F8FAFC,stroke:#0B1B3B,color:#0B1B3B

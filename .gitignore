@@ -52,6 +52,7 @@ Thumbs.db
 # Claude Code - local config only
 .claude/settings.json
 .claude/settings.json.backup-*
+.claude/sessions/
 .backup-local/
 # drizzle/*.sql
 # drizzle/meta/
@@ -63,6 +64,7 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+__pycache__/
 
 # Logs
 logs/
@@ -74,6 +76,10 @@ logs/
 
 # MCP config (contains API keys)
 .mcp.json
+
+# here.now local state and generated upload payloads
+.herenow/
+docs/marketing/here-now/b64out/
 
 # Certificates
 *.pem

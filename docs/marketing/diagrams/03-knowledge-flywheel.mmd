@@ -1,0 +1,28 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#0B1B3B"
+    primaryTextColor: "#F8FAFC"
+    primaryBorderColor: "#FF6B35"
+    lineColor: "#3B82F6"
+    fontFamily: "Inter, sans-serif"
+---
+flowchart TB
+    KB[("🧠 KNOWLEDGE BASE<br/><br/>Company profile • Service catalog<br/>Past projects • Templates • Certs")]:::kb
+    R["📥 New RFP<br/>arrives"]:::node
+    D["✍️ AI drafts<br/>using KB"]:::node
+    W["🏆 Outcome<br/>tracked<br/>(Won / Lost)"]:::win
+    L["📈 Learning Loop<br/>Successful answers<br/>weighted higher"]:::learn
+    R --> D
+    KB --> D
+    D --> W
+    W --> L
+    L --> KB
+    note["<i>Every response makes<br/>the next one smarter</i>"]:::note
+    L -.-> note
+    classDef kb fill:#0B1B3B,stroke:#FF6B35,color:#F8FAFC,stroke-width:3px
+    classDef node fill:#F8FAFC,stroke:#0B1B3B,color:#0B1B3B,stroke-width:2px
+    classDef win fill:#FF6B35,stroke:#0B1B3B,color:#fff,stroke-width:2px
+    classDef learn fill:#3B82F6,stroke:#0B1B3B,color:#fff,stroke-width:2px
+    classDef note fill:#F8FAFC,stroke:#F8FAFC,color:#64748B

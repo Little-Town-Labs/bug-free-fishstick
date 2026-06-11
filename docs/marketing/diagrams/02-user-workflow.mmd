@@ -1,0 +1,22 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#0B1B3B"
+    primaryTextColor: "#F8FAFC"
+    primaryBorderColor: "#FF6B35"
+    lineColor: "#3B82F6"
+    fontFamily: "Inter, sans-serif"
+---
+flowchart LR
+    S1["1️⃣ UPLOAD<br/><br/>Drag PDF/Word<br/>or paste<br/>portal URL"]:::step
+    S2["2️⃣ EXTRACT<br/><br/>AI structures<br/>questions &<br/>deliverables<br/><br/><i>~2 min</i>"]:::step
+    S3["3️⃣ DRAFT<br/><br/>AI populates<br/>canvas from<br/>your KB"]:::step
+    S4["4️⃣ REFINE<br/><br/>Edit side-by-side,<br/>chat to fill<br/>gaps"]:::step
+    S5["5️⃣ EXPORT<br/><br/>Filled PDF/Word<br/>or quick-copy<br/>for portals"]:::done
+    S1 --> S2 --> S3 --> S4 --> S5
+    T["⏱️ TOTAL: 2–4 hours &nbsp;·&nbsp; <s>3–7 days</s>"]:::time
+    S5 --> T
+    classDef step fill:#F8FAFC,stroke:#0B1B3B,color:#0B1B3B,stroke-width:2px
+    classDef done fill:#FF6B35,stroke:#0B1B3B,color:#fff,stroke-width:2px
+    classDef time fill:#0B1B3B,stroke:#FF6B35,color:#F8FAFC,stroke-width:2px

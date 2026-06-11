@@ -1,0 +1,50 @@
+Request for Proposal (RFP): Enterprise System Modernization
+Project Title: Legacy Software Replacement & Automation Initiative
+RFP Reference Number: RFP-2026-004
+Date of Issue: March 24, 2026
+
+1. Project Overview
+1.1 Summary
+Our organization is seeking proposals from qualified vendors to replace our aging legacy ERP (Enterprise Resource Planning) system with a modernized, automated, and cloud-based solution. The goal is to reduce manual data entry, improve real-time reporting, and enhance cross-departmental workflows.
+1.2 Scope of Work
+The selected vendor will be responsible for:
+* Initial system audit and gap analysis.
+* Data migration from the legacy SQL database to the new platform.
+* Implementation of automated workflows for procurement and billing.
+* Post-launch support and staff training.
+
+2. Instructions to Vendors
+Please complete the following sections in full. Incomplete proposals may be disqualified from the evaluation process.
+2.1 Timeline for Evaluation
+* Proposal Submission Deadline: April 15, 2026
+* Vendor Interviews: April 22-24, 2026
+* Contract Award: May 1, 2026
+
+3. Vendor Profile & Information
+Please provide the following administrative details.
+FieldResponseCompany Name[Enter Legal Company Name]Corporate Headquarters Address[Address, City, State, Zip]Company Website[URL]Primary Point of Contact[Name & Title]Contact Email & Phone[Email / Phone Number]Years in Business[Number of Years]
+4. Technical Qualifications & Specialties
+4.1 Service Types & Specialties
+Describe the core services your firm provides and your specific expertise regarding legacy-to-cloud migrations.
+Response: [Enter text here]
+4.2 Certifications
+List all relevant corporate and staff certifications (e.g., ISO/IEC 27001, AWS Certified Solutions Architect, PMP, Microsoft Gold Partner, etc.).
+Response: [Enter list here]
+
+5. Project Execution & Timeline
+5.1 Proposed Delivery Timeline
+Please provide a high-level project schedule, including milestones for Discovery, Development, Testing, and Deployment.
+MilestoneEstimated Duration (Weeks)Key DeliverablePhase 1: DiscoveryPhase 2: Data MigrationPhase 3: Automation SetupPhase 4: UAT & Go-Live
+6. Pricing & Rates
+6.1 Fee Structure
+Please provide a breakdown of costs. Use the table below or attach a detailed pricing sheet.
+* Total Project Fixed Fee: $[Amount]
+* Hourly Rate for Maintenance/Support: $[Rate]/hr
+6.2 Rate Card (Standard Roles)
+RoleHourly RateProject Manager$Senior Developer$Data Analyst$Quality Assurance$
+7. Submission Acknowledgement
+By submitting this proposal, the vendor certifies that the information provided is accurate and that the firm is prepared to begin the project within 30 days of contract execution.
+Authorized Signature: ___________________________
+Printed Name: ___________________________
+Date: ___________________________
+

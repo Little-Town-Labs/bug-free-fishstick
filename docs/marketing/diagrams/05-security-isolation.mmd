@@ -1,0 +1,41 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#0B1B3B"
+    primaryTextColor: "#F8FAFC"
+    primaryBorderColor: "#FF6B35"
+    lineColor: "#3B82F6"
+    fontFamily: "Inter, sans-serif"
+---
+flowchart TB
+    subgraph PLAT["RocketRFP — Multi-Tenant Platform"]
+        direction LR
+        subgraph T1["🔒 Your Organization"]
+            direction TB
+            U1["Users<br/>(role-based)"]:::user
+            KB1["Your KB<br/>& RFPs"]:::tenant
+            U1 --- KB1
+        end
+        subgraph T2["🔒 Other Org"]
+            direction TB
+            U2["Users"]:::user
+            KB2["Their KB<br/>& RFPs"]:::tenant
+            U2 --- KB2
+        end
+        subgraph T3["🔒 Other Org"]
+            direction TB
+            U3["Users"]:::user
+            KB3["Their KB<br/>& RFPs"]:::tenant
+            U3 --- KB3
+        end
+    end
+    SEC["🛡️ Isolation Guarantees<br/><br/>• Per-tenant data partition<br/>• Encrypted at rest &amp; in transit<br/>• SSO &amp; role-based access<br/>• Signed file URLs, expiring<br/>• Optional private LLM"]:::sec
+    PLAT --> SEC
+    classDef user fill:#3B82F6,stroke:#0B1B3B,color:#fff,stroke-width:2px
+    classDef tenant fill:#F8FAFC,stroke:#0B1B3B,color:#0B1B3B,stroke-width:2px
+    classDef sec fill:#0B1B3B,stroke:#FF6B35,color:#F8FAFC,stroke-width:2px
+    style T1 fill:#FFF4ED,stroke:#FF6B35,color:#0B1B3B,stroke-width:2px
+    style T2 fill:#F8FAFC,stroke:#64748B,color:#0B1B3B
+    style T3 fill:#F8FAFC,stroke:#64748B,color:#0B1B3B
+    style PLAT fill:#F8FAFC,stroke:#0B1B3B,color:#0B1B3B

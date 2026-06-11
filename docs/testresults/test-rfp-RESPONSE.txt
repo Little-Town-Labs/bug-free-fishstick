@@ -1,0 +1,55 @@
+
+Proposal: Request for Proposal (RFP): Enterprise System Modernization – Legacy Software Replacement & Automation Initiative
+Reference Number: RFP-2026-004
+Submission Deadline: April 15, 2026
+Prepared by: Acme Solutions Corp
+
+Company Legal Name
+The legal registered name of the responding vendor is Acme Solutions Corp. All contractual documents, purchase orders, and formal correspondence related to this engagement should reference this entity name.
+
+Corporate Headquarters Address
+[PLACEHOLDER: Corporate headquarters street address, city, state, and zip code — not provided during proposal preparation. Please insert the full registered business address prior to submission.]
+
+Company Website URL
+[PLACEHOLDER: Company website URL — please insert the official Acme Solutions Corp website address (e.g., www.acmesolutionscorp.com) prior to submission.]
+
+Primary Point of Contact
+[PLACEHOLDER: Full name and title of the designated primary point of contact for this proposal. Please confirm the appropriate individual prior to submission.]
+
+Contact Email Address and Phone Number
+[PLACEHOLDER: Email address and direct phone number for the primary point of contact. Please insert verified contact details prior to submission.]
+
+Years in Business
+Acme Solutions Corp is an established Software Services and Managed Services firm with a proven track record of delivering enterprise-grade technology solutions. [PLACEHOLDER: Insert the total number of years the company has been in operation.] Throughout our history, we have consistently served clients across diverse industries, building deep expertise in application development, systems integration, and cloud-based transformation initiatives.
+
+Core Services and Legacy-to-Cloud Migration Expertise
+Acme Solutions Corp is a full-service Software Services and Managed Services firm specializing in enterprise application development, cloud migration, systems modernization, and ongoing managed support. Our capabilities span the complete software delivery lifecycle — from initial discovery and architecture design through implementation, quality assurance, and post-go-live managed services.
+Regarding legacy-to-cloud migrations specifically, Acme Solutions Corp applies a structured, phased approach organized into four disciplined phases: Discovery & Assessment, Data Migration, Automation Setup, and User Acceptance Testing & Go-Live. Within each phase, we combine industry-standard tooling on leading cloud platforms — including Microsoft Azure — with our proprietary runbooks and validation frameworks.
+
+Corporate and Staff Certifications
+Acme Solutions Corp holds active corporate and staff-level certifications:
+* Microsoft Gold Partner — Reflecting demonstrated competency in Microsoft cloud and software solutions.
+* Project Management Professional (PMP) — Key project leadership staff hold active PMP certifications issued by the Project Management Institute (PMI).
+* [PLACEHOLDER] — Insert additional certifications (e.g., AWS, ISO/IEC 27001, SOC 2) here.
+
+High-Level Project Schedule
+The following high-level schedule reflects an anticipated project start date of April 30, 2026, with a final delivery deadline of June 30, 2026.
+PhaseDurationStartEndKey DeliverablesPhase 1 – Discovery2 weeksApril 30May 13System assessment; data inventory; project charterPhase 2 – Data Migration3 weeksMay 14June 3ETL scripts; validation reports; cloud data setsPhase 3 – Automation Setup2 weeksJune 4June 17Workflow configs; integration endpoints; runbooksPhase 4 – UAT & Go-Live2 weeksJune 18June 30Test plans; sign-off; cutover; hypercare support
+Pricing and Commercial Terms (USD)
+DescriptionQtyUnitRateTotalDeliverable , 801hour$150.00$150.00Dev , 1202hour$150.00$300.00Dev , 603hour$150.00$450.00Subtotal$900.00Margin (28%)$252.00Total$1,152.00
+Standard Hourly Rates by Role
+RoleStandard Hourly Rate (USD)Project Manager[PLACEHOLDER]Senior Developer[PLACEHOLDER]Data Analyst[PLACEHOLDER]Quality Assurance[PLACEHOLDER]
+Scope Exclusions
+The following items are explicitly outside the scope of this engagement:
+* Cybersecurity services — Penetration testing, vulnerability assessments, and compliance audits are not included.
+* Any work outside the described scope will be subject to a separate change order.
+
+Authorized Signature and Submission Information
+Authorized Signature: ___________________________________
+Printed Name: [PLACEHOLDER]
+Title: [PLACEHOLDER]
+Company: Acme Solutions Corp
+Date of Submission: [PLACEHOLDER — Must be on or before April 15, 2026]
+
+This proposal is valid for 60 days from the date of submission. Confidential and Proprietary.
+
