@@ -1,16 +1,11 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
+import prettier from "eslint-config-prettier/flat";
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript", "prettier"),
+  ...nextCoreWebVitals,
+  ...nextTypescript,
+  prettier,
   {
     ignores: [
       "node_modules/**",
@@ -23,6 +18,13 @@ const eslintConfig = [
   },
   {
     rules: {
+      // New react-hooks rules introduced with eslint-config-next 16 flag
+      // pre-existing patterns (setState-in-effect data fetching, etc.).
+      // Kept as warnings until those components are refactored.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
+      "react-hooks/refs": "warn",
       "@typescript-eslint/no-unused-vars": [
         "warn",
         {

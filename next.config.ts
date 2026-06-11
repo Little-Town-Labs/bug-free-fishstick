@@ -15,11 +15,6 @@ const nextConfig: NextConfig = {
   // Prevent pdfjs-dist (used by react-pdf on the client) from being bundled
   // into server chunks — it references browser APIs (DOMMatrix) at module-init.
   serverExternalPackages: ['pdfjs-dist'],
-  webpack: (config) => {
-    // pdfjs-dist requires canvas to be aliased away in server/edge builds
-    config.resolve.alias.canvas = false
-    return config
-  },
   async headers() {
     return [
       {
