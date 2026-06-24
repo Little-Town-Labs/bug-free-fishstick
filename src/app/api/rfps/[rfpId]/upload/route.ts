@@ -78,6 +78,9 @@ export async function POST(
     if (error instanceof AuthError) {
       return authErrorResponse(error)
     }
-    throw error
+    console.error('[POST /api/rfps/upload]', error instanceof Error ? error.message : String(error))
+    const message =
+      error instanceof Error ? error.message : 'Failed to upload document'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

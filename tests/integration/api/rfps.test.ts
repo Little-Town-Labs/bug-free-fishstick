@@ -458,6 +458,37 @@ describe('RFP API Routes - Contract Tests (TDD Red Phase)', () => {
       const data = await response.json()
       expect(data.error).toBeDefined()
     })
+
+    it('should return JSON when blob upload fails', async () => {
+      vi.mocked(requireAuthLimited).mockResolvedValue(mockAuthContext)
+      vi.mocked(db.select).mockReturnValueOnce({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            limit: vi.fn(() => Promise.resolve([{ id: 'rfp_1' }])),
+          })),
+        })),
+      } as never)
+      vi.mocked(blobPut).mockRejectedValueOnce(new Error('Blob storage unavailable'))
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      const formData = new FormData()
+      const file = new File(['test'], 'test.pdf', { type: 'application/pdf' })
+      formData.append('file', file)
+
+      const request = createMockFormDataRequest(
+        'POST',
+        'http://localhost:3000/api/rfps/rfp_1/upload',
+        formData
+      )
+      const response = await uploadFile(request, { params: Promise.resolve({ rfpId: 'rfp_1' }) })
+
+      expect(response.status).toBe(500)
+      expect(response.headers.get('content-type')).toContain('application/json')
+      const data = await response.json()
+      expect(data.error).toBe('Blob storage unavailable')
+
+      consoleError.mockRestore()
+    })
   })
 
   describe('POST /api/rfps/[rfpId]/process', () => {
