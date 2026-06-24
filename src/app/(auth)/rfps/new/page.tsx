@@ -22,6 +22,18 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+async function getApiError(response: Response, fallback: string): Promise<string> {
+  const text = await response.text()
+  if (!text) return fallback
+
+  try {
+    const body = JSON.parse(text) as { error?: unknown }
+    return typeof body.error === 'string' && body.error ? body.error : fallback
+  } catch {
+    return text || fallback
+  }
+}
+
 function StepIndicator({ step }: { step: number }) {
   const steps = ['Details', 'Upload', 'Review']
   return (
@@ -104,8 +116,7 @@ export default function NewRfpPage() {
         body: JSON.stringify({ name: rfpName, customerId }),
       })
       if (!createRes.ok) {
-        const err = await createRes.json()
-        throw new Error(err.error ?? 'Failed to create RFP')
+        throw new Error(await getApiError(createRes, 'Failed to create RFP'))
       }
       const { rfp } = await createRes.json()
 
@@ -117,8 +128,7 @@ export default function NewRfpPage() {
         body: formData,
       })
       if (!uploadRes.ok) {
-        const err = await uploadRes.json()
-        throw new Error(err.error ?? 'Failed to upload file')
+        throw new Error(await getApiError(uploadRes, 'Failed to upload file'))
       }
 
       // Step 3: Trigger processing
@@ -126,8 +136,7 @@ export default function NewRfpPage() {
         method: 'POST',
       })
       if (!processRes.ok) {
-        const err = await processRes.json()
-        throw new Error(err.error ?? 'Failed to start processing')
+        throw new Error(await getApiError(processRes, 'Failed to start processing'))
       }
 
       router.push(`/rfps/${rfp.id}`)
