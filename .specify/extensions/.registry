@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "extensions": {
+    "ringer-delivery": {
+      "version": "1.0.1",
+      "source": "local",
+      "manifest_hash": "sha256:b99a53f5d86705e6a4c08257c48fb2f7222b4849ff49ad18030163bc5f07c642",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "codex": [
+          "speckit.ringer-delivery.prepare",
+          "speckit.ringer-delivery.run"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-07-31T13:38:58.960825+00:00"
+    }
+  }
+}

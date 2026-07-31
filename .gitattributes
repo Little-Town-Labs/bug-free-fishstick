@@ -1,0 +1,5 @@
+# Preserve Spec Kit managed bytes while excluding upstream whitespace style
+# from this repository's diff gate.
+.agents/skills/speckit-*/** whitespace=-trailing-space,-blank-at-eof
+.specify/scripts/** whitespace=-trailing-space,-blank-at-eof
+.specify/templates/** whitespace=-trailing-space,-blank-at-eof
